@@ -1,0 +1,6 @@
+; $Id: pickem.info 65 2008-04-15 22:16:56Z vandervo $
+name = Pickem
+description = Provides an nfl pickem game drupal site.
+core = 6.x
+dependencies[] = content
+dependencies[] = forum
