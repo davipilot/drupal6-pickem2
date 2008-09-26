@@ -1,5 +1,5 @@
 <?php
-// $Id: pickem.install 65 2008-04-15 22:16:56Z vandervo $
+// $Id: pickem.install,v 1.1.2.1 2008/09/18 21:57:44 jvandervort Exp $
 
 /**
  * @file

@@ -1,4 +1,4 @@
-; $Id: pickem.info 65 2008-04-15 22:16:56Z vandervo $
+; $Id: pickem.info,v 1.1.2.1 2008/09/18 21:57:44 jvandervort Exp $
 name = Pickem
 description = Provides an nfl pickem game drupal site.
 core = 6.x

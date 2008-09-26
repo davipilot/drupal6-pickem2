@@ -1,5 +1,5 @@
 <?php
-// $Id: pickem.inc 65 2008-04-15 22:16:56Z vandervo $
+// $Id: pickem.inc,v 1.1.2.2 2008/09/19 14:35:38 jvandervort Exp $
 
 /**
  * @file
@@ -43,13 +43,13 @@ function get_weeks($weekarg = 0, $season_segment = 'regular') {
 
 function get_users($league_id=0, $not_in_league=0) {
   if ( $league_id==0 ) {
-  	//drupal_set_message("All Users In All Leagues " . $league_id);
+    //drupal_set_message("All Users In All Leagues " . $league_id);
     $query = "SELECT u.* from {users} u where u.uid<>0 order by name";
     $result = db_query($query);
   } 
   else {
     if ( $not_in_league == 0 ) {
-    	//drupal_set_message("All Users In League " . $league_id);
+      //drupal_set_message("All Users In League " . $league_id);
       $query = "SELECT u.* from {users} u inner join {pickem_users} pu on pu.uid=u.uid where u.uid<>0 and pu.nid=%d order by name";
     } 
     else {
@@ -255,7 +255,7 @@ function get_current_week($nextweek = TRUE) {
   $fg = preg_split('/ /', $w['firstgame']);
   $w['firstgame_date'] = $fg[0];
   $w['firstgame_time'] = $fg[1];
-  $w['firstgame_xml'] = $fg[0] .'T'. $fg[1] .'-05:00';
+  $w['firstgame_xml'] = $fg[0] .'T'. $fg[1] .'-04:00';
   $w['dow'] = $dow;
 
   return $w;
@@ -347,7 +347,7 @@ function get_team_totals($league_id, $sort_by='win_loss') {
       $totals[$row->v_id]['correct_picks'] += 1;
       $totals[$row->h_id]['correct_picks'] += 1;
       $totals[$row->h_id]['win_picks'] += 1;
-    	$totals[$row->h_id]['wins'] += 1;
+      $totals[$row->h_id]['wins'] += 1;
     } 
     // Visitor Win, Correct
     else if ($row->v_score > $row->h_score && $row->winnerpick_id == $row->v_id) {
@@ -366,12 +366,12 @@ function get_team_totals($league_id, $sort_by='win_loss') {
     $totals[$row->h_id]['total_picks'] += 1;
     
     if ( $totals[$row->h_id]['total_picks'] != 0 ) {
-    	$totals[$row->h_id]['pickability'] = round($totals[$row->h_id]['correct_picks'] / $totals[$row->h_id]['total_picks'] * 100,1);
-    	$totals[$row->h_id]['pickability_w'] = round($totals[$row->h_id]['win_picks'] / $totals[$row->h_id]['total_picks'] * 100,1);
+      $totals[$row->h_id]['pickability'] = round($totals[$row->h_id]['correct_picks'] / $totals[$row->h_id]['total_picks'] * 100, 1);
+      $totals[$row->h_id]['pickability_w'] = round($totals[$row->h_id]['win_picks'] / $totals[$row->h_id]['total_picks'] * 100, 1);
     }
     if ( $totals[$row->v_id]['total_picks'] != 0 ) {
-    	$totals[$row->v_id]['pickability'] = round($totals[$row->v_id]['correct_picks'] / $totals[$row->v_id]['total_picks'] * 100,1);
-    	$totals[$row->v_id]['pickability_w'] = round($totals[$row->v_id]['win_picks'] / $totals[$row->v_id]['total_picks'] * 100,1);
+      $totals[$row->v_id]['pickability'] = round($totals[$row->v_id]['correct_picks'] / $totals[$row->v_id]['total_picks'] * 100, 1);
+      $totals[$row->v_id]['pickability_w'] = round($totals[$row->v_id]['win_picks'] / $totals[$row->v_id]['total_picks'] * 100, 1);
     }
     
   }

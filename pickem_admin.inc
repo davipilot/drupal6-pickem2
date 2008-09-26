@@ -1,15 +1,29 @@
 <?php
-// $Id: pickem_admin.inc 65 2008-04-15 22:16:56Z vandervo $
+// $Id: pickem_admin.inc,v 1.1.2.3 2008/09/22 18:20:32 jvandervort Exp $
 
 /**
  * @file
  * includes all pickem admin functions.
 */
 
-function page_admin() {
-  drupal_set_title('Pickem');
-  print theme('page', 'Place Holder, Dog');
+function pickem_admin_settings() {
+
+  $form = array();
+
+  $form['pickem_commisioner_email'] = array(
+    '#type' => 'textfield',
+    '#size' => 100,
+    '#title' => t('Email Address of the Commisioner'),
+    '#default_value' => variable_get('pickem_commisioner_email', ''),
+    '#description' => t("This is the return address for all systemwide email messages."),
+  );
+
+  return system_settings_form($form);
 }
+
+
+
+
 
 function page_admin_leagues($league_id = "") {
   
@@ -72,9 +86,7 @@ function page_admin_games() {
   return drupal_get_form('admin_games_form');
 }
 function admin_games_form($form_state=NULL) {
-  //drupal_set_message('admin_games_form');
   $form = array(
-  	//'#pre_render' => array('admin_games_form_pre_render'),
     '#theme' => 'admin_games_form',
     '#tree' => TRUE,
   );  
@@ -218,7 +230,7 @@ function theme_admin_games_form(&$form) {
 function admin_games_form_submit($form, &$form_state) {
   //drupal_set_message('admin_games_form_submit');
 
-	cache_clear_all('pickem_grid_scores', 'cache', TRUE); 
+  cache_clear_all('pickem_grid_scores', 'cache', TRUE); 
 
   foreach ($form_state['values']['games'] as $key => $value) {
     $gid = $value['gid'];
@@ -227,10 +239,10 @@ function admin_games_form_submit($form, &$form_state) {
     $home_team = $value['home_team'];
     $visitor_team = $value['visitor_team'];
 
-		// this will filter by games on the current page only.
-		if ($gid <> 0 && $gametime != '' && $home_team <> 0 && $visitor_team <> 0) {
-    	$query = "update {pickem_games} set wid=%d, gametime='%s', h_id=%d, v_id=%d where gid=%d";
-    	$result = db_query($query, $wid, date($gametime), $home_team, $visitor_team, $gid);
+    // this will filter by games on the current page only.
+    if ($gid <> 0 && $gametime != '' && $home_team <> 0 && $visitor_team <> 0) {
+      $query = "update {pickem_games} set wid=%d, gametime='%s', h_id=%d, v_id=%d where gid=%d";
+      $result = db_query($query, $wid, date($gametime), $home_team, $visitor_team, $gid);
     }
   }
 
