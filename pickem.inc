@@ -119,21 +119,6 @@ function get_teams() {
   return $teams;
 }
 
-/*
-function get_games($weekarg="") {
-
-  if (is_numeric($weekarg)) {
-    $query = "SELECT g.gid, g.wid, g.h_score, g.v_score, g.v_id, g.h_id, g.gametime FROM {pickem_games} g inner join {pickem_weeks} pw on pw.wid=g.wid where g.wid=%d order by g.wid, g.gametime, g.gid";
-    $result = db_query($query, $weekarg);
-    return $result;
-  } 
-  else {
-    $query = "SELECT g.gid, g.wid, g.h_score, g.v_score, g.v_id, g.h_id, g.gametime FROM {pickem_games} g inner join {pickem_weeks} pw on pw.wid=g.wid order by g.wid, g.gametime, g.gid";
-    $result = db_query($query);
-    return $result;
-  }
-}
-*/
 
 function get_games($week_id="") {
 
@@ -153,6 +138,66 @@ function get_games($week_id="") {
     $games[$row->gid] = $row;
   }
   return $games;
+}
+
+
+function get_games_split($league_id = 0, $user_id = 0) {
+  // 
+  $games = array();
+  if ( $league_id == 0 && $user_id == 0 ) {
+    $query = "SELECT g.gid, g.wid, g.h_score, g.v_score, g.v_id, g.h_id, g.gametime FROM {pickem_games} g inner join {pickem_weeks} w on w.wid=g.wid where now() < adddate(w.wk_firstgame, INTERVAL 6 day) ORDER BY g.wid, g.gametime, g.gid";
+    $result = db_query($query);
+    while ($row = db_fetch_object($result)) {
+      $games[$row->wid][$row->gid] = array(
+        "hid" => $row->h_id,
+        "vid" => $row->v_id,
+        "vscore" => $row->v_score,
+        "hscore" => $row->h_score,
+        "gametime" => $row->gametime
+      );
+    }
+
+    $query = "SELECT g.gid, g.wid, g.h_score, g.v_score, g.v_id, g.h_id, g.gametime FROM {pickem_games} g inner join {pickem_weeks} w on w.wid=g.wid where now() > adddate(w.wk_firstgame, INTERVAL 6 day) ORDER BY g.wid, g.gametime, g.gid";
+    $result = db_query($query);
+    while ($row = db_fetch_object($result)) {
+      $games[$row->wid][$row->gid] = array(
+        "hid" => $row->h_id,
+        "vid" => $row->v_id,
+        "vscore" => $row->v_score,
+        "hscore" => $row->h_score,
+        "gametime" => $row->gametime
+      );
+    }
+  }
+  else {
+	  // two parts query so current week is always ontop, and passed weeks are at the bottom.
+	  $query = "select g.gid, g.wid, g.h_score, g.v_score, g.v_id, g.h_id, pp.winnerpick_id, g.gametime from {pickem_games} g inner join {pickem_weeks} w on w.wid=g.wid left outer join {pickem_picks} pp on pp.gid = g.gid and pp.uid=%d and pp.nid=%d where w.wk_firstgame > now() order by g.wid, g.gametime, g.gid";
+	  $result = db_query($query, $user_id, $league_id);
+	  while ($row = db_fetch_object($result)) {
+	    $games[$row->wid][$row->gid] = array(
+	      "hid" => $row->h_id,
+	      "vid" => $row->v_id,
+	      "pick" => $row->winnerpick_id,
+	      "vscore" => $row->v_score,
+	      "hscore" => $row->h_score,
+	      "gametime" => $row->gametime
+	    );
+	  }
+	  
+	  $query = "select g.gid, g.wid, g.h_score, g.v_score, g.v_id, g.h_id, pp.winnerpick_id, g.gametime from {pickem_games} g inner join {pickem_weeks} w on w.wid=g.wid left outer join {pickem_picks} pp on pp.gid = g.gid and pp.uid=%d and pp.nid=%d where w.wk_firstgame < now() order by g.wid, g.gametime, g.gid";
+	  $result = db_query($query, $user_id, $league_id);
+	  while ($row = db_fetch_object($result)) {
+	    $games[$row->wid][$row->gid] = array(
+	      "hid" => $row->h_id,
+	      "vid" => $row->v_id,
+	      "pick" => $row->winnerpick_id,
+	      "vscore" => $row->v_score,
+	      "hscore" => $row->h_score,
+	      "gametime" => $row->gametime
+	    );
+	  }
+	}
+	return $games;	
 }
 
 
