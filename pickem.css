@@ -1,7 +1,23 @@
 /* $Id: pickem.css,v 1.1.2.1 2008/09/18 21:57:44 jvandervort Exp $ */
 
 /*
- GRID
+  GENERAL
+*/
+.warning {
+  color:red;
+}
+.win {
+  color:green;
+}
+.loss {
+  color:red;
+}
+.pickem table {
+	border-style: hidden;
+}
+
+/*
+ GRID TABLE
 */
 .pickem table.grid {
   font-size: 10px;
@@ -37,7 +53,7 @@
 }
 
 /*
- PICKS
+ PICKS TABLE
 */
 .pickem table.picks td {
   vertical-align:top;
@@ -59,7 +75,7 @@
 }
 
 /*
- STANDINGS
+ STANDINGS TABLE
 */
 .pickem table.standings th {
   text-align: left;
@@ -77,58 +93,75 @@
 }
 
 /*
-  LEAGUE NAV
+  LEAGUE NAV TABLE
 */
-.pickem table.league-nav .warning {
-  color:red;
-}
-
-
-.dash {
-  margin:0;
-  padding:0;
-  font-size:10.5px;
+.pickem table.league-nav td {
   vertical-align:top;
 }
-.dash table tr td{
-  border-style:none;
+.pickem table.league-nav .col1 {
+  width:25%;
 }
-.dash table td {
+.pickem table.league-nav .col2 {
+  width:75%;
+}
+
+/*
+  WEEKS GAMES TABLE
+*/
+.pickem table.weeks-games {
+	width: 200px;
+}
+.pickem table.weeks-games .team-abbrev {
+	width: 75px;
+}
+.pickem table.weeks-games .score {
+	width: 125px;
+}
+
+/*
+  ADMIN SCORES TABLE
+*/
+.pickem table.admin-scores {
+	width: 500px;
+}
+.pickem table.admin-scores .team {
+	width: 75px;
+}
+.pickem table.admin-scores .score {
+	width: 125px;
+}
+.pickem table.admin-scores .time {
+	width: 300px;
+}
+
+/*
+  LEAGUE(S) DASH
+*/
+.pickem .dash {
+  font-size:11px;
+}
+.pickem .dash td {
   margin:0;
   padding:0;
 }
-.dash .title {
+.pickem .dash .title {
   font-weight:bold;
   text-decoration: underline;
 }
 
-table.block_scores {
-  margin-left: 10px;
-}
-table.block_scores td.vis-t {
-  text-align:left;
-}
-table.block_scores td.vis-s {
-  text-align: right;
-  font-family: Courier, monospace;
-  font-weight: bold;
-}
-table.block_scores td.home-t {
-  padding-left:20px;
-}
-table.block_scores td.home-s {
-  text-align:right;
-  font-family: Courier, monospace;
-  font-weight: bold;
+/*
+  USER LIST 
+*/
+.pickem .user-list-horiz {
+	margin-left: 10px;
 }
 
-
-
-
-
-
-
-
-
-
-
+/*
+  GAME LIST 
+*/
+.pickem .game-list-horiz {
+  float:left;
+  margin:5px 0 0 3px;
+  width:60px;
+  border-left: 2px solid black;
+}
