@@ -812,7 +812,7 @@ function page_my_leagues() {
   }
   
   foreach ($_pickem_my_leagues as $l) {
-    $o .= "<tr><td style=\"width:25%; vertical-align:top;\">". theme('league_nav', $l, 'yes') ."</td><td style=\"width:75%; vertical-align:top;\">". theme('league_leaders', $l->nid) .'</td></tr>'; 
+    $o .= '<tr><td class="col1">'. theme('league_nav', $l, 'yes') .'</td><td class="col2">'. theme('league_leaders', $l->nid) .'</td></tr>'; 
   }
   $o .= '</table></div>';
   print theme('page', $o); 
@@ -822,8 +822,8 @@ function page_league($league) {
   drupal_set_title('League Dashboard');
   
   $o  = '<div class="pickem"><table class="league-nav">';
-  $o .= "<tr><td style=\"width:25%; vertical-align:top;\">". theme('league_nav', $league) ."</td><td style=\"width:75%; vertical-align:top;\">". theme('league_messages', $league) ."</td></tr>";
-  $o .= "<tr><td style=\"vertical-align:top;\">". theme('league_leaders', $league->nid) ."</td><td style=\"vertical-align:top;\">". theme('this_weeks_games_scrape') ."</td></tr></table></div>";
+  $o .= '<tr><td class="col1">'. theme('league_nav', $league) .'</td><td class="col2">'. theme('league_messages', $league) .'</td></tr>';
+  $o .= '<tr><td>'. theme('league_leaders', $league->nid) .'</td><td>'. theme('this_weeks_games') .'</td></tr></table></div>';
   
   print theme('page', $o);  
 }
@@ -857,10 +857,10 @@ function theme_league_messages($league) {
   $cur_w = get_current_week(true);
   if ( $cur_w['firstgame_date'] != '' ) {
     if ( $cur_w['dow'] <> "Sunday" ) {
-      $output .= '<li style="color:red;font-weight:bold;">Warning: The first game is on <span style="text-decoration:underline;">'. strtoupper($cur_w['dow']) .'</span>.</li>';
+      $output .= '<li class="warning">Warning: The first game is on <span style="text-decoration:underline;">'. strtoupper($cur_w['dow']) .'</span>.</li>';
     }
     if (module_exists("countdowntimer")) {
-      $output .= '<li style="color:red;">'. get_countdown_timer($cur_w) .'</li>';
+      $output .= '<li class="warning">'. get_countdown_timer($cur_w) .'</span></li>';
     }
   }
 
@@ -907,7 +907,7 @@ function theme_league_leaders($league_id) {
   
   $totals = get_user_totals($league_id); //sorted by overall score
   $title = 'Leaders';
-  $content = '<table style="border-style: hidden;">';
+  $content = '<table class="league-leaders">';
   foreach ($totals as $uid => $totalinfo) {
     $content .= '<tr><td>'. $totalinfo['total'] .'</td><td><a href="/user/'. $uid .'">'. $totalinfo['name'] .'</a></td></tr>';
   }
@@ -920,13 +920,13 @@ function theme_this_weeks_games() {
   $cur_w = get_current_week(false); 
   
   if ( $cur_w['wid'] != "" ) {
-    $games = get_games_ar($cur_w['wid']);
+    $games = get_games($cur_w['wid']);
   
-    $content = '<table style="border-style: hidden;">';
-    $content .= '<tr><th>Visitor</th><th >&nbsp;</th><th>Home</th><th>&nbsp;</th></tr>';
+    $content = '<table class="weeks-games">';
+    $content .= '<tr><th colspan="2">Visitor</th><th colspan="2">Home</th></tr>';
     foreach ($games as $gid => $row) {
       //$content.=$teams[$row->v_id]['abbrev'] ." vs ". $teams[$row->h_id]['abbrev'] . "<br/>";
-      $content .= '<tr><td>'. $teams[$row->v_id]["abbrev"] .'</td><td>'. $row->v_score .'</td><td>'. $teams[$row->h_id]["abbrev"] .'</td><td>'. $row->h_score .'</td></tr>';
+      $content .= '<tr><td class="team-abbrev">'. $teams[$row->v_id]["abbrev"] .'</td><td class="score">'. $row->v_score .'</td><td class="team-abbrev">'. $teams[$row->h_id]["abbrev"] .'</td><td class="score">'. $row->h_score .'</td></tr>';
     }
     $content .= '</table>';
     
@@ -1067,11 +1067,11 @@ function chart1($league, $user=NULL) {
   
   $g->set_tool_tip( '#x_legend# #x_label# (#val#)' );
 
-  $o = $g->render('js');
+  $o = '<div class="pickem">'. $g->render('js');
   
   $users = get_users($league->lid);
   foreach ($users as $u) {
-    $o .= '<span style="margin-left: 10px;">';
+    $o .= '<span class="user-list-horiz">';
     $name = $u['name'];
     $name = str_replace(' ', '&nbsp;', $name);
     if ( $user->uid == $u['uid'] ) {
@@ -1080,9 +1080,9 @@ function chart1($league, $user=NULL) {
     else {
       $o .= l($name, 'pickem/'. $league->lid .'/chart1/'. $u['uid'], array('html' => TRUE));
     }
-    $o .= '</span> ';
+    $o .= '</span>';
   }
-  
+  $o .= '</div>';
   print theme('page', $o); 
   
 }

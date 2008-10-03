@@ -738,33 +738,6 @@ function email_league_form_submit($form, &$form_state) {
 
 
 
-
-
-
-
-
-
-
-
-function ______UPDATE_DIVIDER______() {}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 function page_admin_picks($league_id=0, $user_id = 0, $week_id = 0) {
   global $user;
 
@@ -876,66 +849,43 @@ function page_admin_picks($league_id=0, $user_id = 0, $week_id = 0) {
     // ALL WEEKS, missing week_id, requires correct week start date
     drupal_set_title('Administer Picks - '. $l[$league_id]->title .' - '. $u->name);
 
-    $games = array();
-    $query = "SELECT g.gid, g.wid, g.h_score, g.v_score, g.v_id, g.h_id, pp.winnerpick_id, g.gametime FROM {pickem_games} g LEFT OUTER JOIN {pickem_picks} pp ON pp.gid = g.gid and pp.nid=%d and pp.uid=%d inner join {pickem_weeks} w on w.wid=g.wid where now() < adddate(w.wk_firstgame, INTERVAL 6 day) ORDER BY g.wid, g.gametime, g.gid";
-    $result = db_query($query, $league_id, $u->uid);
-    while ($row = db_fetch_object($result)) {
-      $games[$row->wid][$row->gid] = array(
-        "hid" => $row->h_id,
-        "vid" => $row->v_id,
-        "pick" => $row->winnerpick_id,
-        "vscore" => $row->v_score,
-        "hscore" => $row->h_score,
-        "gametime" => $row->gametime
-      );
-    }
-
-    $query = "SELECT g.gid, g.wid, g.h_score, g.v_score, g.v_id, g.h_id, pp.winnerpick_id, g.gametime FROM {pickem_games} g LEFT OUTER JOIN {pickem_picks} pp ON pp.gid = g.gid and pp.nid=%d and pp.uid=%d inner join {pickem_weeks} w on w.wid=g.wid where now() > adddate(w.wk_firstgame, INTERVAL 6 day) ORDER BY g.wid, g.gametime, g.gid";
-    $result = db_query($query, $league_id, $u->uid);
-    while ($row = db_fetch_object($result)) {
-      $games[$row->wid][$row->gid] = array(
-        "hid" => $row->h_id,
-        "vid" => $row->v_id,
-        "pick" => $row->winnerpick_id,
-        "vscore" => $row->v_score,
-        "hscore" => $row->h_score,
-        "gametime" => $row->gametime
-      );
-    }
-    
-    $rows = array();
+    $flip = array('even' => 'odd', 'odd' => 'even');
+    $class = 'even';
+    $games = get_games_split($league_id, $user_id);
     foreach ($games as $wid => $weeksgames) {
       $inner="";
       foreach ($weeksgames as $gid => $game) {
-        $inner .= '<div style="float:left;margin:5px 0 0 3px;width:60px;border-left: 2px solid black;">';
+      	$class = $flip[$class];
+      	
+        $inner .= '<div class="game-list-horiz">';
         if (isset ($teams[$game["pick"]]["abbrev"])) {
           if ($game["pick"] == $game["vid"] && $game["vscore"] > $game["hscore"]) {
             // PICK VIS, VIS WINS
-            $inner .= '<span class="pick_win"><b>'. $teams[$game["vid"]]["abbrev"] .'</b></span><br/>@'. $teams[$game["hid"]]["abbrev"];
+            $inner .= '<span class="win">'. $teams[$game["vid"]]["abbrev"] .'</span><br/>@'. $teams[$game["hid"]]["abbrev"];
           }
           elseif ($game["pick"] == $game["hid"] && $game["hscore"] > $game["vscore"]) {
             // PICK HOME, HOME WINS
-            $inner .= $teams[$game["vid"]]["abbrev"] .'<br/>@<span class="pick_win"><b>'. $teams[$game["hid"]]["abbrev"] .'</b></span>';
+            $inner .= $teams[$game["vid"]]["abbrev"] .'<br/>@<span class="win">'. $teams[$game["hid"]]["abbrev"] .'</span>';
           }
           elseif ($game["hscore"] <> "" && $game["hscore"] == $game["vscore"]) {
             //TIE
-            $inner .= '<span class="pick_win">'. $teams[$game["vid"]]["abbrev"] .'<br/>@'. $teams[$game["hid"]]["abbrev"] .'</span>';
+            $inner .= '<span class="win">'. $teams[$game["vid"]]["abbrev"] .'<br/>@'. $teams[$game["hid"]]["abbrev"] .'</span>';
           }
           elseif ($game["pick"] == $game["vid"] && $game["vscore"] < $game["hscore"]) {
             // PICK VIS, VIS LOSES
-            $inner .= '<span class="pick_loss"><b>'. $teams[$game["vid"]]["abbrev"] .'</b></span><br/>@'. $teams[$game["hid"]]["abbrev"];
+            $inner .= '<span class="loss">'. $teams[$game["vid"]]["abbrev"] .'</span><br/>@'. $teams[$game["hid"]]["abbrev"];
           }
           elseif ($game["pick"] == $game["hid"] && $game["hscore"] < $game["vscore"]) {
             // PICK HOME, HOME LOSES
-            $inner .= $teams[$game["vid"]]["abbrev"] .'<br/>@<span class="pick_loss"><b>'. $teams[$game["hid"]]["abbrev"] .'</b></span>';
+            $inner .= $teams[$game["vid"]]["abbrev"] .'<br/>@<span class="loss">'. $teams[$game["hid"]]["abbrev"] .'</span>';
           }
           elseif ($game["pick"] == $game["hid"]) {
             // PICK HOME, GAME NOT PLAYED
-            $inner .= $teams[$game["vid"]]["abbrev"] .'<br/>@<b>'. $teams[$game["hid"]]["abbrev"] .'</b>';
+            $inner .= $teams[$game["vid"]]["abbrev"] .'<br/>@'. $teams[$game["hid"]]["abbrev"];
           }
           elseif ($game["pick"] == $game["vid"]) {
             // PICK VIS, GAME NOT PLAYED
-            $inner .= '<b>'. $teams[$game["vid"]]["abbrev"] .'</b><br/>@'. $teams[$game["hid"]]["abbrev"];
+            $inner .= $teams[$game["vid"]]["abbrev"] .'<br/>@'. $teams[$game["hid"]]["abbrev"];
           }
         } 
         else {
@@ -960,9 +910,9 @@ function page_admin_picks($league_id=0, $user_id = 0, $week_id = 0) {
 /*
   Path:     admin/content/pickem/scores
 */
-function page_admin_scores($weekarg = "") {
+function page_admin_scores($week_id = 0) {
 
-  $week = get_weeks($weekarg);
+  $week = get_weeks($week_id);
   $title = 'Pickem Scores Admin';
   //print_r($week);
   drupal_set_title($title);
@@ -1003,52 +953,29 @@ function page_admin_scores($weekarg = "") {
 
   $teams = get_teams();
 
-  if (!is_numeric($weekarg)) {
+  if ( $week_id == 0 ) {
     // all weeks
-    $games = array();
-    
-    $query = "SELECT g.gid, g.wid, g.h_score, g.v_score, g.v_id, g.h_id, g.gametime FROM {pickem_games} g inner join {pickem_weeks} w on w.wid=g.wid where now() < adddate(w.wk_firstgame, INTERVAL 6 day) ORDER BY g.wid, g.gametime, g.gid";
-    $result = db_query($query);
-    while ($row = db_fetch_object($result)) {
-      $games[$row->wid][$row->gid] = array(
-        "hid" => $row->h_id,
-        "vid" => $row->v_id,
-        "vscore" => $row->v_score,
-        "hscore" => $row->h_score,
-        "gametime" => $row->gametime
-      );
-    }
 
-    $query = "SELECT g.gid, g.wid, g.h_score, g.v_score, g.v_id, g.h_id, g.gametime FROM {pickem_games} g inner join {pickem_weeks} w on w.wid=g.wid where now() > adddate(w.wk_firstgame, INTERVAL 6 day) ORDER BY g.wid, g.gametime, g.gid";
-    $result = db_query($query);
-    while ($row = db_fetch_object($result)) {
-      $games[$row->wid][$row->gid] = array(
-        "hid" => $row->h_id,
-        "vid" => $row->v_id,
-        "vscore" => $row->v_score,
-        "hscore" => $row->h_score,
-        "gametime" => $row->gametime
-      );
-    }
-
-
-
-
-
+		$games = get_games_split();
     $output = '<div class="pickem">Click on week number to update scores<table>';
+    $flip = array('even' => 'odd', 'odd' => 'even');
+    $class = 'even';
+
     foreach ($games as $wid => $weeksgames) {
-      $output .= '<tr><th>'. l("$wid", 'admin/content/pickem/scores/'. $wid) .'</th><td>';
+    	
+	    $class = $flip[$class];      
+  	  $output .= '<tr class="'. $class .'"><th>'. l("$wid", 'admin/content/pickem/scores/'. $wid) .'</th><td>';
       foreach ($weeksgames as $gid => $game) {
-        $output .= '<div style="float:left;margin:5px 0 0 3px;width:60px;border-left: 2px solid black;">'. $teams[$game["vid"]]["abbrev"] .'&nbsp;<b>'. $game["vscore"] .'</b><br>'. $teams[$game["hid"]]["abbrev"] .'&nbsp;<b>'. $game["hscore"] .'</b></div>';
+        $output .= '<div class="game-list-horiz">'. $teams[$game["vid"]]["abbrev"] .'&nbsp;'. $game["vscore"] .'<br>'. $teams[$game["hid"]]["abbrev"] .'&nbsp;'. $game["hscore"] .'</div>';
       }
       $output .= "</td></tr>";
     }
     $output .= '</table></div>';
   } 
   else {
-    drupal_set_title("$title - Week $weekarg");
+    drupal_set_title("$title - Week $week_id");
     $query = "SELECT g.gid, g.wid, g.h_score, g.v_score, g.v_id, g.h_id, g.gametime FROM {pickem_games} g where g.wid=%d ORDER BY g.wid, g.gametime, g.gid";
-    $result = db_query($query, $weekarg);
+    $result = db_query($query, $week_id);
     $games = array();
     while ($row = db_fetch_object($result)) {
       $games[$row->wid][$row->gid] = array(
@@ -1059,20 +986,18 @@ function page_admin_scores($weekarg = "") {
         "gametime" => $row->gametime
       );
     }
-    $output = '<div class="pickem"><form action="" method="post"><table>';
-    $output .= "<tr><th>Visitor</th><th>Home Team</th><th>Game Time(EST)</th></tr>";
+    $output = '<div class="pickem"><form action="" method="post"><table class="admin-scores">';
+    $output .= '<tr><th colspan="2">Visitor</th><th colspan="2">Home</th><th>Game Time(EST)</th></tr>';
     foreach ($games as $wid => $weeksgames) {
       foreach ($weeksgames as $gid => $game) {
         $output .= '<tr>';
-        $output .= '<td style="width:33%;font-weight:bold;"><input name="gid_'. $gid .'_'. $game['vid'] .'" type="text" size="3" value="'. $game['vscore'] .'" />'. $teams[$game["vid"]]["abbrev"] .'</td>';
-        $output .= '<td style="width:33%;font-weight:bold;"><input name="gid_'. $gid .'_'. $game['hid'] .'" type="text" size="3" value="'. $game['hscore'] .'" />'. $teams[$game["hid"]]["abbrev"] .'</td>';
-        $output .= '<td style="width:33%;">'. $game['gametime'] .'</td></tr>';
+        $output .= '<td class="team">'. $teams[$game["vid"]]["abbrev"] .'</td><td class="score"><input name="gid_'. $gid .'_'. $game['vid'] .'" type="text" size="3" value="'. $game['vscore'] .'" /></td>';
+        $output .= '<td class="team">'. $teams[$game["hid"]]["abbrev"] .'</td><td class="score"><input name="gid_'. $gid .'_'. $game['hid'] .'" type="text" size="3" value="'. $game['hscore'] .'" /></td>';
+        $output .= '<td class="time">'. $game['gametime'] .'</td></tr>';
       }
     }
     $output .= '</table>';
-    //if ($week[$weekarg]['week_past'] == 1) {
-      $output .= '<input type="submit" value="savescores"/>';
-    //}
+    $output .= '<input type="submit" value="savescores"/>';
     $output .= '</form></div>';
   }
 
