@@ -823,7 +823,15 @@ function page_league($league) {
   
   $o  = '<div class="pickem"><table class="league-nav">';
   $o .= '<tr><td class="col1">'. theme('league_nav', $league) .'</td><td class="col2">'. theme('league_messages', $league) .'</td></tr>';
-  $o .= '<tr><td>'. theme('league_leaders', $league->nid) .'</td><td>'. theme('this_weeks_games') .'</td></tr></table></div>';
+  $o .= '<tr><td>'. theme('league_leaders', $league->nid) .'</td>';
+  
+  if ( variable_get('pickem_use_espn', 0) == 0 ) {
+    $o .= '<td>'. theme('this_weeks_games') .'</td></tr></table></div>';
+  }
+  else {
+    $o .= '<td>'. theme('this_weeks_games_scrape') .'</td></tr></table></div>';
+  }
+    
   
   print theme('page', $o);  
 }
@@ -947,8 +955,7 @@ function theme_this_weeks_games_scrape($cache_reset = FALSE) {
     $raw = unserialize($cache->data);
   } 
   else {
-    //$url = "http://mobileapp.espn.go.com/nfl/mp/redesign/scoreboard";
-    $url = "http://198.105.192.37/nfl/mp/redesign/scoreboard";
+    $url = "http://mobileapp.espn.go.com/nfl/mp/redesign/scoreboard?markupType=XHTML";
     $useragent="Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.8.1.1) Gecko/20061204 Firefox/2.0.0.1";
     $ch = curl_init();
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);

@@ -18,6 +18,14 @@ function pickem_admin_settings() {
     '#description' => t("This is the return address for all systemwide email messages."),
   );
 
+  $form['pickem_use_espn'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Use the ESPN score scrape'),
+    '#return_value' => 1,
+    '#default_value' => variable_get('pickem_use_espn', 0),
+    '#description' => t("This grabs the current weeks scores from espn."),
+  );
+
   return system_settings_form($form);
 }
 
