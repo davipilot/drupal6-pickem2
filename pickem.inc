@@ -50,10 +50,10 @@ function get_users($league_id=0, $not_in_league=0) {
   else {
     if ( $not_in_league == 0 ) {
       //drupal_set_message("All Users In League " . $league_id);
-      $query = "SELECT u.* from {users} u inner join {pickem_users} pu on pu.uid=u.uid where u.uid<>0 and pu.nid=%d order by name";
+      $query = "SELECT u.* from {users} u inner join {pickem_users} pu on pu.uid=u.uid where u.uid<>0 and pu.lid=%d order by name";
     } 
     else {
-      $query = "SELECT * from {users} where uid not in (select uid from {pickem_users} where nid=%d) and uid<>0 order by name";
+      $query = "SELECT * from {users} where uid not in (select uid from {pickem_users} where lid=%d) and uid<>0 order by name";
     }
     $result = db_query($query, $league_id);
   }
@@ -74,47 +74,51 @@ function get_users($league_id=0, $not_in_league=0) {
 */
 function league_load($league_id) {
   if ( is_numeric($league_id) ) {
-    $l = node_load($league_id);
-    $l->lid = $l->nid;
-    if ( $l->type == 'league' ) {
-      return $l;
-    }
-  } 
-  return FALSE;
+    $ret = get_leagues($league_id);
+    return $ret[0];
+  }
+  else {
+    return FALSE;
+  }
 }
 
-
-function get_leagues($my_leagues=0) {
-  global $user;
-  if ( $my_leagues == 0 ) {
+function get_leagues($league_id=0) {
+  if ( $league_id == 0 ) {
     //all leagues
-    $query = "SELECT n.* from {node} n where n.type='league'";
+    $query = "SELECT * from {pickem_leagues} order by name";
     $result = db_query($query);
   } 
   else {
-    //my leagues
-    $query = "SELECT n.* from {node} n inner join {pickem_users} pu on pu.nid=n.nid where n.type='league' and pu.uid=%d";
-    $result = db_query($query, $user->uid);
+    //one league
+    $query = "SELECT * from {pickem_leagues} where lid=%d order by name";
+    $result = db_query($query, $league_id);
   }
   $leagues = array();
   while ($row = db_fetch_object($result)) {
-    $leagues[$row->nid] = league_load($row->nid);
+    $leagues[] = $row;
   }
 
   return $leagues;
 }
+function get_my_leagues() {
+  global $user;
+  $query = "SELECT l.* from {pickem_leagues} l inner join {pickem_users} pu on pu.lid=l.lid where pu.uid=%d";
+  $result = db_query($query, $user->uid);
+  $leagues = array();
+  while ($row = db_fetch_object($result)) {
+    $leagues[] = $row;
+  }
+  return $leagues;
+}
+
+
 
 function get_teams() {
   $query = "SELECT * from {pickem_teams} order by tm_abbrev";
   $result = db_query($query);
   $teams = array();
   while ($row = db_fetch_object($result)) {
-    $teams[$row->tid] = array(
-      "city" => $row->tm_city,
-      "abbrev" => $row->tm_abbrev,
-      "nick" => $row->tm_nick,
-      "name" => $row->tm_name
-    );
+    $teams[$row->tid] = $row;
   }
   return $teams;
 }
@@ -171,7 +175,7 @@ function get_games_split($league_id = 0, $user_id = 0) {
   }
   else {
 	  // two parts query so current week is always ontop, and passed weeks are at the bottom.
-	  $query = "select g.gid, g.wid, g.h_score, g.v_score, g.v_id, g.h_id, pp.winnerpick_id, g.gametime from {pickem_games} g inner join {pickem_weeks} w on w.wid=g.wid left outer join {pickem_picks} pp on pp.gid = g.gid and pp.uid=%d and pp.nid=%d where w.wk_firstgame > now() order by g.wid, g.gametime, g.gid";
+	  $query = "select g.gid, g.wid, g.h_score, g.v_score, g.v_id, g.h_id, pp.winnerpick_id, g.gametime from {pickem_games} g inner join {pickem_weeks} w on w.wid=g.wid left outer join {pickem_picks} pp on pp.gid = g.gid and pp.uid=%d and pp.lid=%d where w.wk_firstgame > now() order by g.wid, g.gametime, g.gid";
 	  $result = db_query($query, $user_id, $league_id);
 	  while ($row = db_fetch_object($result)) {
 	    $games[$row->wid][$row->gid] = array(
@@ -184,7 +188,7 @@ function get_games_split($league_id = 0, $user_id = 0) {
 	    );
 	  }
 	  
-	  $query = "select g.gid, g.wid, g.h_score, g.v_score, g.v_id, g.h_id, pp.winnerpick_id, g.gametime from {pickem_games} g inner join {pickem_weeks} w on w.wid=g.wid left outer join {pickem_picks} pp on pp.gid = g.gid and pp.uid=%d and pp.nid=%d where w.wk_firstgame < now() order by g.wid, g.gametime, g.gid";
+	  $query = "select g.gid, g.wid, g.h_score, g.v_score, g.v_id, g.h_id, pp.winnerpick_id, g.gametime from {pickem_games} g inner join {pickem_weeks} w on w.wid=g.wid left outer join {pickem_picks} pp on pp.gid = g.gid and pp.uid=%d and pp.lid=%d where w.wk_firstgame < now() order by g.wid, g.gametime, g.gid";
 	  $result = db_query($query, $user_id, $league_id);
 	  while ($row = db_fetch_object($result)) {
 	    $games[$row->wid][$row->gid] = array(
@@ -205,7 +209,7 @@ function get_games_split($league_id = 0, $user_id = 0) {
 function get_game_picks($league_id=0, $weekarg=0) {
   if ($weekarg != 0) {
 
-    $query = 'select g.gid, g.wid, g.h_score, g.v_score, g.v_id, g.h_id, p.uid, p.winnerpick_id, g.gametime,w.wk_points from {pickem_users} u inner join {pickem_picks} p on u.nid=p.nid and u.uid=p.uid inner join {pickem_games} g on p.gid = g.gid  inner join {pickem_weeks} w on w.wid=g.wid where p.nid=%d and w.wid=%d order by g.wid, g.gametime, g.gid';
+    $query = 'select g.gid, g.wid, g.h_score, g.v_score, g.v_id, g.h_id, p.uid, p.winnerpick_id, g.gametime,w.wk_points from {pickem_users} u inner join {pickem_picks} p on u.lid=p.lid and u.uid=p.uid inner join {pickem_games} g on p.gid = g.gid  inner join {pickem_weeks} w on w.wid=g.wid where p.lid=%d and w.wid=%d order by g.wid, g.gametime, g.gid';
     $result = db_query($query, $league_id, $weekarg);
 
     $games = array();
@@ -219,12 +223,12 @@ function get_game_picks($league_id=0, $weekarg=0) {
 function get_user_totals($league_id, $weekarg=0) {
   if ($weekarg == 0) {
     // all games
-    $query = 'select g.gid, g.wid, g.h_score, g.v_score, g.v_id, g.h_id, p.uid, p.winnerpick_id, g.gametime,w.wk_points from {pickem_users} u inner join {pickem_picks} p on u.nid=p.nid and u.uid=p.uid inner join {pickem_games} g on p.gid = g.gid  inner join {pickem_weeks} w on w.wid=g.wid where p.nid=%d and w.wk_firstgame<now() order by g.wid, g.gametime, g.gid';
+    $query = 'select g.gid, g.wid, g.h_score, g.v_score, g.v_id, g.h_id, p.uid, p.winnerpick_id, g.gametime,w.wk_points from {pickem_users} u inner join {pickem_picks} p on u.lid=p.lid and u.uid=p.uid inner join {pickem_games} g on p.gid = g.gid  inner join {pickem_weeks} w on w.wid=g.wid where p.lid=%d and w.wk_firstgame<now() order by g.wid, g.gametime, g.gid';
     $result = db_query($query, $league_id);
   } 
   else {
     // all games for a certain week
-    $query = 'select g.gid, g.wid, g.h_score, g.v_score, g.v_id, g.h_id, p.uid, p.winnerpick_id, g.gametime,w.wk_points from {pickem_users} u inner join {pickem_picks} p on u.nid=p.nid and u.uid=p.uid inner join {pickem_games} g on p.gid = g.gid  inner join {pickem_weeks} w on w.wid=g.wid where p.nid=%d and w.wid=%d order by g.wid, g.gametime, g.gid';
+    $query = 'select g.gid, g.wid, g.h_score, g.v_score, g.v_id, g.h_id, p.uid, p.winnerpick_id, g.gametime,w.wk_points from {pickem_users} u inner join {pickem_picks} p on u.lid=p.lid and u.uid=p.uid inner join {pickem_games} g on p.gid = g.gid  inner join {pickem_weeks} w on w.wid=g.wid where p.lid=%d and w.wid=%d order by g.wid, g.gametime, g.gid';
     $result = db_query($query, $league_id, $weekarg);
   }
 
@@ -307,7 +311,7 @@ function get_current_week($nextweek = TRUE) {
 }
 
 function set_pick($game_id, $user_id, $league_id, $winnerpick_id) {
-  $query = 'select count(*) as pickcount from {pickem_picks} where gid=%d and uid=%d and nid=%d';
+  $query = 'select count(*) as pickcount from {pickem_picks} where gid=%d and uid=%d and lid=%d';
   $result = db_query($query, $game_id, $user_id, $league_id);
   if ($row = db_fetch_object($result)) {
     if ($row->pickcount > 0) {
@@ -318,11 +322,11 @@ function set_pick($game_id, $user_id, $league_id, $winnerpick_id) {
     }
   }
   if ($type == "insert") {
-    $query = "insert into {pickem_picks} (gid,uid,nid,winnerpick_id,picktime) values (%d,%d,%d,%d,'%s')";
+    $query = "insert into {pickem_picks} (gid,uid,lid,winnerpick_id,picktime) values (%d,%d,%d,%d,'%s')";
     $result = db_query($query, $game_id, $user_id, $league_id, $winnerpick_id, date('Y-m-d H:i:s', time()));
   }
   elseif ($type == "update") {
-    $query = "update {pickem_picks} set winnerpick_id=%d,picktime='%s' where gid=%d and uid=%d and nid=%d";
+    $query = "update {pickem_picks} set winnerpick_id=%d,picktime='%s' where gid=%d and uid=%d and lid=%d";
     $result = db_query($query, $winnerpick_id, date('Y-m-d H:i:s', time()), $game_id, $user_id, $league_id);
   }
 }
@@ -366,7 +370,7 @@ function get_totals_by_week($league_id) {
 
 function get_team_totals($league_id, $sort_by='win_loss') {
   // all games
-  $query = 'select g.gid, g.wid, g.h_score, g.v_score, g.v_id, g.h_id, p.uid, p.winnerpick_id, g.gametime,w.wk_points from {pickem_users} u inner join {pickem_picks} p on u.nid=p.nid and u.uid=p.uid inner join {pickem_games} g on p.gid = g.gid  inner join {pickem_weeks} w on w.wid=g.wid where p.nid=%d and w.wk_firstgame<now() order by g.wid, g.gametime, g.gid';
+  $query = 'select g.gid, g.wid, g.h_score, g.v_score, g.v_id, g.h_id, p.uid, p.winnerpick_id, g.gametime,w.wk_points from {pickem_users} u inner join {pickem_picks} p on u.lid=p.lid and u.uid=p.uid inner join {pickem_games} g on p.gid = g.gid  inner join {pickem_weeks} w on w.wid=g.wid where p.lid=%d and w.wk_firstgame<now() order by g.wid, g.gametime, g.gid';
   $result = db_query($query, $league_id);
 
   $totals = array();

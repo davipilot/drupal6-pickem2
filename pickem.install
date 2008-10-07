@@ -39,6 +39,18 @@ function pickem_uninstall() {
 * Implementation of hook_schema().
 */
 function pickem_schema() {
+  $schema = array();
+  $schema['pickem_leagues'] = array(
+    'fields' => array(
+      'lid'          => array('type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE),
+      'name'         => array('type' => 'varchar', 'length' => 50, 'not null' => TRUE, 'default' => '', 'description' => t('The full league name.'), ),
+      'forum_path'   => array('type' => 'varchar', 'length' => 50, 'not null' => TRUE, 'default' => '', ),
+      'rules_path'   => array('type' => 'varchar', 'length' => 50, 'not null' => TRUE, 'default' => '', ),
+      'scoring_type' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
+    ),
+    'primary key' => array('lid')
+  );
+
   $schema['pickem_games'] = array(
     'fields' => array(
       'gid'       => array('type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE),
@@ -56,9 +68,9 @@ function pickem_schema() {
   $schema['pickem_picks'] = array(
     'fields' => array(
       'pid'           => array('type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE),
-      'gid'           => array('type' => 'int',    'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
+      'lid'           => array('type' => 'int',    'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
       'uid'           => array('type' => 'int',    'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
-      'nid'           => array('type' => 'int',    'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
+      'gid'           => array('type' => 'int',    'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
       'winnerpick_id' => array('type' => 'int',    'unsigned' => TRUE),
       'picktime'      => array('type' => 'datetime')
     ),
@@ -92,14 +104,80 @@ function pickem_schema() {
 
   $schema['pickem_users'] = array(
     'fields' => array(
-      'nid' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE),
-      'uid' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE)
+      'lid' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE),
+      'uid' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE),
     ),
-    'primary key' => array('nid', 'uid')
+    'primary key' => array('lid', 'uid')
   );
 
   return $schema;
 }
+
+
+function pickem_update_6001() {
+  
+  $ret = array();
+
+  /*
+    SCHEMA CHANGES
+  */
+
+  // create new leagues table
+  $schema = pickem_schema();
+  db_create_table($ret, 'pickem_leagues', $schema['pickem_leagues']);
+  // add temp field for data updates
+  db_add_field($ret, 'pickem_leagues', 'leagacy_cck_id', array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0));
+
+  // add league id field to pickem_users
+  db_add_field($ret, 'pickem_users', 'lid', array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE));
+
+  // add league id field to pickem_picks
+  db_add_field($ret, 'pickem_picks', 'lid', array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE));
+
+
+  /* 
+    DATA UPDATES 
+  */
+  
+  // add leagues from the old CCK nodes
+  $query = "SELECT n.* from {node} n where n.type='league'";
+  $result = db_query($query);
+  $data_errors = FALSE;
+  while ($row = db_fetch_object($result)) {
+    $l = node_load($row->nid);
+    if (db_query("INSERT INTO {pickem_leagues} (name, forum_path, rules_path, leagacy_cck_id) VALUES ('%s', '%s', '%s', %d)", $l->title, 'forum/'. $l->field_forum_id[0]['value'], 'node/'. $l->field_rules_node[0]['value'], $row->nid) == FALSE) {
+      $data_errors = TRUE;
+    }
+  }
+
+  //update user table
+  $query = 'update {pickem_users} pu set lid = (select lid from {pickem_leagues} pl where pl.leagacy_cck_id=pu.nid)';
+  if (db_query($query) == FALSE) {
+    $data_errors = TRUE;
+  }
+
+  //update picks table
+  $query = 'update {pickem_picks} pp set lid = (select lid from {pickem_leagues} pl where pl.leagacy_cck_id=pp.nid)';
+  if (db_query($query) == FALSE) {
+    $data_errors = TRUE; 
+  }
+
+
+  //skip field removal if you found a data error
+  if ( $data_errors == FALSE ) {
+    db_drop_unique_key($ret, 'pickem_picks', 'pickem_picks_unique_idx');
+    db_drop_primary_key($ret, 'pickem_users');
+    db_drop_field($ret, 'pickem_picks','nid');
+    db_drop_field($ret, 'pickem_users', 'nid');
+    db_drop_field($ret, 'pickem_leagues','leagacy_cck_id');
+    db_add_unique_key($ret, 'pickem_picks', 'pickem_picks_unique_idx', array('lid','uid','gid'));
+    db_add_primary_key($ret, 'pickem_users', array('uid','lid'));
+  }
+
+  return $ret;
+}
+
+
 
 
 function load_teams_csv() {

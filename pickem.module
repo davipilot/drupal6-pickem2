@@ -36,7 +36,7 @@ function pickem_init() {
   //menu_rebuild();  
   
   global $_pickem_my_leagues;
-  $_pickem_my_leagues = get_leagues(1);
+  $_pickem_my_leagues = get_my_leagues();
   
   $stylesheet = drupal_get_path('theme', $GLOBALS['theme_key'] .'/pickem.css');
   if (!file_exists($stylesheet)) {
@@ -263,13 +263,13 @@ function pickem_cron() {
   $firstgame = $row->wk_firstgame;
 
   if ($days <= 2 && $days > 0) {
-    $query = 'select pu.nid, u.uid, u.mail, u.name, count(pp.pid) picks, count(pg.gid) games, pg.wid from {users} u inner join {pickem_users} pu on pu.uid=u.uid left outer join {pickem_picks} pp on pp.uid=u.uid and pp.nid=pu.nid right outer join {pickem_games} pg on pg.gid=pp.gid where pg.wid=%d group by pu.nid, u.uid, u.mail, u.name';
+    $query = 'select pu.lid, u.uid, u.mail, u.name, count(pp.pid) picks, count(pg.gid) games, pg.wid from {users} u inner join {pickem_users} pu on pu.uid=u.uid left outer join {pickem_picks} pp on pp.uid=u.uid and pp.lid=pu.lid right outer join {pickem_games} pg on pg.gid=pp.gid where pg.wid=%d group by pu.lid, u.uid, u.mail, u.name';
     $result = db_query($query, $wid);
     while ($row = db_fetch_object($result)) {
       $missing_count = $row->games - $row->picks;
       if ( $missing_count > 0 ) {
         $user = user_load($row->uid);
-        email_warning($user, $row->wid, $firstgame, $missing_count, $row->nid);
+        email_warning($user, $row->wid, $firstgame, $missing_count, $row->lid);
       }      
     }
   }
@@ -504,7 +504,7 @@ function page_mypicks_week($league, $week_num='') {
   $teams = get_teams();
   if (is_numeric($week_num)) {
     drupal_set_title("Week $week_num Picks - ". $user->name);
-    $query = "SELECT g.gid, g.wid, g.h_score, g.v_score, g.v_id, g.h_id, pp.winnerpick_id, g.gametime FROM {pickem_games} g LEFT OUTER JOIN {pickem_picks} pp ON pp.gid = g.gid and pp.uid=%d and pp.nid=%d where g.wid=%d ORDER BY g.wid, g.gametime, g.gid";
+    $query = "SELECT g.gid, g.wid, g.h_score, g.v_score, g.v_id, g.h_id, pp.winnerpick_id, g.gametime FROM {pickem_games} g LEFT OUTER JOIN {pickem_picks} pp ON pp.gid = g.gid and pp.uid=%d and pp.lid=%d where g.wid=%d ORDER BY g.wid, g.gametime, g.gid";
     $result = db_query($query, $user->uid, $league->lid, $week_num);
     $games = array();
     while ($row = db_fetch_object($result)) {
@@ -528,23 +528,23 @@ function page_mypicks_week($league, $week_num='') {
           $h_sel = "checked";
         }
         if ($week[$week_num]['week_past'] == 0 || $useroverride <> "") {
-          $output .= '<tr><td><input type="radio" name="gid_'. $gid .'" value="'. $game["vid"] .'" '. $v_sel .'/>'. $teams[$game["vid"]]["abbrev"] .'</td>';
-          $output .= '<td><input type="radio" name="gid_'. $gid .'" value="'. $game["hid"] .'" '. $h_sel .'/>'. $teams[$game["hid"]]["abbrev"] .'</td>';
+          $output .= '<tr><td><input type="radio" name="gid_'. $gid .'" value="'. $game["vid"] .'" '. $v_sel .'/>'. $teams[$game["vid"]]->tm_abbrev .'</td>';
+          $output .= '<td><input type="radio" name="gid_'. $gid .'" value="'. $game["hid"] .'" '. $h_sel .'/>'. $teams[$game["hid"]]->tm_abbrev .'</td>';
         } 
         else {
           $output .= '<tr>';
           if ($game["pick"] == $game["vid"]) {
-            $output .= '<td><input name="checkbox1" type="checkbox" value="checkbox" onclick="return false" checked/>'. $teams[$game["vid"]]["abbrev"] .'</td>';
+            $output .= '<td><input name="checkbox1" type="checkbox" value="checkbox" onclick="return false" checked/>'. $teams[$game["vid"]]->tm_abbrev .'</td>';
           } 
           else {
-            $output .= '<td>'. $teams[$game["vid"]]["abbrev"] .'</td>';
+            $output .= '<td>'. $teams[$game["vid"]]->tm_abbrev .'</td>';
           }
 
           if ($game["pick"] == $game["hid"]) {
-            $output .= '<td><input name="checkbox1" type="checkbox" value="checkbox" onclick="return false" checked/>'. $teams[$game["hid"]]["abbrev"] .'</td>';
+            $output .= '<td><input name="checkbox1" type="checkbox" value="checkbox" onclick="return false" checked/>'. $teams[$game["hid"]]->tm_abbrev .'</td>';
           } 
           else {
-            $output .= '<td>'. $teams[$game["hid"]]["abbrev"] .'</td>';
+            $output .= '<td>'. $teams[$game["hid"]]->tm_abbrev .'</td>';
           }
         }
         if (isset ($game["pick"])) {
@@ -584,7 +584,7 @@ function page_mypicks_all($league) {
   $games = array();
 
   // two parts query so current week is always ontop, and passed weeks are at the bottom.
-  $query = "select g.gid, g.wid, g.h_score, g.v_score, g.v_id, g.h_id, pp.winnerpick_id, g.gametime from {pickem_games} g inner join {pickem_weeks} w on w.wid=g.wid left outer join {pickem_picks} pp on pp.gid = g.gid and pp.uid=%d and pp.nid=%d where w.wk_firstgame > now() order by g.wid, g.gametime, g.gid";
+  $query = "select g.gid, g.wid, g.h_score, g.v_score, g.v_id, g.h_id, pp.winnerpick_id, g.gametime from {pickem_games} g inner join {pickem_weeks} w on w.wid=g.wid left outer join {pickem_picks} pp on pp.gid = g.gid and pp.uid=%d and pp.lid=%d where w.wk_firstgame > now() order by g.wid, g.gametime, g.gid";
   $result = db_query($query, $user->uid, $league->lid);
   while ($row = db_fetch_object($result)) {
     $games[$row->wid][$row->gid] = array(
@@ -597,7 +597,7 @@ function page_mypicks_all($league) {
     );
   }
   
-  $query = "select g.gid, g.wid, g.h_score, g.v_score, g.v_id, g.h_id, pp.winnerpick_id, g.gametime from {pickem_games} g inner join {pickem_weeks} w on w.wid=g.wid left outer join {pickem_picks} pp on pp.gid = g.gid and pp.uid=%d and pp.nid=%d where w.wk_firstgame < now() order by g.wid, g.gametime, g.gid";
+  $query = "select g.gid, g.wid, g.h_score, g.v_score, g.v_id, g.h_id, pp.winnerpick_id, g.gametime from {pickem_games} g inner join {pickem_weeks} w on w.wid=g.wid left outer join {pickem_picks} pp on pp.gid = g.gid and pp.uid=%d and pp.lid=%d where w.wk_firstgame < now() order by g.wid, g.gametime, g.gid";
   $result = db_query($query, $user->uid, $league->lid);
   while ($row = db_fetch_object($result)) {
     $games[$row->wid][$row->gid] = array(
@@ -616,32 +616,32 @@ function page_mypicks_all($league) {
     $output .= '<tr class="'. $class .'"><th>'. l("$wid", "pickem/$league->lid/mypicks/$wid") .'</th><td>';
     foreach ($weeksgames as $gid => $game) {
       $output .= '<div class="picks-float">';
-      if (isset ($teams[$game["pick"]]["abbrev"])) {
+      if (isset ($teams[$game["pick"]]->tm_abbrev)) {
         if ($game["pick"] == $game["vid"] && $game["vscore"] > $game["hscore"]) {
-          $output .= '<span class="pick_win">'. $teams[$game["vid"]]["abbrev"] .'</span><br/>@'. $teams[$game["hid"]]["abbrev"];
+          $output .= '<span class="pick_win">'. $teams[$game["vid"]]->tm_abbrev .'</span><br/>@'. $teams[$game["hid"]]->tm_abbrev;
         }
         elseif ($game["pick"] == $game["hid"] && $game["hscore"] > $game["vscore"]) {
-          $output .= $teams[$game["vid"]]["abbrev"] .'<br/>@<span class="pick_win">'. $teams[$game["hid"]]["abbrev"] .'</span>';
+          $output .= $teams[$game["vid"]]->tm_abbrev .'<br/>@<span class="pick_win">'. $teams[$game["hid"]]->tm_abbrev .'</span>';
         }
         elseif ($game["hscore"] <> "" && $game["hscore"] == $game["vscore"]) {
-          $output .= '<span class="pick_win">'. $teams[$game["vid"]]["abbrev"] .'<br/>@'. $teams[$game["hid"]]["abbrev"] .'</span>';
+          $output .= '<span class="pick_win">'. $teams[$game["vid"]]->tm_abbrev .'<br/>@'. $teams[$game["hid"]]->tm_abbrev .'</span>';
           
         }
         elseif ($game["pick"] == $game["vid"] && $game["vscore"] < $game["hscore"]) {
-          $output .= '<span class="pick_loss">'. $teams[$game["vid"]]["abbrev"] .'</span><br/>@'. $teams[$game["hid"]]["abbrev"];
+          $output .= '<span class="pick_loss">'. $teams[$game["vid"]]->tm_abbrev .'</span><br/>@'. $teams[$game["hid"]]->tm_abbrev;
         }
         elseif ($game["pick"] == $game["hid"] && $game["hscore"] < $game["vscore"]) {
-          $output .= $teams[$game["vid"]]["abbrev"] .'<br/>@<span class="pick_loss">'. $teams[$game["hid"]]["abbrev"] .'</span>';
+          $output .= $teams[$game["vid"]]->tm_abbrev .'<br/>@<span class="pick_loss">'. $teams[$game["hid"]]->tm_abbrev .'</span>';
         }
         elseif ($game["pick"] == $game["hid"]) {
-          $output .= $teams[$game["vid"]]["abbrev"] .'<br/>@<b>'. $teams[$game["hid"]]["abbrev"] .'</b>';
+          $output .= $teams[$game["vid"]]->tm_abbrev .'<br/>@<b>'. $teams[$game["hid"]]->tm_abbrev .'</b>';
         }
         elseif ($game["pick"] == $game["vid"]) {
-          $output .= '<b>'. $teams[$game["vid"]]["abbrev"] .'</b><br/>@'. $teams[$game["hid"]]["abbrev"];
+          $output .= '<b>'. $teams[$game["vid"]]->tm_abbrev .'</b><br/>@'. $teams[$game["hid"]]->tm_abbrev;
         }
       } 
       else {
-        $output .= $teams[$game["vid"]]["abbrev"] .'<br/>@'. $teams[$game["hid"]]["abbrev"];
+        $output .= $teams[$game["vid"]]->tm_abbrev .'<br/>@'. $teams[$game["hid"]]->tm_abbrev;
       }
       $output .= "</div>";
     }
@@ -653,7 +653,7 @@ function page_mypicks_all($league) {
 }
 
 function page_weeklypicks($league, $week_id) {
-  //drupal_set_message('page_weeklypicks('. $league->title .','. $week_id .')');
+  //drupal_set_message('page_weeklypicks('. $league->name .','. $week_id .')');
   
   global $user;
 
@@ -672,7 +672,7 @@ function page_weeklypicks($league, $week_id) {
   $teams = get_teams();
   $games = get_games($week_id);
   foreach ($games as $g => $g_data) {
-    $output .= '<th>'. $teams[$g_data->v_id]["abbrev"] ."<br/>@". $teams[$g_data->h_id]["abbrev"] .'</th>';
+    $output .= '<th>'. $teams[$g_data->v_id]->tm_abbrev ."<br/>@". $teams[$g_data->h_id]->tm_abbrev .'</th>';
     if ($g_data->h_score > $g_data->v_score) {
       $gids[$g] = $g_data->h_id;
     }
@@ -693,14 +693,14 @@ function page_weeklypicks($league, $week_id) {
     $output .= '<tr class="'. $class .'"><td class="users">'. $user_totals['name'] .'</td>';
     foreach ($gids as $gid => $winnerid) {
       if (isset ($gamepicks[$gid][$uid]) && $gamepicks[$gid][$uid] == $winnerid && $winnerid != 0) {
-        $output .= '<td class="win">'. $teams[$gamepicks[$gid][$uid]]["abbrev"] .'</td>';
+        $output .= '<td class="win">'. $teams[$gamepicks[$gid][$uid]]->tm_abbrev .'</td>';
       }
       elseif (isset ($gamepicks[$gid][$uid]) && $gamepicks[$gid][$uid] != $winnerid && $winnerid != 0) {
-        $output .= '<td class="loss">'. $teams[$gamepicks[$gid][$uid]]["abbrev"] .'</td>';
+        $output .= '<td class="loss">'. $teams[$gamepicks[$gid][$uid]]->tm_abbrev .'</td>';
       } 
       else {
         if ($week[$week_id]['week_past'] == 1 || $uid == $user->uid) {
-          $output .= '<td>'. $teams[$gamepicks[$gid][$uid]]["abbrev"] .'</td>';
+          $output .= '<td>'. $teams[$gamepicks[$gid][$uid]]->tm_abbrev .'</td>';
         } 
         else {
           if (isset ($gamepicks[$gid][$uid])) {
@@ -812,7 +812,7 @@ function page_my_leagues() {
   }
   
   foreach ($_pickem_my_leagues as $l) {
-    $o .= '<tr><td class="col1">'. theme('league_nav', $l, 'yes') .'</td><td class="col2">'. theme('league_leaders', $l->nid) .'</td></tr>'; 
+    $o .= '<tr><td class="col1">'. theme('league_nav', $l, 'yes') .'</td><td class="col2">'. theme('league_leaders', $l->lid) .'</td></tr>'; 
   }
   $o .= '</table></div>';
   print theme('page', $o); 
@@ -823,7 +823,7 @@ function page_league($league) {
   
   $o  = '<div class="pickem"><table class="league-nav">';
   $o .= '<tr><td class="col1">'. theme('league_nav', $league) .'</td><td class="col2">'. theme('league_messages', $league) .'</td></tr>';
-  $o .= '<tr><td>'. theme('league_leaders', $league->nid) .'</td>';
+  $o .= '<tr><td>'. theme('league_leaders', $league->lid) .'</td>';
   
   if ( variable_get('pickem_use_espn', 0) == 0 ) {
     $o .= '<td>'. theme('this_weeks_games') .'</td></tr></table></div>';
@@ -841,25 +841,26 @@ function theme_league_nav($league, $multileague='no') {
     $o .=  '<ul>';
     $o .= '<li>'. l('My Picks', 'pickem/'. $league->lid .'/mypicks') .'</li>';
     $o .= '<li>'. l('Standings', 'pickem/'. $league->lid .'/standings') .'</li>';
-    if ( $league->field_rules_node[0]['value'] != '' ) {
-      $o .= '<li>'. l('Rules and Regs', 'node/'. $league->field_rules_node[0]['value']) .'</li>';
+    if ( $league->rules_path != '' ) {
+      $o .= '<li>'. l('Rules and Regs', $league->rules_path) .'</li>';
     }
-    $o .= '<li>'. l('Talk and Taunting', 'forum/'. $league->field_forum_id[0]['value']) .'</li>';
+    $o .= '<li>'. l('Talk and Taunting', $league->forum_path) .'</li>';
     $o .= '<li>'. l('Schedule Grid', 'pickem/grid') .'</li>';
     $o .= '<li>Charts<ul><li>'. l('High/Low', 'pickem/'. $league->lid .'/chart1') .'</li><li>'. l('Team Pickability', 'pickem/'. $league->lid .'/chart2') .'</li></ul></li>';
     $o .= '</ul>';
+    
     if ( $multileague == 'yes' ) {
-      return theme('dash', $league->title, $o, 'main', l($league->title, 'pickem/'. $league->lid));
+      return theme('dash', $league->name, $o, 'main', l($league->name, 'pickem/'. $league->lid));
     } 
     else {
-      return theme('dash', $league->title, $o);
+      return theme('dash', $league->name, $o);
     }
 }
 
 function theme_league_messages($league) {
   //drupal_set_message('theme_league_messages');
   
-  $post_link = '/node/add/forum/'. $league->field_forum_id[0]['value'];
+  $post_link = '/node/add/'. $league->forum_path;
   $output = '<a href="'. $post_link .'">Post new forum topic.</a><ul>';
 
   $cur_w = get_current_week(true);
@@ -874,7 +875,9 @@ function theme_league_messages($league) {
 
 
   $sql = db_rewrite_sql("SELECT n.nid, n.title, l.comment_count, l.last_comment_timestamp, u.name, c.cid, c.comment, c.subject comment_subject, cu.name comment_name, c.timestamp comment_timestamp FROM {node} n INNER JOIN {node_comment_statistics} l ON n.nid = l.nid inner join {users} u on u.uid=n.uid inner join {term_node} tn on tn.nid=n.nid left outer join {comments} c on c.nid=n.nid left outer join {users} cu on cu.uid=c.uid WHERE n.status = 1 AND n.type = 'forum' and tn.tid=%d ORDER BY GREATEST(n.created, c.timestamp) DESC");
-  $result = db_query($sql, $league->field_forum_id[0]['value']);
+  $forum_id = split("/", $league->forum_path);
+  $result = db_query($sql, $forum_id[1]);
+  
   $i = 1;
   $content='';
   while ($node = db_fetch_object($result)) {
@@ -883,10 +886,10 @@ function theme_league_messages($league) {
     }
     $i++;
     if ( $node->comment ) {
-      $content .= '<li>'. l($node->comment_subject .' - '. $node->comment_name .' <Re: '. $node->title .'>', 'node/'. $node->nid  )  .  ' ('. format_date($node->comment_timestamp, 'small') .') <a href="/comment/reply/'. $node->nid .'/'. $node->cid .'">-Reply</a></li>';
+      $content .= '<li>'. l($node->comment_subject .' - '. $node->comment_name .' <Re: '. $node->title .'>', 'node/'. $node->lid  )  .  ' ('. format_date($node->comment_timestamp, 'small') .') <a href="/comment/reply/'. $node->lid .'/'. $node->cid .'">-Reply</a></li>';
     } 
     else {
-      $content .= '<li>'. l($node->title .' - '. $node->name, 'node/'. $node->nid  )  .' ('. format_date($node->last_comment_timestamp, 'small') .') <a href="/comment/reply/'. $node->nid .'/#comment-form">-Reply</a></li>';
+      $content .= '<li>'. l($node->title .' - '. $node->name, 'node/'. $node->lid  )  .' ('. format_date($node->last_comment_timestamp, 'small') .') <a href="/comment/reply/'. $node->lid .'/#comment-form">-Reply</a></li>';
     }
   }
   
@@ -934,7 +937,7 @@ function theme_this_weeks_games() {
     $content .= '<tr><th colspan="2">Visitor</th><th colspan="2">Home</th></tr>';
     foreach ($games as $gid => $row) {
       //$content.=$teams[$row->v_id]['abbrev'] ." vs ". $teams[$row->h_id]['abbrev'] . "<br/>";
-      $content .= '<tr><td class="team-abbrev">'. $teams[$row->v_id]["abbrev"] .'</td><td class="score">'. $row->v_score .'</td><td class="team-abbrev">'. $teams[$row->h_id]["abbrev"] .'</td><td class="score">'. $row->h_score .'</td></tr>';
+      $content .= '<tr><td class="team-abbrev">'. $teams[$row->v_id]->abbrev .'</td><td class="score">'. $row->v_score .'</td><td class="team-abbrev">'. $teams[$row->h_id]->abbrev .'</td><td class="score">'. $row->h_score .'</td></tr>';
     }
     $content .= '</table>';
     
