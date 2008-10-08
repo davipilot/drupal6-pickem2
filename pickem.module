@@ -21,7 +21,7 @@ $_pickem_my_leagues = array();
       return t("A drupal module for nfl pickem style board.");
     case 'admin/content/pickem':
       return '<p>'. t('Here is where you administer all pickem leagues.<br/>Use the tabs above to perform various league functions.<br/>Each pickem user can belong to multiple leagues and will have separate pick sets per league.') .'</p>';
-    case 'admin/content/pickem/leagues':
+    case 'admin/content/pickem/league_users':
       return '<p>'. t('A league is a group of users who compete against each other.  Select a league and then proceed to its user list.'.'</p>');
   }
 }
@@ -171,8 +171,8 @@ function pickem_menu() {
     'file' => 'pickem_admin.inc',
   );    
 
-  $items['admin/content/pickem/league'] = array(
-    'title' => t('League Users'), 
+  $items['admin/content/pickem/leagues'] = array(
+    'title' => t('Leagues'), 
     'page callback' => 'page_admin_leagues', 
     'access arguments' => array('administer pickem'),
     'weight' => 1,
@@ -180,12 +180,21 @@ function pickem_menu() {
     'type' => MENU_LOCAL_TASK, 
   );
 
-  $items['admin/content/pickem/league/%league'] = array(
-    'title' => t('Single League User Admin'), 
-    'page callback' => 'page_admin_league', 
+  $items['admin/content/pickem/league_users'] = array(
+    'title' => t('League Users'), 
+    'page callback' => 'page_admin_leagues_users', 
+    'access arguments' => array('administer pickem'),
+    'weight' => 2,
+    'file' => 'pickem_admin.inc',
+    'type' => MENU_LOCAL_TASK, 
+  );
+
+  $items['admin/content/pickem/league_users/%league'] = array(
+    'title' => t('League User Admin'), 
+    'page callback' => 'page_admin_league_users', 
     'page arguments' => array(4),
     'access arguments' => array('administer pickem'),
-    'weight' => 1,
+    'weight' => 2,
     'file' => 'pickem_admin.inc',
     'type' => MENU_LOCAL_TASK, 
   );
@@ -194,7 +203,7 @@ function pickem_menu() {
     'title' => t('Picks'), 
     'page callback' => 'page_admin_picks', 
     'access arguments' => array('administer pickem'),
-    'weight' => 2,
+    'weight' => 3,
     'file' => 'pickem_admin.inc',
     'type' => MENU_LOCAL_TASK, 
   );
@@ -202,7 +211,7 @@ function pickem_menu() {
     'title' => t('Games'), 
     'page callback' => 'page_admin_games', 
     'access arguments' => array('administer pickem'),
-    'weight' => 3,
+    'weight' => 4,
     'file' => 'pickem_admin.inc',
     'type' => MENU_LOCAL_TASK, 
   );
@@ -210,7 +219,7 @@ function pickem_menu() {
     'title' => t('Scores'), 
     'page callback' => 'page_admin_scores', 
     'access arguments' => array('administer pickem'),
-    'weight' => 4,
+    'weight' => 5,
     'file' => 'pickem_admin.inc',
     'type' => MENU_LOCAL_TASK, 
   );
@@ -218,7 +227,7 @@ function pickem_menu() {
     'title' => t('Weeks'), 
     'page callback' => 'page_admin_weeks', 
     'access arguments' => array('administer pickem'),
-    'weight' => 5,
+    'weight' => 6,
     'file' => 'pickem_admin.inc',
     'type' => MENU_LOCAL_TASK, 
   );
@@ -226,7 +235,7 @@ function pickem_menu() {
     'title' => t('Teams'), 
     'page callback' => 'page_admin_teams', 
     'access arguments' => array('administer pickem'),
-    'weight' => 6,
+    'weight' => 7,
     'file' => 'pickem_admin.inc',
     'type' => MENU_LOCAL_TASK, 
   );
@@ -234,7 +243,7 @@ function pickem_menu() {
     'title' => t('Email League'), 
     'page callback' => 'page_admin_email_league', 
     'access arguments' => array('administer pickem'),
-    'weight' => 7,
+    'weight' => 8,
     'file' => 'pickem_admin.inc',
     'type' => MENU_LOCAL_TASK, 
   );
@@ -283,6 +292,10 @@ function pickem_cron() {
  */
 function pickem_theme() {
   return array(
+    'admin_leagues_form' => array(
+      'file' => 'pickem_admin.inc',
+      'arguments' => array('form' => NULL),
+    ),
     'admin_teams_form' => array(
       'file' => 'pickem_admin.inc',
       'arguments' => array('form' => NULL),
@@ -886,10 +899,10 @@ function theme_league_messages($league) {
     }
     $i++;
     if ( $node->comment ) {
-      $content .= '<li>'. l($node->comment_subject .' - '. $node->comment_name .' <Re: '. $node->title .'>', 'node/'. $node->lid  )  .  ' ('. format_date($node->comment_timestamp, 'small') .') <a href="/comment/reply/'. $node->lid .'/'. $node->cid .'">-Reply</a></li>';
+      $content .= '<li>'. l($node->comment_subject .' - '. $node->comment_name .' <Re: '. $node->title .'>', 'node/'. $node->nid  )  .  ' ('. format_date($node->comment_timestamp, 'small') .') <a href="/comment/reply/'. $node->nid .'/'. $node->cid .'">-Reply</a></li>';
     } 
     else {
-      $content .= '<li>'. l($node->title .' - '. $node->name, 'node/'. $node->lid  )  .' ('. format_date($node->last_comment_timestamp, 'small') .') <a href="/comment/reply/'. $node->lid .'/#comment-form">-Reply</a></li>';
+      $content .= '<li>'. l($node->title .' - '. $node->name, 'node/'. $node->nid  )  .' ('. format_date($node->last_comment_timestamp, 'small') .') <a href="/comment/reply/'. $node->nid .'/#comment-form">-Reply</a></li>';
     }
   }
   

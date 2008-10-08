@@ -33,10 +33,10 @@ function pickem_admin_settings() {
 
 
 
-function page_admin_leagues($league_id = "") {
+function page_admin_leagues_users($league_id = "") {
   
   if ( is_numeric($_POST['league_select']) ) {
-    drupal_goto("admin/content/pickem/league/" . $_POST['league_select']);
+    drupal_goto("admin/content/pickem/league_users/" . $_POST['league_select']);
   }
   
   drupal_set_title('Choose a League to administer');
@@ -44,7 +44,7 @@ function page_admin_leagues($league_id = "") {
 }
 
 
-function page_admin_league($league) {
+function page_admin_league_users($league) {
 
   /* 
     Post Actions
@@ -741,6 +741,98 @@ function email_league_form_submit($form, &$form_state) {
 }
 
 
+/**************
+  Admin Leagues
+***************/
+function page_admin_leagues() {
+  drupal_set_title('Pickem Leagues Admin');
+  return drupal_get_form('admin_leagues_form');
+}
+function admin_leagues_form($form_state=NULL) {
+  //drupal_set_message("admin_leagues_form");
+
+  $form = array(
+    '#theme' => 'admin_leagues_form',
+    '#tree' => TRUE,
+  );  
+
+  $query = "SELECT * from {pickem_leagues} order by name";
+  $result = db_query($query);
+  while ($row = db_fetch_object($result)) {
+    $form['leagues'][$row->lid] = array(
+      'lid' => array(
+        '#type' => 'textfield',
+        '#size' => 5,
+        '#value' => $row->lid
+      ),
+      'name' => array(
+        '#type' => 'textfield',
+        '#size' => 50,
+        '#default_value' => $row->name
+      ),
+      'forum_path' => array(
+        '#type' => 'textfield',
+        '#size' => 10,
+        '#default_value' => $row->forum_path
+      ),
+      'rules_path' => array(
+        '#type' => 'textfield',
+        '#size' => 10,
+        '#default_value' => $row->rules_path
+      ),
+    );
+  }
+  $form['save'] = array(
+    '#type' => 'submit',
+    '#value' => t('Save Leagues')
+  );
+
+  return $form;
+}
+function theme_admin_leagues_form(&$form) {
+  //drupal_set_message("theme_admin_leagues_form");
+  
+  $header = array(t('League ID'), t('Name'), t('Forum Path'), t('Rules Path') );
+
+  $rows = array();
+  foreach (element_children($form['leagues']) as $key) {
+    $rows[] = array(
+      drupal_render($form['leagues'][$key]['lid']), 
+      drupal_render($form['leagues'][$key]['name']), 
+      drupal_render($form['leagues'][$key]['forum_path']), 
+      drupal_render($form['leagues'][$key]['rules_path']), 
+    );
+  }
+ 
+  $output = theme('table', $header, $rows);
+  $output .= drupal_render($form['save']);
+  $output .= drupal_render($form['form_id']);
+  $output .= drupal_render($form['form_token']);
+  
+  return $output;
+}
+function admin_leagues_form_submit($form, &$form_state) {
+  //drupal_set_message("admin_leagues_form_submit");
+  
+  foreach ($form_state['values']['leagues'] as $key => $value) {
+    $lid    = $value['lid'];
+    $name   = $value['name'];
+    $rules_path = $value['rules_path'];
+    $forum_path   = $value['forum_path'];
+    
+    $query = "update {pickem_leagues} set name='%s', rules_path='%s', forum_path='%s' where lid=%d";
+    $result = db_query($query, $name, $rules_path, $forum_path, $lid);
+  }
+  drupal_set_message("Leagues Saved");
+}
+
+
+
+
+
+
+
+
 
 
 
@@ -1009,22 +1101,3 @@ function page_admin_scores($week_id = 0) {
 
   print theme('page', $output);
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
