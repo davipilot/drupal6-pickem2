@@ -384,7 +384,7 @@ function get_team_totals($league_id, $sort_by='win_loss') {
       'pickability' => 'NULL',
       'pickability_w' => 'NULL',
       'wins' => 0,
-      'abbrev' => $team['abbrev']
+      'abbrev' => $team->tm_abbrev,
     );
   }
 
