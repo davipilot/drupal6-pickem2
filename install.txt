@@ -1,20 +1,10 @@
-Installation for this module is not currently easy to say the least.
 
-1. download and install CCK (Content) for DRUPAL-6.
-2. Enable CCK (Content)
-3. Enable CCK Number field type
-4. Enable Forum (from core)
-5. Enable Pickem (this module)
-
-CCK Setup
-6. admin/content/types add node type League (machine league).
-7. Add field "Forum ID" field_forum_id integer to League
-8. Add field "Rules Node" field_rules_node integer to League
-
-9.  Add Forum (named the same as the league title), and remember the id of the forum.
-10. Add Forum post for the rules of the league, and remember the node id of the post.
-11. Add League node title=name of your league, type=league, with the Forum ID from 8. and the Rules id from 9.
-
-Once you are to this point, you'll need to add a user to a league.
-12. admin/content/pickem/league, choose a league, then add a user.  
+1. Enable Forum (from core)
+2. Enable Pickem (this module)
+3. Add a Forum for each league you are adding, and remember the id of the forum.
+4. Add Standard Node or a Forum Post for an explanation of the rules of the league, and remember the node id of the post.
+5. Add a League (/admin/content/pickem/leagues) with the Forum ID from 3. and the Rules node id from 5.
+6. Add users to the league (admin/content/pickem/league_users) 
 This user will then see the league menus under "My leagues".
+
+That's about it.  Enjoy.

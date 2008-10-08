@@ -517,19 +517,26 @@ function page_mypicks_week($league, $week_num='') {
   $teams = get_teams();
   if (is_numeric($week_num)) {
     drupal_set_title("Week $week_num Picks - ". $user->name);
-    $query = "SELECT g.gid, g.wid, g.h_score, g.v_score, g.v_id, g.h_id, pp.winnerpick_id, g.gametime FROM {pickem_games} g LEFT OUTER JOIN {pickem_picks} pp ON pp.gid = g.gid and pp.uid=%d and pp.lid=%d where g.wid=%d ORDER BY g.wid, g.gametime, g.gid";
+    $query = "SELECT g.gid, g.wid, g.h_score, g.v_score, g.v_id, g.v_spread, g.h_id, g.h_spread, pp.winnerpick_id, g.gametime FROM {pickem_games} g LEFT OUTER JOIN {pickem_picks} pp ON pp.gid = g.gid and pp.uid=%d and pp.lid=%d where g.wid=%d ORDER BY g.wid, g.gametime, g.gid";
     $result = db_query($query, $user->uid, $league->lid, $week_num);
     $games = array();
     while ($row = db_fetch_object($result)) {
       $games[$row->wid][$row->gid] = array(
         "hid" => $row->h_id,
+        "h_spread" => $row->h_spread,
         "vid" => $row->v_id,
+        "v_spread" => $row->v_spread,
         "pick" => $row->winnerpick_id,
         "gametime" => $row->gametime
       );
     }
     $output = '<div class="pickem"><form action="" method="post"><table class="picks">';
-    $output .= "<tr><th>Visitor</th><th>Home Team</th><th>Game Time(EST)</th></tr>";
+    if ($league->scoring_type == 0) {
+      $output .= "<tr><th>Visitor</th><th>Home</th><th>Game Time(EST)</th></tr>";
+    } 
+    else if ($league->scoring_type == 1) {
+      $output .= "<tr><th>Visitor</th><th>VSpread</th><th>Home</th><th>HSpread</th><th>Game Time(EST)</th></tr>";
+    }
     foreach ($games as $wid => $weeksgames) {
       foreach ($weeksgames as $gid => $game) {
         $v_sel = "";
@@ -540,24 +547,44 @@ function page_mypicks_week($league, $week_num='') {
         elseif ($game["pick"] == $game["hid"]) {
           $h_sel = "checked";
         }
-        if ($week[$week_num]['week_past'] == 0 || $useroverride <> "") {
-          $output .= '<tr><td><input type="radio" name="gid_'. $gid .'" value="'. $game["vid"] .'" '. $v_sel .'/>'. $teams[$game["vid"]]->tm_abbrev .'</td>';
+        
+        if ($week[$week_num]['week_past'] == 0) {
+          $output .= '<tr>';
+          $output .= '<td><input type="radio" name="gid_'. $gid .'" value="'. $game["vid"] .'" '. $v_sel .'/>'. $teams[$game["vid"]]->tm_abbrev .'</td>';
+          if ($league->scoring_type == 1) {
+            $output .= '<td>'. $game['v_spread'] .'</td>';
+          }
           $output .= '<td><input type="radio" name="gid_'. $gid .'" value="'. $game["hid"] .'" '. $h_sel .'/>'. $teams[$game["hid"]]->tm_abbrev .'</td>';
+          if ($league->scoring_type == 1) {
+            $output .= '<td>'. $game['h_spread'] .'</td>';  
+          }
         } 
         else {
-          $output .= '<tr>';
+          $output .= '<tr>'; 
           if ($game["pick"] == $game["vid"]) {
             $output .= '<td><input name="checkbox1" type="checkbox" value="checkbox" onclick="return false" checked/>'. $teams[$game["vid"]]->tm_abbrev .'</td>';
+            if ($league->scoring_type == 1) {
+              $output .= '<td>'. $game['v_spread'] .'</td>';  
+            }
           } 
           else {
             $output .= '<td>'. $teams[$game["vid"]]->tm_abbrev .'</td>';
+            if ($league->scoring_type == 1) {
+              $output .= '<td>'. $game['v_spread'] .'</td>';  
+            }
           }
 
           if ($game["pick"] == $game["hid"]) {
             $output .= '<td><input name="checkbox1" type="checkbox" value="checkbox" onclick="return false" checked/>'. $teams[$game["hid"]]->tm_abbrev .'</td>';
+            if ($league->scoring_type == 1) {
+              $output .= '<td>'. $game['h_spread'] .'</td>';  
+            }
           } 
           else {
             $output .= '<td>'. $teams[$game["hid"]]->tm_abbrev .'</td>';
+            if ($league->scoring_type == 1) {
+              $output .= '<td>'. $game['h_spread'] .'</td>';  
+            }
           }
         }
         if (isset ($game["pick"])) {
@@ -570,7 +597,7 @@ function page_mypicks_week($league, $week_num='') {
     }
     $output .= '</table>';
     
-    if ($week[$week_num]['week_past'] == 0 || $useroverride <> "") {
+    if ($week[$week_num]['week_past'] == 0 ) {
       if ( count($_pickem_my_leagues) > 1 ) {
         $output .= '<input type="checkbox" name="apply_to_all_my_leagues">Apply picks to all my leagues<br/><br/>';
       }
@@ -854,10 +881,12 @@ function theme_league_nav($league, $multileague='no') {
     $o .=  '<ul>';
     $o .= '<li>'. l('My Picks', 'pickem/'. $league->lid .'/mypicks') .'</li>';
     $o .= '<li>'. l('Standings', 'pickem/'. $league->lid .'/standings') .'</li>';
-    if ( $league->rules_path != '' ) {
-      $o .= '<li>'. l('Rules and Regs', $league->rules_path) .'</li>';
+    if ( $league->rules_node_id != 0 ) {
+      $o .= '<li>'. l('Rules and Regs', 'node/'.$league->rules_node_id) .'</li>';
     }
-    $o .= '<li>'. l('Talk and Taunting', $league->forum_path) .'</li>';
+    if ( $league->forum_id != 0 ) {
+      $o .= '<li>'. l('Talk and Taunting', 'forum/'. $league->forum_id) .'</li>';
+    }
     $o .= '<li>'. l('Schedule Grid', 'pickem/grid') .'</li>';
     $o .= '<li>Charts<ul><li>'. l('High/Low', 'pickem/'. $league->lid .'/chart1') .'</li><li>'. l('Team Pickability', 'pickem/'. $league->lid .'/chart2') .'</li></ul></li>';
     $o .= '</ul>';
@@ -873,7 +902,7 @@ function theme_league_nav($league, $multileague='no') {
 function theme_league_messages($league) {
   //drupal_set_message('theme_league_messages');
   
-  $post_link = '/node/add/'. $league->forum_path;
+  $post_link = '/node/add/forum/'. $league->forum_id;
   $output = '<a href="'. $post_link .'">Post new forum topic.</a><ul>';
 
   $cur_w = get_current_week(true);
@@ -888,8 +917,7 @@ function theme_league_messages($league) {
 
 
   $sql = db_rewrite_sql("SELECT n.nid, n.title, l.comment_count, l.last_comment_timestamp, u.name, c.cid, c.comment, c.subject comment_subject, cu.name comment_name, c.timestamp comment_timestamp FROM {node} n INNER JOIN {node_comment_statistics} l ON n.nid = l.nid inner join {users} u on u.uid=n.uid inner join {term_node} tn on tn.nid=n.nid left outer join {comments} c on c.nid=n.nid left outer join {users} cu on cu.uid=c.uid WHERE n.status = 1 AND n.type = 'forum' and tn.tid=%d ORDER BY GREATEST(n.created, c.timestamp) DESC");
-  $forum_id = split("/", $league->forum_path);
-  $result = db_query($sql, $forum_id[1]);
+  $result = db_query($sql, $league->forum_id);
   
   $i = 1;
   $content='';

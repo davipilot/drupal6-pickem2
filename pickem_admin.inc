@@ -136,10 +136,22 @@ function admin_games_form($form_state=NULL) {
         '#default_value' => $game_data->h_id,
         '#options' => $team_list,
       ),
+      'h_spread' => array(
+        '#type' => 'textfield',
+        '#size' => 4,
+        '#maxlength' => 10,
+        '#default_value' => $game_data->h_spread,
+      ),
       'visitor_team' => array(
         '#type' => 'select',
         '#default_value' => $game_data->v_id,
         '#options' => $team_list,
+      ),
+      'v_spread' => array(
+        '#type' => 'textfield',
+        '#size' => 4,
+        '#maxlength' => 10,
+        '#default_value' => $game_data->v_spread,
       ),
     );
   }
@@ -166,11 +178,23 @@ function admin_games_form($form_state=NULL) {
       '#default_value' => "",
       '#options' => $team_list,
     ),
+    'h_spread' => array(
+      '#type' => 'textfield',
+      '#size' => 4,
+      '#maxlength' => 10,
+      '#default_value' => $game_data->h_spread,
+    ),
     'visitor_team' => array(
       '#type' => 'select',
       '#default_value' => "",
       '#options' => $team_list,
     ),
+    'v_spread' => array(
+      '#type' => 'textfield',
+      '#size' => 4,
+      '#maxlength' => 10,
+      '#default_value' => $game_data->v_spread,
+      ),
   );
 
   $form['save'] = array(
@@ -193,7 +217,9 @@ function theme_admin_games_form(&$form) {
         drupal_render($form['games'][$key]['wid']), 
         drupal_render($form['games'][$key]['game_time']), 
         drupal_render($form['games'][$key]['visitor_team']), 
-        drupal_render($form['games'][$key]['home_team'])
+        drupal_render($form['games'][$key]['v_spread']), 
+        drupal_render($form['games'][$key]['home_team']),
+        drupal_render($form['games'][$key]['h_spread']), 
       );
     }
   }
@@ -205,11 +231,13 @@ function theme_admin_games_form(&$form) {
       drupal_render($form['new_game'][$key]['wid']), 
       drupal_render($form['new_game'][$key]['game_time']), 
       drupal_render($form['new_game'][$key]['visitor_team']), 
-      drupal_render($form['new_game'][$key]['home_team'])
+      drupal_render($form['games'][$key]['v_spread']), 
+      drupal_render($form['new_game'][$key]['home_team']),
+      drupal_render($form['games'][$key]['h_spread']), 
     );
   }
 
-  $header = array(t('Week'), t('Time'), t('Visitor'), t('Home'));
+  $header = array(t('Week'), t('Time'), t('Visitor'), t('VSpread'), t('Home'), t('HSpread'));
   $output = '';
   $output .= '<div><fieldset class="collapsible"><legend><a href="#">Games</a></legend>';
   $output .= theme('table', $header, $rows);
@@ -245,12 +273,14 @@ function admin_games_form_submit($form, &$form_state) {
     $wid = $value['wid'];
     $gametime = $value['game_time'];
     $home_team = $value['home_team'];
+    $h_spread = $value['h_spread'];
     $visitor_team = $value['visitor_team'];
+    $v_spread = $value['v_spread'];
 
     // this will filter by games on the current page only.
     if ($gid <> 0 && $gametime != '' && $home_team <> 0 && $visitor_team <> 0) {
-      $query = "update {pickem_games} set wid=%d, gametime='%s', h_id=%d, v_id=%d where gid=%d";
-      $result = db_query($query, $wid, date($gametime), $home_team, $visitor_team, $gid);
+      $query = "update {pickem_games} set wid=%d, gametime='%s', h_id=%d, h_spread=%d, v_id=%d, v_spread=%d where gid=%d";
+      $result = db_query($query, $wid, date($gametime), $home_team, $h_spread, $visitor_team, $v_spread, $gid);
     }
   }
 
@@ -259,11 +289,13 @@ function admin_games_form_submit($form, &$form_state) {
     $wid = $value['wid'];
     $gametime = $value['game_time'];
     $home_team = $value['home_team'];
+    $h_spread = $value['h_spread'];
     $visitor_team = $value['visitor_team'];
+    $v_spread = $value['v_spread'];
 
     if ($gid == 0 && $gametime != '' && $home_team <> 0 && $visitor_team <> 0) {
-      $query = "insert into {pickem_games}(wid, gametime, h_id, v_id) values(%d, '%s', %d, %d)";
-      $result = db_query($query, $wid, date($gametime), $home_team, $visitor_team);
+      $query = "insert into {pickem_games}(wid, gametime, h_id, h_spread, v_id, v_spread) values(%d, '%s', %d, %d, %d, %d)";
+      $result = db_query($query, $wid, date($gametime), $home_team, $h_spread, $visitor_team, $v_spread);
       drupal_set_message("Games Saved");
       drupal_goto('admin/content/pickem/games', 'page='. ($wid - 1));
     }
@@ -770,15 +802,20 @@ function admin_leagues_form($form_state=NULL) {
         '#size' => 50,
         '#default_value' => $row->name
       ),
-      'forum_path' => array(
+      'forum_id' => array(
         '#type' => 'textfield',
-        '#size' => 10,
-        '#default_value' => $row->forum_path
+        '#size' => 5,
+        '#default_value' => $row->forum_id
       ),
-      'rules_path' => array(
+      'rules_node_id' => array(
         '#type' => 'textfield',
-        '#size' => 10,
-        '#default_value' => $row->rules_path
+        '#size' => 5,
+        '#default_value' => $row->rules_node_id
+      ),
+      'scoring_type' => array(
+        '#type' => 'radios',
+        '#default_value' => $row->scoring_type,
+        '#options' => array( 0 => t('Win-Loss'), 1 => t('Spread') ),
       ),
     );
   }
@@ -792,15 +829,16 @@ function admin_leagues_form($form_state=NULL) {
 function theme_admin_leagues_form(&$form) {
   //drupal_set_message("theme_admin_leagues_form");
   
-  $header = array(t('League ID'), t('Name'), t('Forum Path'), t('Rules Path') );
+  $header = array(t('League ID'), t('Name'), t('Forum ID'), t('Rules Node ID') , t('Scoring Type'));
 
   $rows = array();
   foreach (element_children($form['leagues']) as $key) {
     $rows[] = array(
       drupal_render($form['leagues'][$key]['lid']), 
       drupal_render($form['leagues'][$key]['name']), 
-      drupal_render($form['leagues'][$key]['forum_path']), 
-      drupal_render($form['leagues'][$key]['rules_path']), 
+      drupal_render($form['leagues'][$key]['forum_id']), 
+      drupal_render($form['leagues'][$key]['rules_node_id']), 
+      drupal_render($form['leagues'][$key]['scoring_type']), 
     );
   }
  
@@ -815,13 +853,8 @@ function admin_leagues_form_submit($form, &$form_state) {
   //drupal_set_message("admin_leagues_form_submit");
   
   foreach ($form_state['values']['leagues'] as $key => $value) {
-    $lid    = $value['lid'];
-    $name   = $value['name'];
-    $rules_path = $value['rules_path'];
-    $forum_path   = $value['forum_path'];
-    
-    $query = "update {pickem_leagues} set name='%s', rules_path='%s', forum_path='%s' where lid=%d";
-    $result = db_query($query, $name, $rules_path, $forum_path, $lid);
+    $query = "update {pickem_leagues} set name='%s', rules_node_id=%d, forum_id=%d where lid=%d";
+    $result = db_query($query, $value['name'], $value['rules_node_id'], $value['forum_id'], $value['lid']);
   }
   drupal_set_message("Leagues Saved");
 }

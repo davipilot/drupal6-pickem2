@@ -129,11 +129,11 @@ function get_games($week_id="") {
   //drupal_set_message($week_id);
 
   if (is_numeric($week_id)) {
-    $query = "SELECT g.gid, g.wid, g.h_score, g.v_score, g.v_id, g.h_id, g.gametime FROM {pickem_games} g inner join {pickem_weeks} pw on pw.wid=g.wid where g.wid=%d order by g.wid, g.gametime, g.gid";
+    $query = "SELECT g.* FROM {pickem_games} g inner join {pickem_weeks} pw on pw.wid=g.wid where g.wid=%d order by g.wid, g.gametime, g.gid";
     $result = db_query($query, $week_id);
   } 
   else {
-    $query = "SELECT g.gid, g.wid, g.h_score, g.v_score, g.v_id, g.h_id, g.gametime FROM {pickem_games} g inner join {pickem_weeks} pw on pw.wid=g.wid order by g.wid, g.gametime, g.gid";
+    $query = "SELECT g.* FROM {pickem_games} g inner join {pickem_weeks} pw on pw.wid=g.wid order by g.wid, g.gametime, g.gid";
     $result = db_query($query);
     
   }
@@ -221,14 +221,15 @@ function get_game_picks($league_id=0, $weekarg=0) {
 }
 
 function get_user_totals($league_id, $weekarg=0) {
+  $league = league_load($league_id);
   if ($weekarg == 0) {
     // all games
-    $query = 'select g.gid, g.wid, g.h_score, g.v_score, g.v_id, g.h_id, p.uid, p.winnerpick_id, g.gametime,w.wk_points from {pickem_users} u inner join {pickem_picks} p on u.lid=p.lid and u.uid=p.uid inner join {pickem_games} g on p.gid = g.gid  inner join {pickem_weeks} w on w.wid=g.wid where p.lid=%d and w.wk_firstgame<now() order by g.wid, g.gametime, g.gid';
+    $query = 'select g.gid, g.wid, g.h_score, g.v_score, g.v_id, g.v_spread, g.h_id, g.h_spread, p.uid, p.winnerpick_id, g.gametime,w.wk_points from {pickem_users} u inner join {pickem_picks} p on u.lid=p.lid and u.uid=p.uid inner join {pickem_games} g on p.gid = g.gid  inner join {pickem_weeks} w on w.wid=g.wid where p.lid=%d and w.wk_firstgame<now() order by g.wid, g.gametime, g.gid';
     $result = db_query($query, $league_id);
   } 
   else {
     // all games for a certain week
-    $query = 'select g.gid, g.wid, g.h_score, g.v_score, g.v_id, g.h_id, p.uid, p.winnerpick_id, g.gametime,w.wk_points from {pickem_users} u inner join {pickem_picks} p on u.lid=p.lid and u.uid=p.uid inner join {pickem_games} g on p.gid = g.gid  inner join {pickem_weeks} w on w.wid=g.wid where p.lid=%d and w.wid=%d order by g.wid, g.gametime, g.gid';
+    $query = 'select g.gid, g.wid, g.h_score, g.v_score, g.v_id, g.v_spread, g.h_id, g.h_spread, p.uid, p.winnerpick_id, g.gametime,w.wk_points from {pickem_users} u inner join {pickem_picks} p on u.lid=p.lid and u.uid=p.uid inner join {pickem_games} g on p.gid = g.gid  inner join {pickem_weeks} w on w.wid=g.wid where p.lid=%d and w.wid=%d order by g.wid, g.gametime, g.gid';
     $result = db_query($query, $league_id, $weekarg);
   }
 
@@ -248,17 +249,39 @@ function get_user_totals($league_id, $weekarg=0) {
     if (!isset ($totals[$row->uid][$row->wid])) {
       $totals[$row->uid][$row->wid] = 0;
     }
-    if ($row->h_score > $row->v_score && $row->winnerpick_id == $row->h_id) {
-      $totals[$row->uid][$row->wid] += $row->wk_points;
-      $totals[$row->uid]['total'] += $row->wk_points;
-    } 
-    else if ($row->v_score > $row->h_score && $row->winnerpick_id == $row->v_id) {
+
+    if ( $league->scoring_type == 0 ) {
+      // straight win-loss
+      if ($row->h_score > $row->v_score && $row->winnerpick_id == $row->h_id) {
         $totals[$row->uid][$row->wid] += $row->wk_points;
         $totals[$row->uid]['total'] += $row->wk_points;
-    } 
-    else if ($row->v_score == $row->h_score && $row->h_score <> "") {
+      } 
+      else if ($row->v_score > $row->h_score && $row->winnerpick_id == $row->v_id) {
           $totals[$row->uid][$row->wid] += $row->wk_points;
           $totals[$row->uid]['total'] += $row->wk_points;
+      } 
+      else if ($row->v_score == $row->h_score && $row->h_score <> "") {
+            $totals[$row->uid][$row->wid] += $row->wk_points;
+            $totals[$row->uid]['total'] += $row->wk_points;
+      }
+    }
+    else if ( $league->scoring_type == 1 ) {
+      // use spread
+      if ( ($row->h_score + $row->h_spread) > $row->v_score && $row->winnerpick_id == $row->h_id) {
+        $totals[$row->uid][$row->wid] += $row->wk_points;
+        $totals[$row->uid]['total'] += $row->wk_points;
+      } 
+      else if ( ($row->v_score + $row->v_spread) > $row->h_score && $row->winnerpick_id == $row->v_id) {
+        $totals[$row->uid][$row->wid] += $row->wk_points;
+        $totals[$row->uid]['total'] += $row->wk_points;
+      } 
+      else if ( ($row->v_score + $row->v_spread) == $row->h_score && $row->h_score <> "") {
+        $totals[$row->uid][$row->wid] += $row->wk_points;
+        $totals[$row->uid]['total'] += $row->wk_points;
+      }
+      else {
+        drupal_set_message($row->v_score . ' ' . $row->v_spread . ' ' . $row->h_score . ' ' . $row->h_spread . "    None of the above"); 
+      }
     }
   }
   uasort($totals, "sort_totals");
