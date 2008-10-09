@@ -116,7 +116,7 @@ function pickem_schema() {
 }
 
 
-function pickem_update_6001() {
+function pickem_update_6100() {
   
   $ret = array();
 
