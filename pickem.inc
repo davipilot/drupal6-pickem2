@@ -279,9 +279,6 @@ function get_user_totals($league_id, $weekarg=0) {
         $totals[$row->uid][$row->wid] += $row->wk_points;
         $totals[$row->uid]['total'] += $row->wk_points;
       }
-      else {
-        drupal_set_message($row->v_score . ' ' . $row->v_spread . ' ' . $row->h_score . ' ' . $row->h_spread . "    None of the above"); 
-      }
     }
   }
   uasort($totals, "sort_totals");

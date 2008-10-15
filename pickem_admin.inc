@@ -26,6 +26,36 @@ function pickem_admin_settings() {
     '#description' => t("This grabs the current weeks scores from espn."),
   );
 
+
+  $form['pickem_auto_signup'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Auto Signup'),
+    '#collapsible' => TRUE,
+  );
+
+  $form['pickem_auto_signup']['pickem_auto_signup_enable'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Enable'),
+    '#return_value' => 1,
+    '#default_value' => variable_get('pickem_auto_signup_enable', 0),
+    '#description' => t("This will automatically assign new users to the selected league."),
+  );
+  
+  $all_leagues = get_leagues();
+  $leagues = array();
+  foreach ($all_leagues as $l) {
+    $leagues[$l->lid] = $l->name;
+  }
+  
+  $form['pickem_auto_signup']['pickem_auto_signup_default_league'] = array(
+    '#type' => 'select',
+    '#default_value' => variable_get('pickem_auto_signup_default_league', 0),
+    '#options' => $leagues,
+    '#title' => t('League'),
+    '#description' => t("Which league should users be signed up for?"),
+  );
+
+
   return system_settings_form($form);
 }
 
@@ -53,15 +83,15 @@ function page_admin_league_users($league) {
   // user_select
     $u = user_load(array('uid' => $_POST['user_select']));
     db_query("insert into {pickem_users} (lid,uid) values (%d,%d)", $league->lid, $u->uid);
-    drupal_set_message($u->name .' added to '. $league->title);
-    drupal_goto("admin/content/pickem/league/". $league->lid);
+    drupal_set_message($u->name .' added to '. $league->name);
+    drupal_goto("admin/content/pickem/league_users/". $league->lid);
   }
 
   if ( arg(5) == "delete_user" && is_numeric(arg(6)) ) {
     $u = user_load(array('uid' => arg(6)));
     db_query("delete from {pickem_users} where lid=%d and uid=%d", $league->lid, $u->uid);
-    drupal_set_message($u->name .' removed from '. $league->title);
-    drupal_goto("admin/content/pickem/league/". $league->lid);
+    drupal_set_message($u->name .' removed from '. $league->name);
+    drupal_goto("admin/content/pickem/league_users/". $league->lid);
   }
 
 
@@ -74,7 +104,7 @@ function page_admin_league_users($league) {
   $query = "SELECT u.uid,name from {users} u inner join {pickem_users} pu on pu.uid=u.uid where u.uid<>0 and lid=%d order by u.uid";
   $result = db_query($query, $league->lid);
   while ($row = db_fetch_object($result)) {
-    $rows[] = array(l($row->name, 'user/'. $row->uid), l(t('delete user'), 'admin/content/pickem/league/'. $league->lid .'/delete_user/'. $row->uid));
+    $rows[] = array(l($row->name, 'user/'. $row->uid), l(t('delete user'), 'admin/content/pickem/league_users/'. $league->lid .'/delete_user/'. $row->uid));
   }
   $output = theme('table', $header, $rows);
   $output .= drupal_get_form('user_select_form', $league->lid, 'Add User', 1);
@@ -182,7 +212,7 @@ function admin_games_form($form_state=NULL) {
       '#type' => 'textfield',
       '#size' => 4,
       '#maxlength' => 10,
-      '#default_value' => $game_data->h_spread,
+      '#default_value' => 0,
     ),
     'visitor_team' => array(
       '#type' => 'select',
@@ -193,7 +223,7 @@ function admin_games_form($form_state=NULL) {
       '#type' => 'textfield',
       '#size' => 4,
       '#maxlength' => 10,
-      '#default_value' => $game_data->v_spread,
+      '#default_value' => 0,
       ),
   );
 
@@ -231,9 +261,9 @@ function theme_admin_games_form(&$form) {
       drupal_render($form['new_game'][$key]['wid']), 
       drupal_render($form['new_game'][$key]['game_time']), 
       drupal_render($form['new_game'][$key]['visitor_team']), 
-      drupal_render($form['games'][$key]['v_spread']), 
+      drupal_render($form['new_game'][$key]['v_spread']), 
       drupal_render($form['new_game'][$key]['home_team']),
-      drupal_render($form['games'][$key]['h_spread']), 
+      drupal_render($form['new_game'][$key]['h_spread']), 
     );
   }
 
@@ -647,10 +677,9 @@ function email_league_form() {
   
   $all_leagues = get_leagues();
   $leagues = array();
-  foreach ($all_leagues as $l_id => $l_data) {
-    $leagues[$l_id] = $l_data->name;
+  foreach ($all_leagues as $l) {
+    $leagues[$l->lid] = $l->name;
   }
-
 
   if (count($all_leagues) > 0) {
     $form['#attributes'] = array(
@@ -717,10 +746,10 @@ function email_league_form_validate($form, &$form_state) {
 
 
 function email_league_form_submit($form, &$form_state) {
-  global $user;
 
   $bcc = $form_state['values']['bcc'];
-  $from = $user->name ."<". $user->mail .">";
+
+  $headers['From'] = $headers['Reply-To'] = $headers['Sender'] = $headers['Return-Path'] = $headers['Errors-To'] = variable_get('pickem_commisioner_email', '');
 
   $headers['Content-Type'] = 'text/plain; charset=UTF-8; format=flowed';
   //$headers['Content-Type'] = 'text/html; charset=UTF-8;';
@@ -737,7 +766,7 @@ function email_league_form_submit($form, &$form_state) {
   // Load the recipients
   $recipients = array();
   foreach ($form_state['values']['league_id'] as $league_id) {
-    $recipients = $recipients + get_users($league_id);
+    $recipients = array_merge($recipients, get_users($league_id));
   }
   if (count($recipients) == 0) {
     drupal_set_message(t('There are no users in this league. Mail not sent.'));
@@ -762,7 +791,7 @@ function email_league_form_submit($form, &$form_state) {
   $params['subject'] = $subject;
   $params['body'] = $body;
 
-  $message = drupal_mail('pickem', 'notice', $to, language_default(), $params, $from);
+  $message = drupal_mail('pickem', 'notice', $to, language_default(), $params);
   if ($message['result'] == 1) {
     drupal_set_message('[Success] Email(s) Sent');
   }
@@ -788,13 +817,12 @@ function admin_leagues_form($form_state=NULL) {
     '#tree' => TRUE,
   );  
 
-  $query = "SELECT * from {pickem_leagues} order by name";
+  $query = "SELECT * from {pickem_leagues} order by lid";
   $result = db_query($query);
   while ($row = db_fetch_object($result)) {
     $form['leagues'][$row->lid] = array(
       'lid' => array(
-        '#type' => 'textfield',
-        '#size' => 5,
+        '#type' => 'hidden',
         '#value' => $row->lid
       ),
       'name' => array(
@@ -819,6 +847,36 @@ function admin_leagues_form($form_state=NULL) {
       ),
     );
   }
+  
+    $form['add_league'] = array(
+      'lid' => array(
+        '#type' => 'hidden',
+        '#value' => 0
+      ),
+      'name' => array(
+        '#type' => 'textfield',
+        '#size' => 50,
+        '#default_value' => ''
+      ),
+      'forum_id' => array(
+        '#type' => 'textfield',
+        '#size' => 5,
+        '#default_value' => NULL
+      ),
+      'rules_node_id' => array(
+        '#type' => 'textfield',
+        '#size' => 5,
+        '#default_value' => NULL
+      ),
+      'scoring_type' => array(
+        '#type' => 'radios',
+        '#default_value' => $row->scoring_type,
+        '#options' => array( 0 => t('Win-Loss'), 1 => t('Spread') ),
+      ),
+    );
+  
+  
+  
   $form['save'] = array(
     '#type' => 'submit',
     '#value' => t('Save Leagues')
@@ -829,20 +887,36 @@ function admin_leagues_form($form_state=NULL) {
 function theme_admin_leagues_form(&$form) {
   //drupal_set_message("theme_admin_leagues_form");
   
-  $header = array(t('League ID'), t('Name'), t('Forum ID'), t('Rules Node ID') , t('Scoring Type'));
+  drupal_add_js('misc/collapse.js');
+  
+  $header = array(t('Name'), t('Forum ID'), t('Rules Node ID') , t('Scoring Type'));
+
 
   $rows = array();
   foreach (element_children($form['leagues']) as $key) {
     $rows[] = array(
-      drupal_render($form['leagues'][$key]['lid']), 
-      drupal_render($form['leagues'][$key]['name']), 
+      drupal_render($form['leagues'][$key]['lid']) . drupal_render($form['leagues'][$key]['name']), 
       drupal_render($form['leagues'][$key]['forum_id']), 
       drupal_render($form['leagues'][$key]['rules_node_id']), 
       drupal_render($form['leagues'][$key]['scoring_type']), 
     );
   }
- 
-  $output = theme('table', $header, $rows);
+  
+  $output = '<div><fieldset class="collapsible"><legend><a href="#">Leagues</a></legend>';
+  $output .= theme('table', $header, $rows);
+  $output .= "</fieldset></div>";
+
+  $new_row[] = array(
+    drupal_render($form['add_league']['lid']) . drupal_render($form['add_league']['name']), 
+    drupal_render($form['add_league']['forum_id']), 
+    drupal_render($form['add_league']['rules_node_id']), 
+    drupal_render($form['add_league']['scoring_type']), 
+  );
+
+  $output .= '<div><fieldset class="collapsible"><legend><a href="#">Add New League</a></legend>';
+  $output .= theme('table', $header, $new_row);
+  $output .= "</fieldset></div>";
+
   $output .= drupal_render($form['save']);
   $output .= drupal_render($form['form_id']);
   $output .= drupal_render($form['form_token']);
@@ -853,9 +927,16 @@ function admin_leagues_form_submit($form, &$form_state) {
   //drupal_set_message("admin_leagues_form_submit");
   
   foreach ($form_state['values']['leagues'] as $key => $value) {
-    $query = "update {pickem_leagues} set name='%s', rules_node_id=%d, forum_id=%d where lid=%d";
-    $result = db_query($query, $value['name'], $value['rules_node_id'], $value['forum_id'], $value['lid']);
+    $query = "update {pickem_leagues} set name='%s', rules_node_id=%d, forum_id=%d, scoring_type=%d where lid=%d";
+    $result = db_query($query, $value['name'], $value['rules_node_id'], $value['forum_id'], $value['scoring_type'], $value['lid']);
   }
+  
+  if ( $form_state['values']['add_league']['name'] <> '' ) {
+    $value = $form_state['values']['add_league'];
+    $query = "insert into {pickem_leagues} (name, rules_node_id, forum_id, scoring_type) values('%s', %d, %d, %d)";
+    $result = db_query($query, $value['name'], $value['rules_node_id'], $value['forum_id'], $value['scoring_type']);
+  }
+  
   drupal_set_message("Leagues Saved");
 }
 
