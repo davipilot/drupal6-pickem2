@@ -20,7 +20,7 @@ $_pickem_my_leagues = array();
     case 'admin/modules#description' :
       return t("A drupal module for nfl pickem style board.");
     case 'admin/content/pickem':
-      return '<p>'. t('Here is where you administer all pickem leagues.<br/>Use the tabs above to perform various league functions.<br/>Each pickem user can belong to multiple leagues and will have separate pick sets per league.') .'</p>';
+      return '<p>'. t('Here is where you administer all pickem leagues.  Use the tabs above to perform various league functions.<br/>Each pickem user can belong to multiple leagues and will have separate pick sets per league.<br/>All Leagues share the same games currently (same DB table).  You\'ll need to run a separate site if you want to run NFL at the same time as NHL.') .'</p>';
     case 'admin/content/pickem/league_users':
       return '<p>'. t('A league is a group of users who compete against each other.  Select a league and then proceed to its user list.'.'</p>');
   }
@@ -162,8 +162,8 @@ function pickem_menu() {
   //
   //
   $items['admin/content/pickem'] = array(
-    'title' => t('Pickem Administration'),
-    'description' => t('Run your own pickem league, Dog'),
+    'title' => t('Pickem Leagues'),
+    'description' => t('Run your own pickem league(s)'),
     'page callback' => 'drupal_get_form',
     'page arguments' => array('pickem_admin_settings'),
     'access arguments' => array('administer pickem'),
@@ -251,6 +251,23 @@ function pickem_menu() {
   return $items;
 }
 
+/**
+ * Implementation of hook_user().
+ */
+function pickem_user($op, &$edit, &$account, $category = NULL) {
+  switch($op) {
+    case 'insert':
+      // a new user is being added; add them to the default league
+      $auto_signup = variable_get('pickem_auto_signup_enable', 0);
+      $default_league = variable_get('pickem_auto_signup_default_league', 0);
+      if (  $auto_signup == 1 && $default_league != 0 ) {
+		    $query = "insert into {pickem_users} (uid, lid) values(%d, %d)";
+		    $result = db_query($query, $account->uid, $default_league);
+		    drupal_set_message($account->name . ' added to default pickem league.');
+      }
+    break;
+  }
+}
 
 /**
  * Implementation of hook_perm().

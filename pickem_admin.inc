@@ -15,7 +15,7 @@ function pickem_admin_settings() {
     '#size' => 100,
     '#title' => t('Email Address of the Commisioner'),
     '#default_value' => variable_get('pickem_commisioner_email', ''),
-    '#description' => t("This is the return address for all systemwide email messages."),
+    '#description' => t("This is the return address for all leaguewide pickem email."),
   );
 
   $form['pickem_use_espn'] = array(
