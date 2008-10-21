@@ -634,9 +634,6 @@ function league_select_form($form_state) {
   );
   return $form;
 }
-
-
-
 function user_select_form($form_state=NULL, $league_id=0, $title='Select User To Modify', $not_in_league=0) {
   
   //drupal_set_message('test user_select_form');
@@ -819,6 +816,7 @@ function admin_leagues_form($form_state=NULL) {
 
   $query = "SELECT * from {pickem_leagues} order by lid";
   $result = db_query($query);
+  $league_forums_options = league_forums();
   while ($row = db_fetch_object($result)) {
     $form['leagues'][$row->lid] = array(
       'lid' => array(
@@ -831,9 +829,9 @@ function admin_leagues_form($form_state=NULL) {
         '#default_value' => $row->name
       ),
       'forum_id' => array(
-        '#type' => 'textfield',
-        '#size' => 5,
-        '#default_value' => $row->forum_id
+        '#type' => 'select',
+        '#default_value' => $row->forum_id,
+        '#options' => $league_forums_options,
       ),
       'rules_node_id' => array(
         '#type' => 'textfield',
@@ -859,9 +857,9 @@ function admin_leagues_form($form_state=NULL) {
         '#default_value' => ''
       ),
       'forum_id' => array(
-        '#type' => 'textfield',
-        '#size' => 5,
-        '#default_value' => NULL
+        '#type' => 'select',
+        '#default_value' => 0,
+        '#options' => $league_forums_options,
       ),
       'rules_node_id' => array(
         '#type' => 'textfield',
@@ -889,7 +887,7 @@ function theme_admin_leagues_form(&$form) {
   
   drupal_add_js('misc/collapse.js');
   
-  $header = array(t('Name'), t('Forum ID'), t('Rules Node ID') , t('Scoring Type'));
+  $header = array(t('Name'), t('Chat Forum'), t('Rules Node ID') , t('Scoring Type'));
 
 
   $rows = array();
@@ -1214,4 +1212,15 @@ function page_admin_scores($week_id = 0) {
   }
 
   print theme('page', $output);
+}
+
+function league_forums() {
+  $sql = db_rewrite_sql("SELECT distinct td.tid, td.name FROM {term_data} td inner join {forum} f on f.tid=td.tid  ORDER BY td.name");
+  $result = db_query($sql);
+  $options = array();
+  $options[0] = 'No Forum Selected';
+  while ($row = db_fetch_object($result)) {
+    $options[$row->tid] = $row->name; 
+  }
+  return $options;
 }
