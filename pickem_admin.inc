@@ -55,13 +55,8 @@ function pickem_admin_settings() {
     '#description' => t("Which league should users be signed up for?"),
   );
 
-
   return system_settings_form($form);
 }
-
-
-
-
 
 function page_admin_leagues_users($league_id = "") {
   
@@ -889,20 +884,21 @@ function theme_admin_leagues_form(&$form) {
   
   $header = array(t('Name'), t('Chat Forum'), t('Rules Node ID') , t('Scoring Type'));
 
-
-  $rows = array();
-  foreach (element_children($form['leagues']) as $key) {
-    $rows[] = array(
-      drupal_render($form['leagues'][$key]['lid']) . drupal_render($form['leagues'][$key]['name']), 
-      drupal_render($form['leagues'][$key]['forum_id']), 
-      drupal_render($form['leagues'][$key]['rules_node_id']), 
-      drupal_render($form['leagues'][$key]['scoring_type']), 
-    );
+  if ( count(element_children($form['leagues'])) > 0 ) {
+    $rows = array();
+    foreach (element_children($form['leagues']) as $key) {
+      $rows[] = array(
+        drupal_render($form['leagues'][$key]['lid']) . drupal_render($form['leagues'][$key]['name']), 
+        drupal_render($form['leagues'][$key]['forum_id']), 
+        drupal_render($form['leagues'][$key]['rules_node_id']), 
+        drupal_render($form['leagues'][$key]['scoring_type']), 
+      );
+    }
+    
+    $output = '<div><fieldset class="collapsible"><legend><a href="#">Leagues</a></legend>';
+    $output .= theme('table', $header, $rows);
+    $output .= "</fieldset></div>";
   }
-  
-  $output = '<div><fieldset class="collapsible"><legend><a href="#">Leagues</a></legend>';
-  $output .= theme('table', $header, $rows);
-  $output .= "</fieldset></div>";
 
   $new_row[] = array(
     drupal_render($form['add_league']['lid']) . drupal_render($form['add_league']['name']), 
@@ -924,9 +920,11 @@ function theme_admin_leagues_form(&$form) {
 function admin_leagues_form_submit($form, &$form_state) {
   //drupal_set_message("admin_leagues_form_submit");
   
-  foreach ($form_state['values']['leagues'] as $key => $value) {
-    $query = "update {pickem_leagues} set name='%s', rules_node_id=%d, forum_id=%d, scoring_type=%d where lid=%d";
-    $result = db_query($query, $value['name'], $value['rules_node_id'], $value['forum_id'], $value['scoring_type'], $value['lid']);
+  if ( isset($form_state['values']['leagues']) ) {
+    foreach ($form_state['values']['leagues'] as $key => $value) {
+      $query = "update {pickem_leagues} set name='%s', rules_node_id=%d, forum_id=%d, scoring_type=%d where lid=%d";
+      $result = db_query($query, $value['name'], $value['rules_node_id'], $value['forum_id'], $value['scoring_type'], $value['lid']);
+    }
   }
   
   if ( $form_state['values']['add_league']['name'] <> '' ) {
@@ -1223,4 +1221,123 @@ function league_forums() {
     $options[$row->tid] = $row->name; 
   }
   return $options;
+}
+
+
+
+
+/*
+  Admin Games
+*/
+function page_admin_data_import() {
+  drupal_set_title('Pickem Import Data');
+  return drupal_get_form('admin_import_form');
+}
+function admin_import_form($form_state=NULL) {
+  $form['pickem_data_load'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Initial Data Load'),
+    '#description' => t('WARNING: This will clear out previously stored data.'),
+    '#collapsible' => TRUE,
+  );
+  $form['pickem_data_load']['pickem_data_load_confirm'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Load 2008 NFL Data'),
+    '#return_value' => 1,
+    '#default_value' => 0,
+    '#description' => t('This will reload teams, games, and picks.'),
+  );
+  $form['pickem_data_load']['pickem_load_data_button'] = array(
+    '#type' => 'submit',
+    '#value' => t('Load data now'),
+    '#submit' => array('pickem_data_load_submit'),
+  );
+
+  return $form; 
+}
+
+function pickem_data_load_submit($form, &$form_state) {
+  
+  //print_r($form_state);
+  //return;
+
+  if ( $form_state['values']['pickem_data_load_confirm'] == 1 ) {
+    load_teams_csv();
+    load_weeks_csv();
+    load_games_csv();
+    drupal_set_message("Data Import Completed");
+  }
+  else {
+    drupal_set_message("Data Import NOT Completed.  Select 'Load Data' checkbox.");
+  }
+return;
+}
+function load_teams_csv() {
+  
+  db_query("delete from {pickem_teams}");
+
+  // keep fetching a line from the file until end of file
+  $fp = fopen(drupal_get_path('module', 'pickem') ."/data/pickem_teams.csv", "r");
+  $row = 1;
+  $field_names = array();
+  while (($data = fgetcsv($fp, 0, ';')) !== FALSE) {
+    $num = count($data);
+    if ( $row == 1 ) {
+      for ($c=0; $c < $num; $c++) {
+        $field_names[$data[$c]] = $c;
+      }
+    } 
+    else {
+      db_query("INSERT INTO {pickem_teams} (tid, tm_city, tm_abbrev, tm_nick, tm_name, conference, division) VALUES (%d, '%s', '%s', '%s', '%s', '%s', '%s')", $data[$field_names['tid']], $data[$field_names['tm_city']], $data[$field_names['tm_abbrev']], $data[$field_names['tm_nick']], $data[$field_names['tm_name']], $data[$field_names['conference']], $data[$field_names['division']] );
+    }
+    $row++;
+  }
+  fclose($fp);
+}
+
+function load_weeks_csv() {
+  
+  db_query("delete from {pickem_weeks}");
+
+  // keep fetching a line from the file until end of file
+  $fp = fopen(drupal_get_path('module', 'pickem') ."/data/pickem_weeks.csv", "r");
+  $row = 1;
+  $field_names = array();
+  while (($data = fgetcsv($fp, 0, ';')) !== FALSE) {
+    $num = count($data);
+    if ( $row == 1 ) {
+      for ($c=0; $c < $num; $c++) {
+        $field_names[$data[$c]] = $c;
+      }
+    } 
+    else {
+      db_query("INSERT INTO {pickem_weeks} (wid, wk_name, wk_abbrev, wk_firstgame, wk_points, playoffs) VALUES (%d, '%s', '%s', '%s', %d, %d)", $data[$field_names['wid']], $data[$field_names['wk_name']], $data[$field_names['wk_abbrev']], $data[$field_names['wk_firstgame']], $data[$field_names['wk_points']], $data[$field_names['playoffs']] );
+    }
+    $row++;
+  }
+  fclose($fp);
+}
+
+function load_games_csv() {
+  
+  db_query("delete from {pickem_games}");
+  
+  // keep fetching a line from the file until end of file
+  $fp = fopen(drupal_get_path('module', 'pickem') ."/data/pickem_games.csv", "r");
+  $row = 1;
+  $field_names = array();
+  while (($data = fgetcsv($fp, 0, ';')) !== FALSE) {
+    $num = count($data);
+    if ( $row == 1 ) {
+      for ($c=0; $c < $num; $c++) {
+        $field_names[$data[$c]] = $c;
+      }
+    } 
+    else {
+      //drupal_set_message("wid=".$data[$field_names['wid']] . ' gametime=' . $data[$field_names['gametime']] . ' h_id=' . $data[$field_names['h_id']]  . ' v_id=' . $data[$field_names['v_id']] ) ;
+      db_query("INSERT INTO {pickem_games} (wid, gametime, h_id, v_id) VALUES (%d, '%s', %d, %d)", $data[$field_names['wid']], $data[$field_names['gametime']], $data[$field_names['h_id']], $data[$field_names['v_id']] );
+    }
+    $row++;
+  }
+  fclose($fp);
 }

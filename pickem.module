@@ -247,6 +247,15 @@ function pickem_menu() {
     'file' => 'pickem_admin.inc',
     'type' => MENU_LOCAL_TASK, 
   );
+
+  $items['admin/content/pickem/import'] = array(
+    'title' => t('Import Data'), 
+    'page callback' => 'page_admin_data_import', 
+    'access arguments' => array('administer pickem'),
+    'weight' => 9,
+    'file' => 'pickem_admin.inc',
+    'type' => MENU_LOCAL_TASK, 
+  );
   
   return $items;
 }
@@ -905,7 +914,9 @@ function theme_league_nav($league, $multileague='no') {
       $o .= '<li>'. l('Talk and Taunting', 'forum/'. $league->forum_id) .'</li>';
     }
     $o .= '<li>'. l('Schedule Grid', 'pickem/grid') .'</li>';
-    $o .= '<li>Charts<ul><li>'. l('High/Low', 'pickem/'. $league->lid .'/chart1') .'</li><li>'. l('Team Pickability', 'pickem/'. $league->lid .'/chart2') .'</li></ul></li>';
+    if (module_exists("open_flash_chart_api")) {
+      $o .= '<li>Charts<ul><li>'. l('High/Low', 'pickem/'. $league->lid .'/chart1') .'</li><li>'. l('Team Pickability', 'pickem/'. $league->lid .'/chart2') .'</li></ul></li>';
+    }
     $o .= '</ul>';
     
     if ( $multileague == 'yes' ) {

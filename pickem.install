@@ -13,16 +13,6 @@
 function pickem_install() {
   // Create tables.
   drupal_install_schema('pickem');
-  
-  // load team data
-  load_teams_csv();
-  
-  // load weeks data
-  load_weeks_csv();
-  
-  // load games data
-  load_games_csv();
-  
 }
 
 
@@ -57,9 +47,9 @@ function pickem_schema() {
       'wid'       => array('type' => 'int',    'unsigned' => TRUE, 'not null' => TRUE),
       'gametime'  => array('type' => 'datetime'),
       'h_id'      => array('type' => 'int',    'unsigned' => TRUE),
-      'h_spread'  => array('type' => 'decimal', 'precision' => 10, 'scale' => 1, 'unsigned' => TRUE),
+      'h_spread'  => array('type' => 'numeric', 'precision' => 10, 'scale' => 1),
       'v_id'      => array('type' => 'int',    'unsigned' => TRUE),
-      'v_spread'  => array('type' => 'decimal', 'precision' => 10, 'scale' => 1, 'unsigned' => TRUE),
+      'v_spread'  => array('type' => 'numeric', 'precision' => 10, 'scale' => 1),
       'h_score'   => array('type' => 'int',    'unsigned' => TRUE),
       'v_score'   => array('type' => 'int',    'unsigned' => TRUE),
       'winner_id' => array('type' => 'int',    'unsigned' => TRUE)
@@ -181,68 +171,4 @@ function pickem_update_6100() {
   }
 
   return $ret;
-}
-
-
-
-
-function load_teams_csv() {
-  // keep fetching a line from the file until end of file
-  $fp = fopen(drupal_get_path('module', 'pickem') ."/data/pickem_teams.csv", "r");
-  $row = 1;
-  $field_names = array();
-  while (($data = fgetcsv($fp, 0, ';')) !== FALSE) {
-    $num = count($data);
-    if ( $row == 1 ) {
-      for ($c=0; $c < $num; $c++) {
-        $field_names[$data[$c]] = $c;
-      }
-    } 
-    else {
-      db_query("INSERT INTO {pickem_teams} (tid, tm_city, tm_abbrev, tm_nick, tm_name) VALUES (%d, '%s', '%s', '%s', '%s')", $data[$field_names['tid']], $data[$field_names['tm_city']], $data[$field_names['tm_abbrev']], $data[$field_names['tm_nick']], $data[$field_names['tm_name']] );
-    }
-    $row++;
-  }
-  fclose($fp);
-}
-
-function load_weeks_csv() {
-  // keep fetching a line from the file until end of file
-  $fp = fopen(drupal_get_path('module', 'pickem') ."/data/pickem_weeks.csv", "r");
-  $row = 1;
-  $field_names = array();
-  while (($data = fgetcsv($fp, 0, ';')) !== FALSE) {
-    $num = count($data);
-    if ( $row == 1 ) {
-      for ($c=0; $c < $num; $c++) {
-        $field_names[$data[$c]] = $c;
-      }
-    } 
-    else {
-      db_query("INSERT INTO {pickem_weeks} (wid, wk_name, wk_abbrev, wk_firstgame, wk_points, playoffs) VALUES (%d, '%s', '%s', '%s', %d, %d)", $data[$field_names['wid']], $data[$field_names['wk_name']], $data[$field_names['wk_abbrev']], $data[$field_names['wk_firstgame']], $data[$field_names['wk_points']], $data[$field_names['playoffs']] );
-    }
-    $row++;
-  }
-  fclose($fp);
-}
-
-function load_games_csv() {
-  // keep fetching a line from the file until end of file
-  $fp = fopen(drupal_get_path('module', 'pickem') ."/data/pickem_games.csv", "r");
-  $row = 1;
-  $field_names = array();
-  while (($data = fgetcsv($fp, 0, ';')) !== FALSE) {
-    $num = count($data);
-    if ( $row == 1 ) {
-      for ($c=0; $c < $num; $c++) {
-        $field_names[$data[$c]] = $c;
-      }
-    } 
-    else {
-      //drupal_set_message("wid=".$data[$field_names['wid']] . ' gametime=' . $data[$field_names['gametime']] . ' h_id=' . $data[$field_names['h_id']]  . ' v_id=' . $data[$field_names['v_id']] ) ;
-      db_query("INSERT INTO {pickem_games} (wid, gametime, h_id, v_id) VALUES (%d, '%s', %d, %d)", $data[$field_names['wid']], $data[$field_names['gametime']], $data[$field_names['h_id']], $data[$field_names['v_id']] );
-    }
-    $row++;
-  }
-  fclose($fp);
 }
