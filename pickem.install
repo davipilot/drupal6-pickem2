@@ -47,9 +47,9 @@ function pickem_schema() {
       'wid'       => array('type' => 'int',    'unsigned' => TRUE, 'not null' => TRUE),
       'gametime'  => array('type' => 'datetime'),
       'h_id'      => array('type' => 'int',    'unsigned' => TRUE),
-      'h_spread'  => array('type' => 'numeric', 'precision' => 10, 'scale' => 1),
+      'h_spread'  => array('type' => 'numeric', 'precision' => 10, 'scale' => 1, 'default' => 0),
       'v_id'      => array('type' => 'int',    'unsigned' => TRUE),
-      'v_spread'  => array('type' => 'numeric', 'precision' => 10, 'scale' => 1),
+      'v_spread'  => array('type' => 'numeric', 'precision' => 10, 'scale' => 1, 'default' => 0),
       'h_score'   => array('type' => 'int',    'unsigned' => TRUE),
       'v_score'   => array('type' => 'int',    'unsigned' => TRUE),
       'winner_id' => array('type' => 'int',    'unsigned' => TRUE)
@@ -66,7 +66,8 @@ function pickem_schema() {
       'winnerpick_id' => array('type' => 'int',    'unsigned' => TRUE),
       'picktime'      => array('type' => 'datetime')
     ),
-    'primary key' => array('pid')
+    'primary key' => array('pid'),
+    'unique keys' => array('pickem_picks_unique_idx'=> array('lid', 'uid', 'gid')),
   );
 
   $schema['pickem_teams'] = array(
@@ -115,7 +116,18 @@ function pickem_update_6100() {
   */
 
   // create new leagues table
-  db_create_table($ret, 'pickem_leagues', $schema['pickem_leagues']);
+  $leagues_schema = array(
+    'fields' => array(
+      'lid'            => array('type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE),
+      'name'           => array('type' => 'varchar', 'length' => 50, 'not null' => TRUE, 'default' => '', 'description' => t('The full league name.'), ),
+      'forum_id'       => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
+      'rules_node_id'  => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
+      'scoring_type'   => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
+    ),
+    'primary key' => array('lid')
+  );
+  db_create_table($ret, 'pickem_leagues', $leagues_schema);
+  
   // add temp field for data updates
   db_add_field($ret, 'pickem_leagues', 'leagacy_cck_id', array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0));
 
@@ -126,8 +138,8 @@ function pickem_update_6100() {
   db_add_field($ret, 'pickem_picks', 'lid', array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE));
 
   // add spread fields to games table
-  db_add_field($ret, 'pickem_games', 'h_spread', array('type' => 'numeric', 'precision' => 10, 'scale' => 1));
-  db_add_field($ret, 'pickem_games', 'v_spread', array('type' => 'numeric', 'precision' => 10, 'scale' => 1));
+  db_add_field($ret, 'pickem_games', 'h_spread', array('type' => 'numeric', 'precision' => 10, 'scale' => 1, 'default' => 0));
+  db_add_field($ret, 'pickem_games', 'v_spread', array('type' => 'numeric', 'precision' => 10, 'scale' => 1, 'default' => 0));
 
 
   /* 
@@ -160,7 +172,6 @@ function pickem_update_6100() {
 
   //skip field removal if you found a data error
   if ( $data_errors == FALSE ) {
-    db_drop_unique_key($ret, 'pickem_picks', 'pickem_picks_unique_idx');
     db_drop_primary_key($ret, 'pickem_users');
     db_drop_field($ret, 'pickem_picks', 'nid');
     db_drop_field($ret, 'pickem_users', 'nid');
