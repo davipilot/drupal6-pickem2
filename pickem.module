@@ -259,20 +259,20 @@ function pickem_menu() {
   
   return $items;
 }
-
+ 
 /**
  * Implementation of hook_user().
  */
 function pickem_user($op, &$edit, &$account, $category = NULL) {
-  switch($op) {
+  switch ($op) {
     case 'insert':
       // a new user is being added; add them to the default league
       $auto_signup = variable_get('pickem_auto_signup_enable', 0);
       $default_league = variable_get('pickem_auto_signup_default_league', 0);
       if (  $auto_signup == 1 && $default_league != 0 ) {
-		    $query = "insert into {pickem_users} (uid, lid) values(%d, %d)";
-		    $result = db_query($query, $account->uid, $default_league);
-		    drupal_set_message($account->name . ' added to default pickem league.');
+        $query = "insert into {pickem_users} (uid, lid) values(%d, %d)";
+        $result = db_query($query, $account->uid, $default_league);
+        drupal_set_message($account->name .' added to default pickem league.');
       }
     break;
   }
@@ -908,7 +908,7 @@ function theme_league_nav($league, $multileague='no') {
     $o .= '<li>'. l('My Picks', 'pickem/'. $league->lid .'/mypicks') .'</li>';
     $o .= '<li>'. l('Standings', 'pickem/'. $league->lid .'/standings') .'</li>';
     if ( $league->rules_node_id != 0 ) {
-      $o .= '<li>'. l('Rules and Regs', 'node/'.$league->rules_node_id) .'</li>';
+      $o .= '<li>'. l('Rules and Regs', 'node/'. $league->rules_node_id) .'</li>';
     }
     if ( $league->forum_id != 0 ) {
       $o .= '<li>'. l('Talk and Taunting', 'forum/'. $league->forum_id) .'</li>';
