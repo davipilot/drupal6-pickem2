@@ -115,7 +115,6 @@ function pickem_update_6100() {
   */
 
   // create new leagues table
-  $schema = pickem_schema();
   db_create_table($ret, 'pickem_leagues', $schema['pickem_leagues']);
   // add temp field for data updates
   db_add_field($ret, 'pickem_leagues', 'leagacy_cck_id', array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0));
@@ -127,8 +126,8 @@ function pickem_update_6100() {
   db_add_field($ret, 'pickem_picks', 'lid', array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE));
 
   // add spread fields to games table
-  db_add_field($ret, 'pickem_games', 'h_spread', $schema['pickem_leagues']['fields']['h_spread']);
-  db_add_field($ret, 'pickem_games', 'v_spread', $schema['pickem_leagues']['fields']['v_spread']);
+  db_add_field($ret, 'pickem_games', 'h_spread', array('type' => 'numeric', 'precision' => 10, 'scale' => 1));
+  db_add_field($ret, 'pickem_games', 'v_spread', array('type' => 'numeric', 'precision' => 10, 'scale' => 1));
 
 
   /* 
@@ -163,11 +162,11 @@ function pickem_update_6100() {
   if ( $data_errors == FALSE ) {
     db_drop_unique_key($ret, 'pickem_picks', 'pickem_picks_unique_idx');
     db_drop_primary_key($ret, 'pickem_users');
-    db_drop_field($ret, 'pickem_picks','nid');
+    db_drop_field($ret, 'pickem_picks', 'nid');
     db_drop_field($ret, 'pickem_users', 'nid');
-    db_drop_field($ret, 'pickem_leagues','leagacy_cck_id');
-    db_add_unique_key($ret, 'pickem_picks', 'pickem_picks_unique_idx', array('lid','uid','gid'));
-    db_add_primary_key($ret, 'pickem_users', array('uid','lid'));
+    db_drop_field($ret, 'pickem_leagues', 'leagacy_cck_id');
+    db_add_unique_key($ret, 'pickem_picks', 'pickem_picks_unique_idx', array('lid', 'uid', 'gid'));
+    db_add_primary_key($ret, 'pickem_users', array('uid', 'lid'));
   }
 
   return $ret;
