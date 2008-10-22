@@ -1063,8 +1063,8 @@ function page_admin_picks($league_id=0, $user_id = 0, $week_id = 0) {
     foreach ($games as $wid => $weeksgames) {
       $inner="";
       foreach ($weeksgames as $gid => $game) {
-      	$class = $flip[$class];
-      	
+        $class = $flip[$class];
+        
         $inner .= '<div class="game-list-horiz">';
         if (isset ($teams[$game["pick"]]->tm_abbrev)) {
           if ($game["pick"] == $game["vid"] && $game["vscore"] > $game["hscore"]) {
@@ -1164,15 +1164,15 @@ function page_admin_scores($week_id = 0) {
   if ( $week_id == 0 ) {
     // all weeks
 
-		$games = get_games_split();
+    $games = get_games_split();
     $output = '<div class="pickem">Click on week number to update scores<table>';
     $flip = array('even' => 'odd', 'odd' => 'even');
     $class = 'even';
 
     foreach ($games as $wid => $weeksgames) {
-    	
-	    $class = $flip[$class];      
-  	  $output .= '<tr class="'. $class .'"><th>'. l("$wid", 'admin/content/pickem/scores/'. $wid) .'</th><td>';
+      
+      $class = $flip[$class];      
+      $output .= '<tr class="'. $class .'"><th>'. l("$wid", 'admin/content/pickem/scores/'. $wid) .'</th><td>';
       foreach ($weeksgames as $gid => $game) {
         $output .= '<div class="game-list-horiz">'. $teams[$game["vid"]]->tm_abbrev .'&nbsp;'. $game["vscore"] .'<br>'. $teams[$game["hid"]]->tm_abbrev .'&nbsp;'. $game["hscore"] .'</div>';
       }
