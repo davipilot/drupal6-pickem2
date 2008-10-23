@@ -274,6 +274,22 @@ function pickem_user($op, &$edit, &$account, $category = NULL) {
         $result = db_query($query, $account->uid, $default_league);
         drupal_set_message($account->name .' added to default pickem league.');
       }
+      $edit['pickem_email_reminders'] = variable_get('pickem_default_email_reminders', 1);
+    break;
+    case 'form':
+    	if ( $category == 'account') {
+		    $form['pickem'] = array('#type' => 'fieldset',
+		      '#title' => t('Pickem settings'),
+		      '#weight' => 5,
+		      '#collapsible' => TRUE,
+		    );
+		    $form['pickem']['pickem_email_reminders'] = array('#type' => 'checkbox',
+		      '#title' => t('Receive email reminders'),
+		      '#default_value' => !empty($edit['pickem_email_reminders']) ? $edit['pickem_email_reminders'] : FALSE,
+		      '#description' => t('Enable email reminders to be sent to you if you have not picked the current weeks games.'),
+		    );
+	    	return $form;
+    	}
     break;
   }
 }
@@ -304,7 +320,9 @@ function pickem_cron() {
       $missing_count = $row->games - $row->picks;
       if ( $missing_count > 0 ) {
         $user = user_load($row->uid);
-        email_warning($user, $row->wid, $firstgame, $missing_count, $row->lid);
+        if ( $user->pickem_email_reminder == 1 ) {
+        	email_warning($user, $row->wid, $firstgame, $missing_count, $row->lid);
+        }
       }      
     }
   }
@@ -354,12 +372,6 @@ function pickem_theme() {
     ),
   );
 }
-
-
-
-
-
-
 
 
 /* 

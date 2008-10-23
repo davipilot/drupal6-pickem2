@@ -18,15 +18,6 @@ function pickem_admin_settings() {
     '#description' => t("This is the return address for all leaguewide pickem email."),
   );
 
-  $form['pickem_use_espn'] = array(
-    '#type' => 'checkbox',
-    '#title' => t('Use the ESPN score scrape'),
-    '#return_value' => 1,
-    '#default_value' => variable_get('pickem_use_espn', 0),
-    '#description' => t("This grabs the current weeks scores from espn."),
-  );
-
-
   $form['pickem_auto_signup'] = array(
     '#type' => 'fieldset',
     '#title' => t('Auto Signup'),
@@ -54,6 +45,23 @@ function pickem_admin_settings() {
     '#title' => t('League'),
     '#description' => t("Which league should users be signed up for?"),
   );
+
+  $form['pickem_use_espn'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Use the ESPN score scrape'),
+    '#return_value' => 1,
+    '#default_value' => variable_get('pickem_use_espn', 0),
+    '#description' => t("This grabs the current weeks scores from espn."),
+  );
+
+  $form['pickem_default_email_reminders'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Default email reminders'),
+    '#return_value' => 1,
+    '#default_value' => variable_get('pickem_default_email_reminders', 1),
+    '#description' => t("Default email reminder setting for new users.  Each user can override this."),
+  );
+
 
   return system_settings_form($form);
 }
