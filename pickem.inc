@@ -73,13 +73,18 @@ function get_users($league_id=0, $not_in_league=0) {
  * Custom wildcard loaders for use in hook_menu()
 */
 function league_load($league_id) {
+  $valid = TRUE;
+  $league = FALSE;
   if ( is_numeric($league_id) ) {
     $ret = get_leagues($league_id);
-    return $ret[0];
+    if ( count($ret) > 0 ) {
+    	$league = $ret[0];
+    }
+    else {
+    	$valid = FALSE;
+    }
   }
-  else {
-    return FALSE;
-  }
+  return $valid ? $league : FALSE;
 }
 
 function get_leagues($league_id=0) {
