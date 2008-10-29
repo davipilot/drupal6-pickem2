@@ -1117,8 +1117,8 @@ function theme_team_stats() {
     $teams[$row->h_id]->games_played++;
     $teams[$row->v_id]->games_played++;
     
-    $teams[$row->h_id]->win_percent = $teams[$row->h_id]->wins / $teams[$row->h_id]->games_played;
-    $teams[$row->v_id]->win_percent = $teams[$row->v_id]->wins / $teams[$row->v_id]->games_played;
+    $teams[$row->h_id]->win_percent = $teams[$row->h_id]->wins / ( $teams[$row->h_id]->wins + $teams[$row->h_id]->losses );
+    $teams[$row->v_id]->win_percent = $teams[$row->v_id]->wins / ( $teams[$row->v_id]->wins + $teams[$row->v_id]->losses );
     
     $teams[$row->v_id]->pts_for += $row->v_score;
     $teams[$row->v_id]->pts_against += $row->h_score;
@@ -1136,18 +1136,17 @@ function theme_team_stats() {
   foreach ($teams as $tid => $d) {
     $rows[] = array(
       $teams[$tid]->tm_city . ' ' . $teams[$tid]->tm_name, 
-      array('data'=>$teams[$tid]->games_played, 'style'=>'width:10px;'), 
       array('data'=>$teams[$tid]->wins, 'style'=>'width:10px;'), 
       array('data'=>$teams[$tid]->losses, 'style'=>'width:10px;'), 
       array('data'=>$teams[$tid]->ties, 'style'=>'width:10px;'), 
+      sprintf("%.3F",$teams[$tid]->win_percent),
 
       array('data'=>$teams[$tid]->pts_for, 'style'=>'width:10px;'), 
       array('data'=>$teams[$tid]->pts_against, 'style'=>'width:10px;'), 
-
-      sprintf("%.3F",$teams[$tid]->win_percent));
+      );
   }
   
-  $header = array(t('Team'), t('GP'), t('W'), t('L'), t('T'), t('PF'), t('PA'), t('PCT'));
+  $header = array(t('Team'), t('W'), t('L'), t('T'), t('PCT'), t('PF'), t('PA'));
   
   $o = theme('table', $header, $rows, array('style'=>'width:400px;') );
   
