@@ -934,13 +934,15 @@ function theme_league_nav($league, $multileague='no') {
     if ( $league->forum_id != 0 ) {
       $o .= '<li>'. l('Talk and Taunting', 'forum/'. $league->forum_id) .'</li>';
     }
+    $o .= '<li>Research<ul>';
     $o .= '<li>'. l('Schedule Grid', 'pickem/grid') .'</li>';
     if (module_exists("open_flash_chart_api")) {
-      $o .= '<li>Charts<ul><li>'. l('High/Low', 'pickem/'. $league->lid .'/chart1') .'</li><li>'. l('Team Pickability', 'pickem/'. $league->lid .'/chart2') .'</li></ul></li>';
+      $o .= '<li>'. l('High/Low Chart', 'pickem/'. $league->lid .'/chart1') .'</li>';
+      $o .= '<li>'. l('Team Pickability Chart', 'pickem/'. $league->lid .'/chart2') .'</li>';
     }
-    $o .= '<li>Stats<ul><li>'. l('Team', 'pickem/team_stats') .'</li></ul></li>';
+    $o .= '<li>'. l('Team Win-Loss Stats', 'pickem/team_stats') .'</li>';
 
-    $o .= '</ul>';
+    $o .= '</ul></li></ul>';
     
     if ( $multileague == 'yes' ) {
       return theme('dash', $league->name, $o, 'main', l($league->name, 'pickem/'. $league->lid));
