@@ -343,7 +343,7 @@ function pickem_cron() {
       $missing_count = $row->games - $row->picks;
       if ( $missing_count > 0 ) {
         $user = user_load($row->uid);
-        if ( $user->pickem_email_reminder == 1 ) {
+        if ( $user->pickem_email_reminders == 1 ) {
         	email_warning($user, $row->wid, $firstgame, $missing_count, $row->lid);
         }
       }      
@@ -565,7 +565,7 @@ function page_mypicks_week($league, $week_num='') {
         }
       }
       drupal_set_message("Picks: saved for all leagues");
-      watchdog('pickem', 'Picks: saved(all), week ' . $week_num . ', ' . $user->name);
+      watchdog('pickem', 'Picks saved(all) for <i>' . $user->name . '</i>, week ' . $week_num . '.');
 
     } 
     else {
@@ -574,7 +574,7 @@ function page_mypicks_week($league, $week_num='') {
         set_pick($gid[1], $user->uid, $league->lid, $pick);
       }
       drupal_set_message("Picks: saved");
-      watchdog('pickem', 'Picks: saved, week ' . $week_num . ', ' . $user->name);
+      watchdog('pickem', 'Picks saved for <i>' . $user->name . '</i>, week ' . $week_num . '.');
     }
   }
 
