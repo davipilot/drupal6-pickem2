@@ -18,11 +18,23 @@ $_pickem_my_leagues = array();
  function pickem_help($section = "") {
   switch ($section) {
     case 'admin/modules#description' :
-      return t("A drupal module for nfl pickem style board.");
+      return t("A drupal module for sports pickem style board.");
     case 'admin/content/pickem':
-      return '<p>'. t('Here is where you administer all pickem leagues.  Use the tabs above to perform various league functions.<br/>Each pickem user can belong to multiple leagues and will have separate pick sets per league.<br/>All Leagues share the same games currently (same DB table).  You\'ll need to run a separate site if you want to run NFL at the same time as NHL.') .'</p>';
+      return '<p>'. t('Here is where you administer all pickem leagues.  Use the tabs above to perform various league functions.<br/>Each pickem user can belong to multiple leagues and will have separate pick sets per league.<br/>All Leagues share the same games currently (same DB table).  You\'ll need to run a separate site if you want to run different game sets at the same time.') .'</p>';
+    case 'admin/content/pickem/leagues':
+      return '<p>'. t('Here is where you add/edit leagues.  If you need a chat forum and the selection box is empty, enable forums and create a forum.') .'</p>';
     case 'admin/content/pickem/league_users':
-      return '<p>'. t('A league is a group of users who compete against each other.  Select a league and then proceed to its user list.'.'</p>');
+      return '<p>'. t('A league is a group of users who compete against each other.  Choose a league and then proceed to its user list.') .'</p>';
+    case 'admin/content/pickem/picks':
+      return '<p>'. t('Here is where you can override a users picks at the descretion of the commisioner (special circumstances) Choose a league then choose a user and then proceed to the pickset.') .'</p>';
+    case 'admin/content/pickem/scores':
+      return '<p>'. t('After each game/week, enter the scores here.') .'</p>';
+    case 'admin/content/pickem/teams':
+      return '<p>'. t('In most lists the abbrev is used first, but if empty, the name is used.') .'</p>';
+    case 'admin/content/pickem/games':
+      return '<p>'. t('In order to add games, you need to have weeks and teams already entered.<br/>All fields are required.<br/>Note the pager on the bottom to navigate weeks.') .'</p>';
+    case 'admin/content/pickem/weeks':
+      return '<p>'. t('Weeks are numbered sequentially, starting at 1.  First Game Time is the field that locks users from changing their picks.  Make sure to fill that one out.<br/>Typical values for NFL would be 1, Week 1, WK1, 2008-11-12 12:00:00, 1') .'</p>';
   }
 }
 

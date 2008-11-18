@@ -77,8 +77,8 @@ function pickem_schema() {
       'tm_abbrev' => array('type' => 'varchar', 'length' => 5,  'not null' => TRUE, 'default' => '', 'description' => t('The very short home city abbreviation(3 chars).'), ),
       'tm_nick'   => array('type' => 'varchar', 'length' => 50, 'not null' => TRUE, 'default' => '', 'description' => t('The team nickname.  Not always a good thing.'), ),
       'tm_name'   => array('type' => 'varchar', 'length' => 50, 'not null' => TRUE, 'default' => '', 'description' => t('The full team name.'), ),
-      'conference' => array('type' => 'varchar', 'length' => 10, 'not null' => TRUE, 'default' => '', 'description' => t('Team Conference.'), ),
-      'division'   => array('type' => 'varchar', 'length' => 10, 'not null' => TRUE, 'default' => '', 'description' => t('Team Division.'), )
+      'conference' => array('type' => 'varchar', 'length' => 50, 'not null' => TRUE, 'default' => '', 'description' => t('Team Conference.'), ),
+      'division'   => array('type' => 'varchar', 'length' => 50, 'not null' => TRUE, 'default' => '', 'description' => t('Team Division.'), )
     ),
     'primary key' => array('tid')
   );
@@ -105,6 +105,15 @@ function pickem_schema() {
 
   return $schema;
 }
+
+
+
+
+
+
+
+
+
 
 
 function pickem_update_6100() {
@@ -182,3 +191,19 @@ function pickem_update_6100() {
 
   return $ret;
 }
+
+function pickem_update_6101() {
+  $ret = array();
+  switch ($GLOBALS['db_type']) {
+    case 'mysqli':
+    case 'mysql':
+      $ret[] = update_sql("alter TABLE {pickem_teams} MODIFY conference VARCHAR(50)");
+      $ret[] = update_sql("alter TABLE {pickem_teams} MODIFY division VARCHAR(50)");
+      break;
+    case 'pgsql':
+      drupal_set_message('postgres cannot increase field size of an existing column.  Please set pickem_teams.conference, and pickem_teams.division to varchar(50).', 'error');
+      break;
+  }
+  return $ret;
+}
+
