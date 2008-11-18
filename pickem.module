@@ -780,35 +780,31 @@ function page_mypicks_all($league) {
 }
 
 function page_weeklypicks($league, $week_id) {
-  //drupal_set_message('page_weeklypicks('. $league->name .','. $week_id .')');
-  
   global $user;
 
   $flip = array('even' => 'odd', 'odd' => 'even');
   $class = 'even';
 
   $week = get_weeks($week_id);
-  //if ( $week[$week_id]['week_past']==0 ) {
-  //  drupal_set_title($week[$week_id]['name'] .' picks are not locked yet');
-  //  print theme('page', 'Please wait until the first game begins this week ('. $week[$week_id]['firstgame'].' EST)');
-  //  return;
-  // }
   
   $output = '<div class="pickem">Sorted by this week\'s scores<table><tr><th>the Players</th>';
   $gids = array();
   $teams = get_teams();
   $games = get_games($week_id);
-  foreach ($games as $g => $g_data) {
+  foreach ($games as $gid => $g_data) {
     $output .= '<th>'. $teams[$g_data->v_id]->tm_abbrev ."<br/>@". $teams[$g_data->h_id]->tm_abbrev .'</th>';
-    if ($g_data->h_score > $g_data->v_score) {
-      $gids[$g] = $g_data->h_id;
+    if ( $g_data->h_score == NULL ) {
+      $gids[$gid] = 0;  // game not played
+    }
+    elseif ($g_data->h_score == $g_data->v_score) {
+      $gids[$gid] = -1; // game ended in tie
+    }
+    elseif ($g_data->h_score > $g_data->v_score) {
+      $gids[$gid] = $g_data->h_id;
     }
     elseif ($g_data->v_score > $g_data->h_score) {
-      $gids[$g] = $g_data->v_id;
+      $gids[$gid] = $g_data->v_id;
     } 
-    else {
-      $gids[$g] = 0;
-    }
   }
   $output .= '</tr>';
   
@@ -821,6 +817,9 @@ function page_weeklypicks($league, $week_id) {
     foreach ($gids as $gid => $winnerid) {
       if (isset ($gamepicks[$gid][$uid]) && $gamepicks[$gid][$uid] == $winnerid && $winnerid != 0) {
         $output .= '<td class="win">'. $teams[$gamepicks[$gid][$uid]]->tm_abbrev .'</td>';
+      }
+      elseif (isset ($gamepicks[$gid][$uid]) && $winnerid == -1) {
+        $output .= '<td class="tie">'. $teams[$gamepicks[$gid][$uid]]->tm_abbrev .'</td>';
       }
       elseif (isset ($gamepicks[$gid][$uid]) && $gamepicks[$gid][$uid] != $winnerid && $winnerid != 0) {
         $output .= '<td class="loss">'. $teams[$gamepicks[$gid][$uid]]->tm_abbrev .'</td>';
