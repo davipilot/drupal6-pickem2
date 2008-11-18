@@ -55,13 +55,11 @@ function pickem_menu() {
   $items = array();
 
   $items['pickem'] = array(
-    'title' => t('Pickem'), 
-    'page callback' => 'page_my_leagues', 
+    'title' => t('Pickem Leagues'), 
+    'page callback' => 'league_router', 
     'access arguments' => array('play pickem'), 
     'type' => MENU_NORMAL_ITEM,
   );
-
-
 
   $items['pickem/%league'] = array(
     'page callback' => 'page_league', 
@@ -104,9 +102,10 @@ function pickem_menu() {
 
 
   // lower level permissions
-  $items['pickem/grid'] = array(
+  $items['pickem/%league/grid'] = array(
     'title' => t('Schedule Grid'), 
     'page callback' => 'page_grid', 
+    'page arguments' => array(1),
     'access arguments' => array('access content'),
     'type' => MENU_CALLBACK,
   );
@@ -154,9 +153,10 @@ function pickem_menu() {
     'type' => MENU_CALLBACK,    
   );
 
-  $items['pickem/team_stats'] = array(
+  $items['pickem/%league/team_stats'] = array(
     'title' => t('Team Stats'), 
     'page callback' => 'page_team_stats', 
+    'page arguments' => array(1),
     'access arguments' => array('access content'),
     'type' => MENU_CALLBACK,    
   );
@@ -282,7 +282,7 @@ function pickem_user($op, &$edit, &$account, $category = NULL) {
         $result = db_query($query, $account->uid, $default_league);
         drupal_set_message($account->name .' added to default pickem league.');
       }
-      $edit['pickem_email_reminders'] = variable_get('pickem_default_email_reminders', 1);
+      $edit['pickem_user_email_reminders'] = variable_get('pickem_default_email_reminders', 1);
     break;
     case 'form':
     	if ( $category == 'account') {
@@ -297,18 +297,19 @@ function pickem_user($op, &$edit, &$account, $category = NULL) {
         foreach ($leagues as $l) {
           $options[$l->lid] = $l->name; 
         }
+
 		    $form['pickem']['pickem_user_default_league'] = array(
 		      '#type' => 'select',
 		      '#title' => t('Default League'),
 		      '#default_value' => !empty($edit['pickem_user_default_league']) ? $edit['pickem_user_default_league'] : FALSE,
 		      '#description' => t('Show this league by default.'),
+		      '#options' => $options,
 		    );
 		    
-		    
-		    
-		    $form['pickem']['pickem_email_reminders'] = array('#type' => 'checkbox',
+		    $form['pickem']['pickem_user_email_reminders'] = array(
+		      '#type' => 'checkbox',
 		      '#title' => t('Receive email reminders'),
-		      '#default_value' => !empty($edit['pickem_email_reminders']) ? $edit['pickem_email_reminders'] : FALSE,
+		      '#default_value' => !empty($edit['pickem_user_email_reminders']) ? $edit['pickem_user_email_reminders'] : FALSE,
 		      '#description' => t('Enable email reminders to be sent to you if you have not picked the current weeks games.'),
 		    );
 	    	return $form;
@@ -343,7 +344,7 @@ function pickem_cron() {
       $missing_count = $row->games - $row->picks;
       if ( $missing_count > 0 ) {
         $user = user_load($row->uid);
-        if ( $user->pickem_email_reminders == 1 ) {
+        if ( $user->pickem_user_email_reminders == 1 ) {
         	email_warning($user, $row->wid, $firstgame, $missing_count, $row->lid);
         }
       }      
@@ -403,12 +404,16 @@ function pickem_theme() {
 /* 
  * Menu Callbacks
  */
-function page_grid($cache_reset = TRUE) {
+function page_grid($league) {
   drupal_set_title("NFL Schedule Grid");
+
+  $breadcrumb = drupal_get_breadcrumb();
+  $breadcrumb[] = l($league->name, 'pickem/' . $league->lid);
+  drupal_set_breadcrumb($breadcrumb);
 
   $output = '';
   
-  if (!$cache_reset && ($cache = cache_get('pickem_grid_scores')) && !empty($cache->data)) {
+  if ( ($cache = cache_get('pickem_grid_scores')) && !empty($cache->data)) {
     $output = unserialize($cache->data);
   } 
   else {
@@ -676,10 +681,14 @@ function page_mypicks_week($league, $week_num='') {
 }
 
 function page_mypicks_all($league) {
-//  drupal_set_message('page_mypicks_all');
   global $_pickem_my_leagues;
   global $user;
+
   drupal_set_title("My Picks - ". $user->name);
+
+  $breadcrumb = drupal_get_breadcrumb();
+  $breadcrumb[] = l($league->name, 'pickem/' . $league->lid);
+  drupal_set_breadcrumb($breadcrumb);
   
   $flip = array('even' => 'odd', 'odd' => 'even');
   $class = 'even';
@@ -828,8 +837,11 @@ function page_weeklypicks($league, $week_id) {
 }
 
 function page_standings($league) {
-
   drupal_set_title("Standings");
+
+  $breadcrumb = drupal_get_breadcrumb();
+  $breadcrumb[] = l($league->name, 'pickem/' . $league->lid);
+  drupal_set_breadcrumb($breadcrumb);
 
   $totals = get_user_totals($league->lid, 0);
   $weeks = get_weeks(0, 'all');
@@ -897,35 +909,30 @@ function page_standings($league) {
 }
 
 
-function page_my_leagues() {
+function league_router() {
   global $_pickem_my_leagues;
-  drupal_set_title("League Dashboard");
+  global $user;
 
-  if ( count($_pickem_my_leagues) == 1 ) {
-    foreach ($_pickem_my_leagues as $l) {
-      drupal_goto("pickem/" . $l->lid);
-    }
+  if ( isset($user->pickem_user_default_league) ) {
+    drupal_goto("pickem/" . $user->pickem_user_default_league);
   }
 
-  $o = '<div class="pickem"><table class="league-nav">';
+  if ( count($_pickem_my_leagues) >= 1 ) {
+    drupal_goto("pickem/" . $_pickem_my_leagues[0]->lid);
+  }
 
-  if (module_exists("countdowntimer")) {
-    $cur_w = get_current_week(true); 
-    if ( $cur_w['firstgame_date'] != '' ) {
-      $timer = '<span class="warning">'. get_countdown_timer($cur_w) .'</span>';
-      $o .= '<tr><td colspan="2">'. $timer .'</td></tr>';
-    }
-  }
-  
-  foreach ($_pickem_my_leagues as $l) {
-    $o .= '<tr><td class="col1">'. theme('league_nav', $l, 'yes') .'</td><td class="col2">'. theme('league_leaders', $l->lid) .'</td></tr>'; 
-  }
-  $o .= '</table></div>';
+  drupal_set_title("Choose League to View");
+  $o = get_all_league_switcher();
   print theme('page', $o); 
 }
 
 function page_league($league) {
-  drupal_set_title('League Dashboard');
+  drupal_set_title($league->name . ' League');
+  
+  $breadcrumb = array();
+  $breadcrumb[] = l('Home', '');
+  $breadcrumb[] = l($league->name, 'pickem/' . $league->lid);
+  drupal_set_breadcrumb($breadcrumb);
   
   $o  = '<div class="pickem"><table class="league-nav">';
   $o .= '<tr><td class="col1">'. theme('league_nav', $league) .'</td><td class="col2">'. theme('league_messages', $league) .'</td></tr>';
@@ -942,41 +949,46 @@ function page_league($league) {
   print theme('page', $o);  
 }
 
-function theme_league_nav($league, $multileague='no') {
+function theme_league_nav($league) {
+    global $user;
+    
     $o = '';
     $o .=  '<ul>';
-    $o .= '<li>'. l('My Picks', 'pickem/'. $league->lid .'/mypicks') .'</li>';
+    if ( is_my_league($league) ) {
+      $o .= '<li>'. l('My Picks', 'pickem/'. $league->lid .'/mypicks') .'</li>';
+    }
+
     $o .= '<li>'. l('Standings', 'pickem/'. $league->lid .'/standings') .'</li>';
+    
     if ( $league->rules_node_id != 0 ) {
       $o .= '<li>'. l('Rules and Regs', 'node/'. $league->rules_node_id) .'</li>';
     }
+    
     if ( $league->forum_id != 0 ) {
       $o .= '<li>'. l('Talk and Taunting', 'forum/'. $league->forum_id) .'</li>';
     }
+    
     $o .= '<li>Research<ul>';
-    $o .= '<li>'. l('Schedule Grid', 'pickem/grid') .'</li>';
+    $o .= '<li>'. l('Schedule Grid', 'pickem/'. $league->lid .'/grid') .'</li>';
     if (module_exists("open_flash_chart_api")) {
       $o .= '<li>'. l('High/Low Chart', 'pickem/'. $league->lid .'/chart1') .'</li>';
       $o .= '<li>'. l('Team Pickability Chart', 'pickem/'. $league->lid .'/chart2') .'</li>';
     }
-    $o .= '<li>'. l('Team Win-Loss Stats', 'pickem/team_stats') .'</li>';
+    $o .= '<li>'. l('Team Win-Loss Stats', 'pickem/'. $league->lid .'/team_stats') .'</li>';
 
     $o .= '</ul></li></ul>';
     
-    if ( $multileague == 'yes' ) {
-      return theme('dash', $league->name, $o, 'main', l($league->name, 'pickem/'. $league->lid));
-    } 
-    else {
-      return theme('dash', $league->name, $o);
-    }
+    return theme('dash', 'Navigation', $o);
 }
 
 function theme_league_messages($league) {
-  //drupal_set_message('theme_league_messages');
+  global $user;
   
-  $post_link = '/node/add/forum/'. $league->forum_id;
-  $output = '<a href="'. $post_link .'">Post new forum topic.</a><ul>';
-
+  if ( is_my_league($league) ) {
+    $post_link = '/node/add/forum/'. $league->forum_id;
+    $output = '<a href="'. $post_link .'">Post new forum topic.</a>';
+  }
+  $output .= '<ul>';
   $cur_w = get_current_week(true);
   if ( $cur_w['firstgame_date'] != '' ) {
     if ( $cur_w['dow'] <> "Sunday" ) {
@@ -1097,8 +1109,12 @@ function theme_this_weeks_games_scrape($cache_reset = FALSE) {
   return theme('dash', $title, $content);
 }
 
-function page_team_stats() {
+function page_team_stats($league) {
   drupal_set_title('Team Stats');
+  
+  $breadcrumb = drupal_get_breadcrumb();
+  $breadcrumb[] = l($league->name, 'pickem/' . $league->lid);
+  drupal_set_breadcrumb($breadcrumb);
   
   $o  = '<div class="pickem">' . theme('team_stats') . '</div>';
   
@@ -1207,6 +1223,11 @@ function stream_logo() {
 
 function chart1($league, $user=NULL) {
   drupal_set_title('Charts');
+
+  $breadcrumb = drupal_get_breadcrumb();
+  $breadcrumb[] = l($league->name, 'pickem/' . $league->lid);
+  drupal_set_breadcrumb($breadcrumb);
+
   $g = new open_flash_chart_api();
   
   if ( isset($user) ) {
@@ -1302,6 +1323,11 @@ function chart1($league, $user=NULL) {
 
 function chart2($league, $sort_by='win_lose') {
   drupal_set_title('Charts');
+  
+  $breadcrumb = drupal_get_breadcrumb();
+  $breadcrumb[] = l($league->name, 'pickem/' . $league->lid);
+  drupal_set_breadcrumb($breadcrumb);
+  
   $g = new open_flash_chart_api();
   $g->set_title( t('Team Pickability (Regular Season)'), '{font-size: 20px;}' );
   $g->set_width('100%');
@@ -1462,7 +1488,7 @@ function pickem_block($op = 'list', $delta = 0, $edit = array()) {
           // function.
           
           
-          $block['content'] = get_league_switcher();
+          $block['content'] = get_my_league_switcher();
           
           
           break;
@@ -1471,8 +1497,22 @@ function pickem_block($op = 'list', $delta = 0, $edit = array()) {
   }
 }
 
-function get_league_switcher() {
+function get_my_league_switcher() {
   $leagues = get_my_leagues();
+  $o = '';
+  foreach ($leagues as $l) {
+    if ( arg(1) == $l->lid ) {
+      $o.=l('&raquo; '.$l->name, 'pickem/'. $l->lid, array('html'=>TRUE)) .'<br/>';
+    }
+    else {
+      $o.=l($l->name, 'pickem/'. $l->lid) .'<br/>';
+    }
+  }
+  return $o;  
+}
+
+function get_all_league_switcher() {
+  $leagues = get_leagues();
   $o = '';
   foreach ($leagues as $l) {
     if ( arg(1) == $l->lid ) {

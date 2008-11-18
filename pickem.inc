@@ -115,7 +115,17 @@ function get_my_leagues() {
   }
   return $leagues;
 }
-
+function is_my_league($league) {
+  global $user;
+  $query = "SELECT l.* from {pickem_leagues} l inner join {pickem_users} pu on pu.lid=l.lid where pu.lid=%d and pu.uid=%d";
+  $row = db_fetch_object(db_query($query, $league->lid, $user->uid));
+  if ( $row ) {
+    return TRUE;
+  }
+  else {
+    return FALSE;
+  }
+}
 
 
 function get_teams() {
