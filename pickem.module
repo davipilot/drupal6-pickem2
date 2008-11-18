@@ -1453,14 +1453,14 @@ function pickem_block($op = 'list', $delta = 0, $edit = array()) {
       // If $op is "list", we just need to return a list of block descriptions.
       // This is used to provide a list of possible blocks to the administrator,
       // end users will not see these descriptions.
-      // A block can provide default settings. In this case we'll enable the 
-      // block and make it visible only on the 'node/*' pages. 
+      // A block can provide default settings.
       $blocks[0] = array(
         'info'       => t('My Leagues'),
         'status'     => TRUE,
         'weight'     => 0,
         'visibility' => 1,
         'pages'      => 'pickem/*',
+        'region'     => 'left',
       );
       return $blocks;
     case 'configure':
