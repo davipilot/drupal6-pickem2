@@ -426,6 +426,7 @@ function page_grid($league) {
   $output = '';
   
   if ( ($cache = cache_get('pickem_grid_scores')) && !empty($cache->data)) {
+    drupal_add_js('misc/tableheader.js');
     $output = unserialize($cache->data);
   } 
   else {
@@ -1510,6 +1511,11 @@ function pickem_block($op = 'list', $delta = 0, $edit = array()) {
 
 function get_my_league_switcher() {
   $leagues = get_my_leagues();
+
+  if ( count($leagues) < 2 ) {
+    return '';
+  }
+
   $o = '';
   $path ='';
   $list = explode('/', $_GET['q']);
