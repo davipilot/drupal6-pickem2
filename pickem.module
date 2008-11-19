@@ -425,18 +425,16 @@ function page_grid($league) {
 
   $output = '';
   
-  if ( ($cache = cache_get('pickem_grid_scores')) && !empty($cache->data)) {
+  if ( (FALSE && $cache = cache_get('pickem_grid_scores')) && !empty($cache->data)) {
     $output = unserialize($cache->data);
   } 
   else {
-    $weeks = get_weeks();
-    $week_row = '';
-    foreach ($weeks as $w => $w_data) {
-      $week_row .= '<th>'. $w .'</th>';
-    }
+    $weeks = get_weeks(0, 'regular'); // skip playoffs, no room on screen
     
-    $flip = array('even' => 'odd', 'odd' => 'even');
-    $class1 = 'even';
+    $header = array('&nbsp;');
+    foreach ($weeks as $w => $w_data) {
+      $header[] = array('data'=>$w, 'title'=>'Week Number '.$w);
+    }
   
     $query = "SELECT g.gid, g.wid, h.tm_abbrev as home, v.tm_abbrev as visitor, g.h_score, g.v_score FROM {pickem_games} g inner join {pickem_teams} h on h.tid=g.h_id inner join {pickem_teams} v on v.tid=g.v_id order by wid";
     $result = db_query($query);
@@ -504,47 +502,51 @@ function page_grid($league) {
         );
       }
     }
-  
     ksort($games);
   
-    $output = '<div class="pickem">Hover over completed game for the score.<table class="grid">';
-    $output .= '<tr><th>&nbsp;</th>'. $week_row .'</tr>';
+  
+    $output = '<div class="pickem">Hover over completed game for the score.';
+    
+    $rows = array();
     foreach ($games as $tm => $teamsgames) {
       ksort($teamsgames);
-      $class1 = $flip[$class1];
-      $output .= '<tr class="'. $class1 .'"><th>'. $tm .'</th>';
+      $row = array();
+      $row[] = array('data' => $tm, 'class'=>'team_head');
       foreach ($weeks as $w => $w_data) {
-        $class = "";
         if (isset ($teamsgames[$w])) {
           $class .= $teamsgames[$w]["h-a"];
           $class .= " ". $teamsgames[$w]["w-l"];
           if ($teamsgames[$w]["h-a"] == "away") {
             $teamsgames[$w]["op"] = '@'. $teamsgames[$w]["op"];
           }
-          $output .= "<td class=\"$class\" title=\"". $teamsgames[$w]["score"] ."\">". $teamsgames[$w]["op"] ."</td>";
+          $row[] = array('data' => $teamsgames[$w]["op"], 'class'=>$teamsgames[$w]["w-l"], 'title'=>strtoupper($teamsgames[$w]["w-l"]) . ' ' . $teamsgames[$w]["score"]);
         } 
         else {
           if ($w_data->playoffs == 1) {
-            $output .= '<td>&nbsp;</td>';
+            // playoffs, blank, used for teams that didn't make the playoffs
+            $row[] = '&nbsp;';
           } 
           else {
-            $output .= '<td class="bye">bye</td>';
+            // bye week
+            $row[] = array('data' => 'bye', 'class'=>'bye', 'title'=>'Bye Week');
           }
         }
       }
-      $output .= "</tr>";
+      $rows[] = $row;
     }
-    $output .= '<tr><th>&nbsp;</th>'. $week_row .'</tr></table>';
     
-    $output .= '<table class="grid">';
-    $output .= '<tr><th class="legend-desc">Legend</th></tr>';
-    $output .= '<tr><td class="win">CLE</td><td class="legend-desc">Win (for team in the first column)</td></tr>';
-    $output .= '<tr><td class="loss">DAL</td><td class="legend-desc">Loss (for team in the first column)</td></tr>';
-    $output .= '<tr><td class="tie">SEA</td><td class="legend-desc">Tie</td></tr>';
-    $output .= '<tr><td class="tbd">DEN</td><td class="legend-desc">Not Yet Played</td></tr>';
-    $output .= '<tr><td class="bye">bye</td><td class="legend-desc">Bye</td></tr>';
-  
-    $output .= '</table></div>';
+    $output .= theme('table', $header, $rows, array('class'=>'grid'));    
+    
+//    $output .= '<table class="grid">';
+//    $output .= '<tr><th class="legend-desc">Legend</th></tr>';
+//    $output .= '<tr><td class="win">CLE</td><td class="legend-desc">Win (for team in the first column)</td></tr>';
+//    $output .= '<tr><td class="loss">DAL</td><td class="legend-desc">Loss (for team in the first column)</td></tr>';
+//    $output .= '<tr><td class="tie">SEA</td><td class="legend-desc">Tie</td></tr>';
+//    $output .= '<tr><td class="tbd">DEN</td><td class="legend-desc">Not Yet Played</td></tr>';
+//    $output .= '<tr><td class="bye">bye</td><td class="legend-desc">Bye</td></tr>';
+//  
+    
+    $output .= '</div>';
 
     cache_set('pickem_grid_scores', serialize($output));
   }

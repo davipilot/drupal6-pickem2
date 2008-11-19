@@ -42,15 +42,19 @@
   border-style: none;
 }
 .pickem table.grid td {
-  padding: 0 1px 0 1px;
+  padding: 1px;
   margin: 0;
   text-align: center;
   color: black;
 }
-.pickem table.grid *.legend-desc {
-  text-align:left;
+.pickem table.grid td.team_head {
+  padding: 3px;
+  text-align: center;
+  color: black;
   font-weight:bold;
 }
+
+
 
 /*
  PICKS TABLE
