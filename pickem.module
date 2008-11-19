@@ -425,7 +425,7 @@ function page_grid($league) {
 
   $output = '';
   
-  if ( (FALSE && $cache = cache_get('pickem_grid_scores')) && !empty($cache->data)) {
+  if ( ($cache = cache_get('pickem_grid_scores')) && !empty($cache->data)) {
     $output = unserialize($cache->data);
   } 
   else {
