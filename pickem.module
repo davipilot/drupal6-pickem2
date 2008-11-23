@@ -1076,7 +1076,7 @@ function theme_this_weeks_games() {
     $content .= '<tr><th colspan="2">Visitor</th><th colspan="2">Home</th></tr>';
     foreach ($games as $gid => $row) {
       //$content.=$teams[$row->v_id]['abbrev'] ." vs ". $teams[$row->h_id]['abbrev'] . "<br/>";
-      $content .= '<tr><td class="team-abbrev">'. $teams[$row->v_id]->abbrev .'</td><td class="score">'. $row->v_score .'</td><td class="team-abbrev">'. $teams[$row->h_id]->abbrev .'</td><td class="score">'. $row->h_score .'</td></tr>';
+      $content .= '<tr><td class="team-abbrev">'. $teams[$row->v_id]->tm_abbrev .'</td><td class="score">'. $row->v_score .'</td><td class="team-abbrev">'. $teams[$row->h_id]->tm_abbrev .'</td><td class="score">'. $row->h_score .'</td></tr>';
     }
     $content .= '</table>';
     
