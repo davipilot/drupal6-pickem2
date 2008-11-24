@@ -169,3 +169,25 @@
   width:60px;
   border-left: 2px solid black;
 }
+
+/*
+  LEAGUE LEADERS
+*/
+.pickem div.league-leaders {
+	height: 200px;
+	width: 200px;
+	overflow:auto;
+}
+.pickem div.league-leaders div.score {
+	padding-top: 1.5px;
+	width: 50px;
+	float:left;
+	text-align: right;
+}
+.pickem div.league-leaders div.user {
+	padding-top: 1.5px;
+	width: 120px;
+	float:left;
+	text-align: left;
+	padding-left: 10px;
+}

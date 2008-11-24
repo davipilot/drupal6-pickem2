@@ -18,6 +18,22 @@ function pickem_admin_settings() {
     '#description' => t("This is the return address for all leaguewide pickem email."),
   );
 
+  $form['pickem_default_email_reminders'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Default email reminders'),
+    '#return_value' => 1,
+    '#default_value' => variable_get('pickem_default_email_reminders', 1),
+    '#description' => t("Default email reminder setting for new users.  Each user can override this."),
+  );
+
+  $form['pickem_partial_league'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Partial league support'),
+    '#return_value' => 1,
+    '#default_value' => variable_get('pickem_partial_league', 0),
+    '#description' => t("If you don't pick every game for every team, use this setting.)"),
+  );
+
   $form['pickem_auto_signup'] = array(
     '#type' => 'fieldset',
     '#title' => t('Auto Signup'),
@@ -46,20 +62,18 @@ function pickem_admin_settings() {
     '#description' => t("Which league should users be signed up for?"),
   );
 
-  $form['pickem_use_espn'] = array(
+  $form['pickem_nfl'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('NFL'),
+    '#collapsible' => TRUE,
+  );
+
+  $form['pickem_nfl']['pickem_use_espn'] = array(
     '#type' => 'checkbox',
-    '#title' => t('Use the ESPN score scrape'),
+    '#title' => t('Use the ESPN NFL score scrape'),
     '#return_value' => 1,
     '#default_value' => variable_get('pickem_use_espn', 0),
     '#description' => t("This grabs the current weeks scores from espn."),
-  );
-
-  $form['pickem_default_email_reminders'] = array(
-    '#type' => 'checkbox',
-    '#title' => t('Default email reminders'),
-    '#return_value' => 1,
-    '#default_value' => variable_get('pickem_default_email_reminders', 1),
-    '#description' => t("Default email reminder setting for new users.  Each user can override this."),
   );
 
 
@@ -137,7 +151,7 @@ function admin_games_form($form_state=NULL) {
   $team_list = array();
   $team_list[0] = "";
   foreach ($teams as $t_id => $team_data) {
-    $team_list[$t_id] = $team_data->tm_abbrev;
+    $team_list[$t_id] = ($team_data->tm_abbrev <> '')?$team_data->tm_abbrev:$team_data->tm_name;
   }
 
   $weeks = get_weeks(0, 'all');
@@ -301,36 +315,22 @@ function admin_games_form_submit($form, &$form_state) {
 
   cache_clear_all('pickem_grid_scores', 'cache', TRUE); 
 
-  foreach ($form_state['values']['games'] as $key => $value) {
-    $gid = $value['gid'];
-    $wid = $value['wid'];
-    $gametime = $value['game_time'];
-    $home_team = $value['home_team'];
-    $h_spread = $value['h_spread'];
-    $visitor_team = $value['visitor_team'];
-    $v_spread = $value['v_spread'];
-
-    // this will filter by games on the current page only.
-    if ($gid <> 0 && $gametime != '' && $home_team <> 0 && $visitor_team <> 0) {
-      $query = "update {pickem_games} set wid=%d, gametime='%s', h_id=%d, h_spread=%d, v_id=%d, v_spread=%d where gid=%d";
-      $result = db_query($query, $wid, date($gametime), $home_team, $h_spread, $visitor_team, $v_spread, $gid);
+  if ( isset($form_state['values']['games']) ) {
+    foreach ($form_state['values']['games'] as $key => $value) {
+      // this will filter by games on the current page only.
+      if ($value['gid'] <> 0 && $value['game_time'] != '' && $value['home_team'] <> 0 && $value['visitor_team'] <> 0) {
+        $query = "update {pickem_games} set wid=%d, gametime='%s', h_id=%d, h_spread=%d, v_id=%d, v_spread=%d where gid=%d";
+        $result = db_query($query, $value['wid'], date($value['game_time']), $value['home_team'], $value['h_spread'], $value['visitor_team'], $value['v_spread'], $value['gid']);
+      }
     }
   }
 
   foreach ($form_state['values']['new_game'] as $key => $value) {
-    $gid = $value['gid'];
-    $wid = $value['wid'];
-    $gametime = $value['game_time'];
-    $home_team = $value['home_team'];
-    $h_spread = $value['h_spread'];
-    $visitor_team = $value['visitor_team'];
-    $v_spread = $value['v_spread'];
-
-    if ($gid == 0 && $gametime != '' && $home_team <> 0 && $visitor_team <> 0) {
+    if ($value['gid'] == 0 && $value['game_time'] != '' && $value['home_team'] <> 0 && $value['visitor_team'] <> 0) {
       $query = "insert into {pickem_games}(wid, gametime, h_id, h_spread, v_id, v_spread) values(%d, '%s', %d, %d, %d, %d)";
-      $result = db_query($query, $wid, date($gametime), $home_team, $h_spread, $visitor_team, $v_spread);
+      $result = db_query($query, $value['wid'], date($value['game_time']), $value['home_team'], $value['h_spread'], $value['visitor_team'], $value['v_spread']);
       drupal_set_message("Games Saved");
-      drupal_goto('admin/content/pickem/games', 'page='. ($wid - 1));
+      drupal_goto('admin/content/pickem/games', 'page='. ($value['wid'] - 1));
     }
   }
   drupal_set_message("Games Saved");
@@ -356,7 +356,7 @@ function admin_weeks_form($form_state=NULL) {
     '#tree' => TRUE,
   );  
   
-  $query = "SELECT wid, wk_name, wk_abbrev, wk_firstgame, wk_points from {pickem_weeks} ORDER BY wid";
+  $query = "SELECT wid, wk_name, wk_abbrev, wk_firstgame, wk_points, playoffs from {pickem_weeks} ORDER BY wid";
   $result = db_query($query);
   while ($row = db_fetch_object($result)) {
     $form['weeks'][] = array(
@@ -393,16 +393,18 @@ function admin_weeks_form($form_state=NULL) {
         '#size' => 5,
         '#maxlength' => 5,
         '#default_value' => $row->wk_points,
+      ),
+      'playoffs' => array(
+        '#type' => 'radios',
+        '#default_value' => $row->playoffs,
+        '#options' => array( 0 => t('Regular Season'), 1 => t('Playoffs') )
       )
+      
     );
   }
   // add new week
-  $form['weeks'][] = array(
+  $form['new_row'] = array(
     'wid' => array(
-      '#type' => 'hidden',
-      '#value' => 0
-    ),
-    'num' => array(
       '#type' => 'textfield',
       '#size' => 3,
       '#maxlength' => 3,
@@ -431,6 +433,11 @@ function admin_weeks_form($form_state=NULL) {
       '#size' => 5,
       '#maxlength' => 5,
       '#default_value' => "",
+    ),
+    'playoffs' => array(
+      '#type' => 'radios',
+      '#default_value' => 0,
+      '#options' => array( 0 => t('Regular Season'), 1 => t('Playoffs') )
     )
   );
 
@@ -443,6 +450,7 @@ function admin_weeks_form($form_state=NULL) {
 function theme_admin_weeks_form(&$form) {
   //drupal_set_message('theme_admin_weeks_form');
   
+  drupal_add_js('misc/collapse.js');
   $header = array( t('Num'), t('Name'), t('Abbrev'), t('FirstGame'), t('Points'));
   $rows = array();
   foreach (element_children($form['weeks']) as $key) {
@@ -453,10 +461,28 @@ function theme_admin_weeks_form(&$form) {
       drupal_render($form['weeks'][$key]['abbrev']), 
       drupal_render($form['weeks'][$key]['firstgame']), 
       drupal_render($form['weeks'][$key]['points']),
+      drupal_render($form['weeks'][$key]['playoffs']),
     );
   }
+  $output = '';
+  $output .= '<div><fieldset class="collapsible"><legend><a href="#">Weeks</a></legend>';
+  $output .= theme('table', $header, $rows);
+  $output .= "</fieldset></div>";
 
-  $output = theme('table', $header, $rows);
+  $new_row = array();
+  $new_row[] = array(
+    drupal_render($form['new_row']['wid']) .
+    drupal_render($form['new_row']['num']), 
+    drupal_render($form['new_row']['name']), 
+    drupal_render($form['new_row']['abbrev']), 
+    drupal_render($form['new_row']['firstgame']), 
+    drupal_render($form['new_row']['points']),
+    drupal_render($form['new_row']['playoffs']),
+  );
+
+  $output .= '<div><fieldset class="collapsible"><legend><a href="#">Add New Week</a></legend>';
+  $output .= theme('table', $header, $new_row);
+  $output .= "</fieldset></div>";
 
   $output .= drupal_render($form['save']);
   $output .= drupal_render($form['form_id']);
@@ -468,23 +494,19 @@ function theme_admin_weeks_form(&$form) {
 function admin_weeks_form_submit($form, &$form_state) {
   //drupal_set_message('admin_weeks_form_submit');
   
-  foreach ($form_state['values']['weeks'] as $key => $value) {
-    $wid = $value['wid'];
-    $num = $value['num'];
-    $name = $value['name'];
-    $abbrev = $value['abbrev'];
-    $first_game = $value['firstgame'];
-    $points = $value['points'];
-
-    if ($wid == 0 && $num <> "") {
-      $query = "insert into {pickem_weeks}(wid, wk_name, wk_abbrev, wk_firstgame, wk_points) values(%d, '%s', '%s', '%s', %d)";
-      $result = db_query($query, $num, $name, $abbrev, date($first_game), $points);
-    } 
-    else {
-      $query = "update {pickem_weeks} set wid=%d, wk_name='%s', wk_abbrev='%s', wk_firstgame='%s', wk_points=%d where wid=%d";
-      $result = db_query($query, $num, $name, $abbrev, date($first_game), $points, $wid);
+  if ( isset($form_state['values']['weeks']) ) {
+    foreach ($form_state['values']['weeks'] as $key => $value) {
+        $query = "update {pickem_weeks} set wid=%d, wk_name='%s', wk_abbrev='%s', wk_firstgame='%s', wk_points=%d, playoffs=%d where wid=%d";
+        $result = db_query($query, $value['num'], $value['name'], $value['abbrev'], date($value['firstgame']), $value['points'], $value['playoffs'], $value['wid']);
     }
   }
+
+  if ( $form_state['values']['new_row']['wid'] <> '' ) {
+    $value = $form_state['values']['new_row'];
+    $query = "insert into {pickem_weeks}(wid, wk_name, wk_abbrev, wk_firstgame, wk_points, playoffs) values(%d, '%s', '%s', '%s', %d, %d)";
+    $result = db_query($query, $value['wid'], $value['name'], $value['abbrev'], date($value['firstgame']), $value['points'], $value['playoffs']);
+  }
+
   cache_clear_all('pickem_grid_scores', 'cache', TRUE); 
   drupal_set_message("Weeks Saved");
 }
@@ -510,48 +532,88 @@ function admin_teams_form($form_state=NULL) {
   $result = db_query($query);
   while ($row = db_fetch_object($result)) {
     $form['teams'][$row->tid] = array(
-      'rowid' => array(
-        '#type' => 'value',
-        '#value' => $row->tid
-      ),
       'tid' => array(
-        '#type' => 'textfield',
-        '#size' => 3,
-        '#default_value' => $row->tid
+        '#type' => 'hidden',
+        '#value' => $row->tid
       ),
       'city' => array(
         '#type' => 'textfield',
         '#size' => 20,
+        '#maxlength' => 50,
         '#default_value' => $row->tm_city
       ),
       'abbrev' => array(
         '#type' => 'textfield',
-        '#size' => 3,
-        '#maxlength' => 3,
+        '#size' => 5,
+        '#maxlength' => 5,
         '#default_value' => $row->tm_abbrev
       ),
       'nick' => array(
         '#type' => 'textfield',
-        '#size' => 35,
+        '#size' => 10,
+        '#maxlength' => 50,
         '#default_value' => $row->tm_nick
       ),
       'name' => array(
         '#type' => 'textfield',
         '#size' => 15,
+        '#maxlength' => 50,
         '#default_value' => $row->tm_name
       ),
       'conf' => array(
         '#type' => 'textfield',
-        '#size' => 10,
+        '#size' => 20,
+        '#maxlength' => 50,
         '#default_value' => $row->conference
       ),
       'div' => array(
         '#type' => 'textfield',
         '#size' => 10,
+        '#maxlength' => 50,
         '#default_value' => $row->division
       ),
     );
   }
+  
+  $form['new_row'] = array(
+    'city' => array(
+      '#type' => 'textfield',
+      '#size' => 20,
+      '#maxlength' => 50,
+      '#default_value' => ''
+    ),
+    'abbrev' => array(
+      '#type' => 'textfield',
+      '#size' => 5,
+      '#maxlength' => 5,
+      '#default_value' => ''
+    ),
+    'nick' => array(
+      '#type' => 'textfield',
+      '#size' => 35,
+      '#maxlength' => 50,
+      '#default_value' => ''
+    ),
+    'name' => array(
+      '#type' => 'textfield',
+      '#size' => 15,
+      '#maxlength' => 50,
+      '#default_value' => ''
+    ),
+    'conf' => array(
+      '#type' => 'textfield',
+      '#size' => 10,
+      '#maxlength' => 50,
+      '#default_value' => ''
+    ),
+    'div' => array(
+      '#type' => 'textfield',
+      '#size' => 10,
+      '#maxlength' => 50,
+      '#default_value' => ''
+    ),
+  );
+  
   $form['save'] = array(
     '#type' => 'submit',
     '#value' => t('Save Teams')
@@ -561,15 +623,15 @@ function admin_teams_form($form_state=NULL) {
 }
 function theme_admin_teams_form(&$form) {
   //drupal_set_message("theme_admin_teams_form");
+  drupal_add_js('misc/collapse.js');
   
-  $header = array(t('TID'), t('Abbrev'), t('City'), t('Name'), t('Nickname'), t('Conference'), t('Division'));
+  $header = array(t('Abbrev'), t('City'), t('Name'), t('Nickname'), t('Conference'), t('Division'));
   //$destination = drupal_get_destination();
 
   $rows = array();
   foreach (element_children($form['teams']) as $key) {
     $rows[] = array(
-      drupal_render($form['teams'][$key]['tid']), 
-      drupal_render($form['teams'][$key]['abbrev']), 
+      drupal_render($form['teams'][$key]['abbrev']) . drupal_render($form['teams'][$key]['tid']), 
       drupal_render($form['teams'][$key]['city']), 
       drupal_render($form['teams'][$key]['name']), 
       drupal_render($form['teams'][$key]['nick']),
@@ -578,7 +640,27 @@ function theme_admin_teams_form(&$form) {
     );
   }
  
-  $output = theme('table', $header, $rows);
+  $output = '';
+  $output .= '<div><fieldset class="collapsible"><legend><a href="#">Team List</a></legend>';
+  $output .= theme('table', $header, $rows);
+  $output .= "</fieldset></div>";
+  
+  $new_row = array();
+  $new_row[] = array(
+      drupal_render($form['new_row']['abbrev']), 
+      drupal_render($form['new_row']['city']), 
+      drupal_render($form['new_row']['name']), 
+      drupal_render($form['new_row']['nick']),
+      drupal_render($form['new_row']['conf']),
+      drupal_render($form['new_row']['div']),
+  );
+
+  $output .= '<div><fieldset class="collapsible"><legend><a href="#">Add New Team</a></legend>';
+  $output .= theme('table', $header, $new_row);
+  $output .= "</fieldset></div>";
+  
+  
+  
   $output .= drupal_render($form['save']);
   $output .= drupal_render($form['form_id']);
   $output .= drupal_render($form['form_token']);
@@ -589,19 +671,21 @@ function theme_admin_teams_form(&$form) {
 function admin_teams_form_submit($form, &$form_state) {
   //drupal_set_message("admin_teams_form_submit");
   
-  foreach ($form_state['values']['teams'] as $key => $value) {
-    $tid    = $value['tid'];
-    $city   = $value['city'];
-    $abbrev = $value['abbrev'];
-    $name   = $value['name'];
-    $nick   = $value['nick'];
-    $conf   = $value['conf'];
-    $div   = $value['div'];
-    
-    $query = "update {pickem_teams} set tm_city='%s', tm_abbrev='%s', tm_name='%s', tm_nick='%s', conference='%s', division='%s' where tid=%d";
-    $result = db_query($query, $city, $abbrev, $name, $nick, $conf, $div, $tid);
+  if ( isset($form_state['values']['teams']) ) {
+    foreach ($form_state['values']['teams'] as $key => $value) {
+      $query = "update {pickem_teams} set tm_city='%s', tm_abbrev='%s', tm_name='%s', tm_nick='%s', conference='%s', division='%s' where tid=%d";
+      $result = db_query($query, $value['city'], $value['abbrev'], $value['name'], $value['nick'], $value['conf'], $value['div'], $value['tid']);
+    }
   }
+  
+  if ( $form_state['values']['new_row']['abbrev'] <> '' ) {  
+    $value = $form_state['values']['new_row'];
+    $query = "insert into {pickem_teams} (tm_city, tm_abbrev, tm_name, tm_nick, conference, division) values('%s','%s','%s','%s','%s','%s')";
+    $result = db_query($query, $value['city'], $value['abbrev'], $value['name'], $value['nick'], $value['conf'], $value['div']);
+  }
+  
   drupal_set_message("Teams Saved");
+  
 }
 
 
@@ -871,7 +955,7 @@ function admin_leagues_form($form_state=NULL) {
       ),
       'scoring_type' => array(
         '#type' => 'radios',
-        '#default_value' => $row->scoring_type,
+        '#default_value' => 0,
         '#options' => array( 0 => t('Win-Loss'), 1 => t('Spread') ),
       ),
     );
@@ -1033,6 +1117,10 @@ function page_admin_picks($league_id=0, $user_id = 0, $week_id = 0) {
       foreach ($weeksgames as $gid => $game) {
         $v_sel = "";
         $h_sel = "";
+
+        $v_team = ($teams[$game["vid"]]->tm_abbrev <> '')?$teams[$game["vid"]]->tm_abbrev:$teams[$game["vid"]]->tm_name;
+        $h_team = ($teams[$game["hid"]]->tm_abbrev <> '')?$teams[$game["hid"]]->tm_abbrev:$teams[$game["hid"]]->tm_name;
+        
         if ($game["pick"] == $game["vid"]) {
           $v_sel = "checked";
         }
@@ -1048,8 +1136,8 @@ function page_admin_picks($league_id=0, $user_id = 0, $week_id = 0) {
         }
 
         $rows[] = array(
-          '<input type="radio" name="gid_'. $gid .'" value="'. $game["vid"] .'" '. $v_sel .'/>'. $teams[$game["vid"]]->tm_abbrev,
-          '<input type="radio" name="gid_'. $gid .'" value="'. $game["hid"] .'" '. $h_sel .'/>'. $teams[$game["hid"]]->tm_abbrev,
+          '<input type="radio" name="gid_'. $gid .'" value="'. $game["vid"] .'" '. $v_sel .'/>'. $v_team,
+          '<input type="radio" name="gid_'. $gid .'" value="'. $game["hid"] .'" '. $h_sel .'/>'. $h_team,
           array('data' => $game['gametime'], 'class' => "$class"),
         );
       }
@@ -1072,41 +1160,44 @@ function page_admin_picks($league_id=0, $user_id = 0, $week_id = 0) {
       $inner="";
       foreach ($weeksgames as $gid => $game) {
         $class = $flip[$class];
+
+        $v_team = ($teams[$game["vid"]]->tm_abbrev <> '')?$teams[$game["vid"]]->tm_abbrev:$teams[$game["vid"]]->tm_name;
+        $h_team = ($teams[$game["hid"]]->tm_abbrev <> '')?$teams[$game["hid"]]->tm_abbrev:$teams[$game["hid"]]->tm_name;
         
         $inner .= '<div class="game-list-horiz">';
-        if (isset ($teams[$game["pick"]]->tm_abbrev)) {
+        if ( isset ($game["pick"]) ) {
           if ($game["pick"] == $game["vid"] && $game["vscore"] > $game["hscore"]) {
             // PICK VIS, VIS WINS
-            $inner .= '<span class="win">'. $teams[$game["vid"]]->tm_abbrev .'</span><br/>@'. $teams[$game["hid"]]->tm_abbrev;
+            $inner .= '<span class="win">'. $v_team .'</span><br/>@'. $h_team;
           }
           elseif ($game["pick"] == $game["hid"] && $game["hscore"] > $game["vscore"]) {
             // PICK HOME, HOME WINS
-            $inner .= $teams[$game["vid"]]->tm_abbrev .'<br/>@<span class="win">'. $teams[$game["hid"]]->tm_abbrev .'</span>';
+            $inner .= $v_team .'<br/>@<span class="win">'. $h_team .'</span>';
           }
           elseif ($game["hscore"] <> "" && $game["hscore"] == $game["vscore"]) {
             //TIE
-            $inner .= '<span class="win">'. $teams[$game["vid"]]->tm_abbrev .'<br/>@'. $teams[$game["hid"]]->tm_abbrev .'</span>';
+            $inner .= '<span class="win">'. $v_team .'<br/>@'. $h_team .'</span>';
           }
           elseif ($game["pick"] == $game["vid"] && $game["vscore"] < $game["hscore"]) {
             // PICK VIS, VIS LOSES
-            $inner .= '<span class="loss">'. $teams[$game["vid"]]->tm_abbrev .'</span><br/>@'. $teams[$game["hid"]]->tm_abbrev;
+            $inner .= '<span class="loss">'. $v_team .'</span><br/>@'. $h_team;
           }
           elseif ($game["pick"] == $game["hid"] && $game["hscore"] < $game["vscore"]) {
             // PICK HOME, HOME LOSES
-            $inner .= $teams[$game["vid"]]->tm_abbrev .'<br/>@<span class="loss">'. $teams[$game["hid"]]->tm_abbrev .'</span>';
+            $inner .= $v_team .'<br/>@<span class="loss">'. $h_team .'</span>';
           }
           elseif ($game["pick"] == $game["hid"]) {
             // PICK HOME, GAME NOT PLAYED
-            $inner .= $teams[$game["vid"]]->tm_abbrev .'<br/>@'. $teams[$game["hid"]]->tm_abbrev;
+            $inner .= $v_team .'<br/>@'. $h_team;
           }
           elseif ($game["pick"] == $game["vid"]) {
             // PICK VIS, GAME NOT PLAYED
-            $inner .= $teams[$game["vid"]]->tm_abbrev .'<br/>@'. $teams[$game["hid"]]->tm_abbrev;
+            $inner .= $v_team .'<br/>@'. $h_team;
           }
         } 
         else {
           // NO PICK
-          $inner .= $teams[$game["vid"]]->tm_abbrev .'<br/>@'. $teams[$game["hid"]]->tm_abbrev;
+          $inner .= $v_team .'<br/>@'. $h_team;
         }
         $inner .= "</div>";
       }
@@ -1182,7 +1273,9 @@ function page_admin_scores($week_id = 0) {
       $class = $flip[$class];      
       $output .= '<tr class="'. $class .'"><th>'. l("$wid", 'admin/content/pickem/scores/'. $wid) .'</th><td>';
       foreach ($weeksgames as $gid => $game) {
-        $output .= '<div class="game-list-horiz">'. $teams[$game["vid"]]->tm_abbrev .'&nbsp;'. $game["vscore"] .'<br>'. $teams[$game["hid"]]->tm_abbrev .'&nbsp;'. $game["hscore"] .'</div>';
+        $v_team = ($teams[$game["vid"]]->tm_abbrev <> '')?$teams[$game["vid"]]->tm_abbrev:$teams[$game["vid"]]->tm_name;
+        $h_team = ($teams[$game["hid"]]->tm_abbrev <> '')?$teams[$game["hid"]]->tm_abbrev:$teams[$game["hid"]]->tm_name;
+        $output .= '<div class="game-list-horiz">'. $v_team .'&nbsp;'. $game["vscore"] .'<br>'. $h_team .'&nbsp;'. $game["hscore"] .'</div>';
       }
       $output .= "</td></tr>";
     }
@@ -1206,9 +1299,12 @@ function page_admin_scores($week_id = 0) {
     $output .= '<tr><th colspan="2">Visitor</th><th colspan="2">Home</th><th>Game Time(EST)</th></tr>';
     foreach ($games as $wid => $weeksgames) {
       foreach ($weeksgames as $gid => $game) {
+        $v_team = ($teams[$game["vid"]]->tm_abbrev <> '')?$teams[$game["vid"]]->tm_abbrev:$teams[$game["vid"]]->tm_name;
+        $h_team = ($teams[$game["hid"]]->tm_abbrev <> '')?$teams[$game["hid"]]->tm_abbrev:$teams[$game["hid"]]->tm_name;
+        
         $output .= '<tr>';
-        $output .= '<td class="team">'. $teams[$game["vid"]]->tm_abbrev .'</td><td class="score"><input name="gid_'. $gid .'_'. $game['vid'] .'" type="text" size="3" value="'. $game['vscore'] .'" /></td>';
-        $output .= '<td class="team">'. $teams[$game["hid"]]->tm_abbrev .'</td><td class="score"><input name="gid_'. $gid .'_'. $game['hid'] .'" type="text" size="3" value="'. $game['hscore'] .'" /></td>';
+        $output .= '<td class="team">'. $v_team .'</td><td class="score"><input name="gid_'. $gid .'_'. $game['vid'] .'" type="text" size="3" value="'. $game['vscore'] .'" /></td>';
+        $output .= '<td class="team">'. $h_team .'</td><td class="score"><input name="gid_'. $gid .'_'. $game['hid'] .'" type="text" size="3" value="'. $game['hscore'] .'" /></td>';
         $output .= '<td class="time">'. $game['gametime'] .'</td></tr>';
       }
     }
@@ -1221,12 +1317,15 @@ function page_admin_scores($week_id = 0) {
 }
 
 function league_forums() {
-  $sql = db_rewrite_sql("SELECT distinct td.tid, td.name FROM {term_data} td inner join {forum} f on f.tid=td.tid  ORDER BY td.name");
-  $result = db_query($sql);
   $options = array();
   $options[0] = 'No Forum Selected';
-  while ($row = db_fetch_object($result)) {
-    $options[$row->tid] = $row->name; 
+  if (module_exists("forum")) {	  
+  $forums = forum_get_forums();
+    if ($forums) {
+      foreach ($forums as $tid => $forum) {
+         $options[$tid] = $forum->name; 
+      }
+    }
   }
   return $options;
 }
@@ -1248,17 +1347,16 @@ function admin_import_form($form_state=NULL) {
     '#description' => t('WARNING: This will clear out previously stored data.'),
     '#collapsible' => TRUE,
   );
-  $form['pickem_data_load']['pickem_data_load_confirm'] = array(
-    '#type' => 'checkbox',
-    '#title' => t('Load 2008 NFL Data'),
-    '#return_value' => 1,
-    '#default_value' => 0,
-    '#description' => t('This will reload teams, games, and picks.'),
+  $form['pickem_data_load']['pickem_data_load_options'] = array(
+    '#type' => 'radios',
+    '#title' => t('Choose data to load'),
+    '#options' => array(t('2008 NFL Data'), t('2008 NCAA Div 1, Basketball')),
+    '#description' => t('This will delete existing teams, games, and picks.'),
   );
+
   $form['pickem_data_load']['pickem_load_data_button'] = array(
     '#type' => 'submit',
     '#value' => t('Load data now'),
-    '#submit' => array('pickem_data_load_submit'),
   );
 
   return $form; 
@@ -1270,25 +1368,40 @@ function pickem_data_load_submit($form, &$form_state) {
   //return;
 
   if ( $form_state['values']['pickem_data_load_confirm'] == 1 ) {
-    load_teams_csv();
-    load_weeks_csv();
-    load_games_csv();
-    drupal_set_message("Data Import Completed");
+    clear_league_data();
+    load_nfl_teams_csv();
+    load_nfl_weeks_csv();
+    load_nfl_games_csv();
+    drupal_set_message("NFL data loaded");
+  }
+  elseif ( $form_values['pickem_data_load_options'] == 1 ) {
+    clear_league_data();
+    load_ncaa_basketball_teams_csv();
   }
   else {
     drupal_set_message("Data Import NOT Completed.  Select 'Load Data' checkbox.");
   }
 return;
 }
-function load_teams_csv() {
-  
-  db_query("delete from {pickem_teams}");
 
+function clear_league_data() {
+  if ( db_query("delete from {pickem_teams}") == FALSE ) {
+    drupal_set_message("Couldn't Delete Teams.", 'error');
+  }
+  if ( db_query("delete from {pickem_weeks}") == FALSE ) {
+    drupal_set_message("Couldn't Delete Weeks.", 'error');
+  }
+  if ( db_query("delete from {pickem_games}") == FALSE ) {
+    drupal_set_message("Couldn't Delete Games.", 'error');
+  }
+}
+
+function load_nfl_teams_csv() {
   // keep fetching a line from the file until end of file
   $fp = fopen(drupal_get_path('module', 'pickem') ."/data/pickem_teams.csv", "r");
   $row = 1;
   $field_names = array();
-  while (($data = fgetcsv($fp, 0, ';')) !== FALSE) {
+  while (($data = fgetcsv($fp, 1024, ';')) !== FALSE) {
     $num = count($data);
     if ( $row == 1 ) {
       for ($c=0; $c < $num; $c++) {
@@ -1303,15 +1416,12 @@ function load_teams_csv() {
   fclose($fp);
 }
 
-function load_weeks_csv() {
-  
-  db_query("delete from {pickem_weeks}");
-
+function load_nfl_weeks_csv() {
   // keep fetching a line from the file until end of file
   $fp = fopen(drupal_get_path('module', 'pickem') ."/data/pickem_weeks.csv", "r");
   $row = 1;
   $field_names = array();
-  while (($data = fgetcsv($fp, 0, ';')) !== FALSE) {
+  while (($data = fgetcsv($fp, 1024, ';')) !== FALSE) {
     $num = count($data);
     if ( $row == 1 ) {
       for ($c=0; $c < $num; $c++) {
@@ -1326,15 +1436,12 @@ function load_weeks_csv() {
   fclose($fp);
 }
 
-function load_games_csv() {
-  
-  db_query("delete from {pickem_games}");
-  
+function load_nfl_games_csv() {
   // keep fetching a line from the file until end of file
   $fp = fopen(drupal_get_path('module', 'pickem') ."/data/pickem_games.csv", "r");
   $row = 1;
   $field_names = array();
-  while (($data = fgetcsv($fp, 0, ';')) !== FALSE) {
+  while (($data = fgetcsv($fp, 1024, ';')) !== FALSE) {
     $num = count($data);
     if ( $row == 1 ) {
       for ($c=0; $c < $num; $c++) {
@@ -1348,4 +1455,33 @@ function load_games_csv() {
     $row++;
   }
   fclose($fp);
+}
+
+function load_ncaa_basketball_teams_csv() {
+  $path = drupal_get_path('module', 'pickem') .'/data/ncaa_div1_basketball_teams.csv';
+  $fp = fopen($path, "r");
+  if ( $fp == FALSE ) {
+    drupal_set_message("Load failed for Teams: 2008 NCAA Div 1, Basketball", 'error');
+    return FALSE;
+  }
+
+  $row = 1;
+  $field_names = array();
+  while (($data = fgetcsv($fp, 1024, ';')) !== FALSE) {
+    $num = count($data);
+    if ( $row == 1 ) {
+      for ($c=0; $c < $num; $c++) {
+        $field_names[$data[$c]] = $c;
+      }
+    }
+    else {
+      if ( db_query("INSERT INTO {pickem_teams} (tid, tm_city, tm_abbrev, tm_nick, tm_name, conference, division) VALUES (%d, '%s', '%s', '%s', '%s', '%s', '%s')", $data[$field_names['tid']], $data[$field_names['tm_city']], $data[$field_names['tm_abbrev']], $data[$field_names['tm_nick']], $data[$field_names['tm_name']], $data[$field_names['conference']], $data[$field_names['division']]) == FALSE ) {
+        drupal_set_message("Couldn't Load row=$row for Teams: 2008 NCAA Div 1, Basketball", 'error');
+      }
+    }
+    $row++;
+  }
+  fclose($fp);
+  drupal_set_message("Loaded Teams: 2008 NCAA Div 1, Basketball");
+  return TRUE;
 }

@@ -78,10 +78,10 @@ function league_load($league_id) {
   if ( is_numeric($league_id) ) {
     $ret = get_leagues($league_id);
     if ( count($ret) > 0 ) {
-    	$league = $ret[0];
+      $league = $ret[0];
     }
     else {
-    	$valid = FALSE;
+      $valid = FALSE;
     }
   }
   return $valid ? $league : FALSE;
@@ -129,7 +129,7 @@ function is_my_league($league) {
 
 
 function get_teams() {
-  $query = "SELECT * from {pickem_teams} order by tm_abbrev";
+  $query = "SELECT * from {pickem_teams} order by tm_abbrev, tm_name";
   $result = db_query($query);
   $teams = array();
   while ($row = db_fetch_object($result)) {
@@ -254,49 +254,86 @@ function get_user_totals($league_id, $weekarg=0) {
   foreach ($users as $u) {
     $totals[$u['uid']] = array(
       'total' => 0,
-      'name' => $u['name']
+      'name' => $u['name'],
+      'best_week_num' => -1,
+      'worst_week_num' => -1,
+      'ranking' => 0,
+      'weeks' => array()
     );
   }
 
   while ($row = db_fetch_object($result)) {
     //print_r($row);
     
-    if (!isset ($totals[$row->uid][$row->wid])) {
-      $totals[$row->uid][$row->wid] = 0;
+    if (!isset ($totals[$row->uid]['weeks'][$row->wid])) {
+      $totals[$row->uid]['weeks'][$row->wid] = 0;
     }
 
     if ( $league->scoring_type == 0 ) {
       // straight win-loss
       if ($row->h_score > $row->v_score && $row->winnerpick_id == $row->h_id) {
-        $totals[$row->uid][$row->wid] += $row->wk_points;
+        $totals[$row->uid]['weeks'][$row->wid] += $row->wk_points;
         $totals[$row->uid]['total'] += $row->wk_points;
       } 
       else if ($row->v_score > $row->h_score && $row->winnerpick_id == $row->v_id) {
-          $totals[$row->uid][$row->wid] += $row->wk_points;
+          $totals[$row->uid]['weeks'][$row->wid] += $row->wk_points;
           $totals[$row->uid]['total'] += $row->wk_points;
       } 
       else if ($row->v_score == $row->h_score && $row->h_score <> "") {
-            $totals[$row->uid][$row->wid] += $row->wk_points;
+            $totals[$row->uid]['weeks'][$row->wid] += $row->wk_points;
             $totals[$row->uid]['total'] += $row->wk_points;
       }
     }
     else if ( $league->scoring_type == 1 ) {
       // use spread
       if ( ($row->h_score + $row->h_spread) > $row->v_score && $row->winnerpick_id == $row->h_id) {
-        $totals[$row->uid][$row->wid] += $row->wk_points;
+        $totals[$row->uid]['weeks'][$row->wid] += $row->wk_points;
         $totals[$row->uid]['total'] += $row->wk_points;
       } 
       else if ( ($row->v_score + $row->v_spread) > $row->h_score && $row->winnerpick_id == $row->v_id) {
-        $totals[$row->uid][$row->wid] += $row->wk_points;
+        $totals[$row->uid]['weeks'][$row->wid] += $row->wk_points;
         $totals[$row->uid]['total'] += $row->wk_points;
       } 
       else if ( ($row->v_score + $row->v_spread) == $row->h_score && $row->h_score <> "") {
-        $totals[$row->uid][$row->wid] += $row->wk_points;
+        $totals[$row->uid]['weeks'][$row->wid] += $row->wk_points;
         $totals[$row->uid]['total'] += $row->wk_points;
       }
     }
   }
+
+  // best and worst weeks  
+  foreach ($totals as $uid => $u_object) {
+    foreach ($u_object['weeks'] as $wid => $score) {
+      if ( $totals[$uid]['best_week_num'] == -1 ) {
+        $totals[$uid]['best_week_num'] = $wid;
+        $totals[$uid]['worst_week_num'] = $wid;
+      }
+      if ( $score > $totals[$uid]['weeks'][$totals[$uid]['best_week_num']] ) {
+        $totals[$uid]['best_week_num'] = $wid;
+      }
+      if ( $score < $totals[$uid]['weeks'][$totals[$uid]['worst_week_num']] ) {
+        $totals[$uid]['worst_week_num'] = $wid;
+      }
+    }
+  }  
+
+  // total current ranking
   uasort($totals, "sort_totals");
+  $ordinal = 0;
+  $high_score = 0;
+  $last_score = 100000;
+  foreach ($totals as $uid => $u_object) {
+    if ($u_object['total'] < $last_score) {
+      $last_score = $u_object['total'];
+      $ordinal++;
+      if ( $ordinal == 1 ) {
+        $high_score = $last_score;
+      }
+    }
+    $totals[$uid]['ranking'] = $ordinal;
+    $totals[$uid]['pts_back'] = $high_score - $last_score;
+  }
+  
   return $totals;
 }
 function sort_totals($a, $b) {
@@ -339,7 +376,7 @@ function get_current_week($nextweek = TRUE) {
   $fg = preg_split('/ /', $w['firstgame']);
   $w['firstgame_date'] = $fg[0];
   $w['firstgame_time'] = $fg[1];
-  $w['firstgame_xml'] = $fg[0] .'T'. $fg[1] .'-04:00';
+  $w['firstgame_xml'] = $fg[0] .'T'. $fg[1] .'-05:00';
   $w['dow'] = $dow;
 
   return $w;
@@ -369,8 +406,8 @@ function set_pick($game_id, $user_id, $league_id, $winnerpick_id) {
 
 
 function get_totals_by_week($league_id) {
-  $totals = get_user_totals($league_id, 0);
-  $weeks = get_weeks(0, 'regular');
+  $totals = get_user_totals($league_id);
+  $weeks = get_weeks(0, 'all');
   $wk_summary = array();
   foreach ($weeks as $w => $w_data) {
     if ( $w_data['week_past']==1 ) {
@@ -379,14 +416,14 @@ function get_totals_by_week($league_id) {
       $tot = 0;
       $count = 0;
       foreach ($totals as $picker => $user_totals) {
-        if ( isset($user_totals[$w]) ) {
-          if ($user_totals[$w] > $max) {
-            $max = $user_totals[$w];
+        if ( isset($user_totals['weeks'][$w]) ) {
+          if ($user_totals['weeks'][$w] > $max) {
+            $max = $user_totals['weeks'][$w];
           }
-          if ( $user_totals[$w] < $min ) {
-            $min = $user_totals[$w];
+          if ( $user_totals['weeks'][$w] < $min ) {
+            $min = $user_totals['weeks'][$w];
           }
-          $tot += $user_totals[$w];
+          $tot += $user_totals['weeks'][$w];
           $count += 1;
         }
       }
@@ -463,10 +500,13 @@ function get_team_totals($league_id, $sort_by='win_loss') {
   return $totals;
 }
 function sort_win_lose($a, $b) {
-  if ($a['pickability'] > $b['pickability']) {
+  if ($a['pickability'] == NULL || $b['pickability'] == NULL) {
+    return 0;
+  }
+  elseif ($a['pickability'] > $b['pickability']) {
     return -1;
   } 
-  else if ($a['pickability'] < $b['pickability']) {
+  elseif ($a['pickability'] < $b['pickability']) {
       return 1;
   } 
   else {
