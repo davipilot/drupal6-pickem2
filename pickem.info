@@ -2,4 +2,3 @@
 name = Pickem
 description = Provides an nfl pickem game drupal site.
 core = 6.x
-dependencies[] = forum
