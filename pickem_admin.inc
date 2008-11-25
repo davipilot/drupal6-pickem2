@@ -1350,7 +1350,7 @@ function admin_import_form($form_state=NULL) {
   $form['pickem_data_load']['pickem_data_load_options'] = array(
     '#type' => 'radios',
     '#title' => t('Choose data to load'),
-    '#options' => array(t('2008 NFL Data'), t('2008 NCAA Div 1, Basketball')),
+    '#options' => array(0 => t('2008 NFL Data'), 1 => t('2008 NCAA Div 1, Basketball')),
     '#description' => t('This will delete existing teams, games, and picks.'),
   );
 
@@ -1362,24 +1362,21 @@ function admin_import_form($form_state=NULL) {
   return $form; 
 }
 
-function pickem_data_load_submit($form, &$form_state) {
+function admin_import_form_submit($form, &$form_state) {
   
-  //print_r($form_state);
-  //return;
-
-  if ( $form_state['values']['pickem_data_load_confirm'] == 1 ) {
+  if ( $form_state['values']['pickem_data_load_options'] == 0 ) {
     clear_league_data();
     load_nfl_teams_csv();
     load_nfl_weeks_csv();
     load_nfl_games_csv();
     drupal_set_message("NFL data loaded");
   }
-  elseif ( $form_values['pickem_data_load_options'] == 1 ) {
+  elseif ( $form_state['values']['pickem_data_load_options'] == 1 ) {
     clear_league_data();
     load_ncaa_basketball_teams_csv();
   }
   else {
-    drupal_set_message("Data Import NOT Completed.  Select 'Load Data' checkbox.");
+    drupal_set_message("Data Import NOT Completed.");
   }
 return;
 }
