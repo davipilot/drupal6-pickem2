@@ -399,11 +399,11 @@ function pickem_theme() {
     'league_messages' => array(
       'arguments' => array('league' => NULL),
     ),
-    'league_leaders' => array(
-      'arguments' => array('league' => NULL),
+    'leaderboard_block' => array(
+      'arguments' => array('league_id' => NULL),
     ),
-    'this_weeks_games' => array(
-      'arguments' => array(),
+    'this_weeks_games_block' => array(
+      'arguments' => array('league_id' => NULL),
     ),
     'this_weeks_games_scrape' => array(
       'arguments' => array(),
@@ -946,17 +946,17 @@ function page_league($league) {
   $o  = '<div class="pickem"><table class="league-nav"><tr>';
   $o .= '<td class="col1">'. theme('league_nav', $league) .'</td>';
   $o .= '<td class="col2">'. theme('my_league_summary', $league) .'</td>';
-  $o .= '<td class="col3">'. theme('league_leaders', $league) .'</td></tr>';
+  $o .= '</tr>';
 
   if ( $league->forum_id != 0 ) {
-    $o .= '<tr><td colspan="3">'. theme('league_messages', $league) .'</td></tr>';
+    $o .= '<tr><td colspan="2">'. theme('league_messages', $league) .'</td></tr>';
   }
 
   if ( variable_get('pickem_use_espn', 0) == 0 ) {
-    $o .= '<tr><td colspan="3">'. theme('this_weeks_games') .'</td></tr></table></div>';
+    $o .= '<tr><td colspan="2">'. theme('this_weeks_games') .'</td></tr></table></div>';
   }
   else {
-    $o .= '<tr><td colspan="3">'. theme('this_weeks_games_scrape') .'</td></tr></table></div>';
+    $o .= '<tr><td colspan="2">'. theme('this_weeks_games_scrape') .'</td></tr></table></div>';
   }
 
 
@@ -970,6 +970,11 @@ function theme_league_nav($league) {
     $o .=  '<ul>';
     if ( is_my_league($league) ) {
       $o .= '<li>'. l('My Picks', 'pickem/'. $league->lid .'/mypicks') .'</li>';
+    }
+
+    $cur_w = get_current_week(false);
+    if ($cur_w['wid'] != '') {
+      $o .= '<li>'. l('Pick Summary(week '. $cur_w['wid'] . ')', 'pickem/'. $league->lid .'/weeklypicks/' . $cur_w['wid']) .'</li>';
     }
 
     $o .= '<li>'. l('Standings', 'pickem/'. $league->lid .'/standings') .'</li>';
@@ -1000,7 +1005,7 @@ function theme_league_nav($league) {
 }
 
 function theme_my_league_summary($league) {
-  //drupal_set_message('theme_league_leaders');
+  //drupal_set_message('theme_my_league_summary');
 	global $user;
 
   $totals = get_user_totals($league->lid); //sorted by overall score
@@ -1075,45 +1080,41 @@ function theme_dash($title, $content, $region='main', $link=NULL) {
   return $output;
 } 
 
-function theme_league_leaders($league) {
-  $totals = get_user_totals($league->lid); //sorted by overall score
-  $title = 'Leaders';
-  $content = '<div class="league-leaders">';
+function theme_leaderboard_block($league_id) {
+  if ( !is_numeric($league_id) ) {
+    return '';
+  }
+  $totals = get_user_totals($league_id); //sorted by overall score
+  $content = '<table class="pickem-league-leaders">';
   $how_many = 10;
   $i = 0;
   foreach ($totals as $uid => $totalinfo) {
-    $content .= '<div class="score">'. $totalinfo['total'] .'</div><div class="user"><a href="/user/'. $uid .'">'. $totalinfo['name'] .'</a></div><br style="clear:both;"/>';
+    $u_name = str_replace(' ', '&nbsp;', $totalinfo['name']);
+    $content .= '<tr><td class="score">'. $totalinfo['total'] .'</td><td class="user"><a href="/user/'. $uid .'">'. $u_name .'</a></td></tr>';
     $i++;
     if ( $i >= $how_many ) {
     	break;
     }
   }
-  $content .= '</div>';
-  return theme('dash', $title, $content);
+  $content .= '</table>';
+  return $content;
 }
 
-function theme_this_weeks_games() {
-  $teams = get_teams();
+function theme_this_weeks_games_block($league_id) {
   $cur_w = get_current_week(false); 
-  
-  if ( $cur_w['wid'] != "" ) {
-    $games = get_games($cur_w['wid']);
-  
-    $content = '<table class="weeks-games">';
-    $content .= '<tr><th colspan="2">Visitor</th><th colspan="2">Home</th></tr>';
-    foreach ($games as $gid => $row) {
-      //$content.=$teams[$row->v_id]['abbrev'] ." vs ". $teams[$row->h_id]['abbrev'] . "<br/>";
-      $content .= '<tr><td class="team-abbrev">'. $teams[$row->v_id]->tm_abbrev .'</td><td class="score">'. $row->v_score .'</td><td class="team-abbrev">'. $teams[$row->h_id]->tm_abbrev .'</td><td class="score">'. $row->h_score .'</td></tr>';
-    }
-    $content .= '</table>';
-    
-    $title = 'NFL Week '. $cur_w['wid'];
-    $content = '<div>'. $content .'</div>';
-    return theme('dash', $title, $content);
-  } 
-  else {
-    return theme('dash', 'This Weeks Scores', '<table><td>Not Yet Available</td></table>');
+  if ( !is_numeric($league_id) || $cur_w['wid'] == "" ) {
+    return '';
   }
+  
+  $teams = get_teams();
+  $games = get_games($cur_w['wid']);
+
+  $content = '<table class="pickem-weeks-games">';
+  foreach ($games as $gid => $row) {
+    $content .= '<tr><td class="team-abbrev">'. $teams[$row->v_id]->tm_abbrev .'</td><td class="score">'. $row->v_score .'</td><td class="team-abbrev">'. $teams[$row->h_id]->tm_abbrev .'</td><td class="score">'. $row->h_score .'</td></tr>';
+  }
+  $content .= '</table>';
+  return $content;
 }
 
 function theme_this_weeks_games_scrape($cache_reset = FALSE) {
@@ -1484,12 +1485,21 @@ function pickem_block($op = 'list', $delta = 0, $edit = array()) {
       // end users will not see these descriptions.
       // A block can provide default settings.
       $blocks[0] = array(
-        'info'       => t('My Leagues'),
-        'status'     => TRUE,
-        'weight'     => 0,
+        'info'       => t('Pickem Leagues'),
         'visibility' => 1,
-        'pages'      => 'pickem/*',
-        'region'     => 'left',
+        'pages'      => 'pickem/*'
+      );
+      $blocks[1] = array(
+        'info'       => t('Pickem Leaderboard'),
+        'visibility' => 2,
+        'pages'      => "<?php return (arg(0)=='pickem' && is_numeric(arg(1)) && arg(2)=='')?TRUE:FALSE;?>",
+        'cache' => BLOCK_NO_CACHE
+      );
+      $blocks[2] = array(
+        'info'       => t('Pickem This Weeks Games'),
+        'visibility' => 2,
+        'pages'      => "<?php return (arg(0)=='pickem' && is_numeric(arg(1)) && arg(2)=='')?TRUE:FALSE;?>",
+        'cache' => BLOCK_NO_CACHE
       );
       return $blocks;
     case 'configure':
@@ -1522,15 +1532,17 @@ function pickem_block($op = 'list', $delta = 0, $edit = array()) {
     case 'view': default:
       switch ($delta) {
         case 0:
-          // The subject is displayed at the top of the block. Note that it
-          // should be passed through t() for translation.
           $block['subject'] = t('My Leagues');
-          // The content of the block is typically generated by calling a custom
-          // function.
-          
           $block['content'] = get_my_league_switcher();
-          
           break;
+        case 1:
+          $block['subject'] = t('Leaderboard');
+          $block['content'] = theme('leaderboard_block', arg(1));
+          break;
+        case 2:
+          $cur_w = get_current_week(false); 
+          $block['subject'] = 'Games(week '. $cur_w['wid'] . ')';
+          $block['content'] = theme('this_weeks_games_block', arg(1));
       }
       return $block;
   }

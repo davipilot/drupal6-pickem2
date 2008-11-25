@@ -110,19 +110,6 @@
 }
 
 /*
-  WEEKS GAMES TABLE
-*/
-.pickem table.weeks-games {
-	width: 200px;
-}
-.pickem table.weeks-games .team-abbrev {
-	width: 75px;
-}
-.pickem table.weeks-games .score {
-	width: 125px;
-}
-
-/*
   ADMIN SCORES TABLE
 */
 .pickem table.admin-scores {
@@ -171,23 +158,37 @@
 }
 
 /*
-  LEAGUE LEADERS
+  LEADERBOARD BLOCK
 */
-.pickem div.league-leaders {
-	height: 200px;
-	width: 200px;
-	overflow:auto;
+.pickem-league-leaders {
+  margin:0;
+  padding:0;
+  border-style: hidden;
 }
-.pickem div.league-leaders div.score {
-	padding-top: 1.5px;
-	width: 50px;
-	float:left;
+.pickem-league-leaders td.score {
+  margin:0;
+	padding-right: 4px;
 	text-align: right;
 }
-.pickem div.league-leaders div.user {
-	padding-top: 1.5px;
-	width: 120px;
-	float:left;
+.pickem-league-leaders td.user {
+  margin:0;
+	padding-left: 1px;
 	text-align: left;
-	padding-left: 10px;
+}
+
+/*
+  THIS WEEKS GAMES BLOCK 
+*/
+.pickem-weeks-games {
+  margin:0;
+  padding:0;
+  border-style: hidden;
+}
+.pickem-weeks-games td.team-abbrev {
+	padding-right: 4px;
+	text-align: right;
+}
+.pickem-weeks-games td.score {
+	padding-left: 1px;
+	text-align: left;
 }
