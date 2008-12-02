@@ -320,17 +320,19 @@ function get_user_totals($league_id, $weekarg=0) {
   // total current ranking
   uasort($totals, "sort_totals");
   $ordinal = 0;
+  $last_ordinal = 0;
   $high_score = 0;
   $last_score = 100000;
   foreach ($totals as $uid => $u_object) {
+    $ordinal++;
     if ($u_object['total'] < $last_score) {
+      $last_ordinal = $ordinal;
       $last_score = $u_object['total'];
-      $ordinal++;
       if ( $ordinal == 1 ) {
         $high_score = $last_score;
       }
     }
-    $totals[$uid]['ranking'] = $ordinal;
+    $totals[$uid]['ranking'] = $last_ordinal;
     $totals[$uid]['pts_back'] = $high_score - $last_score;
   }
   
