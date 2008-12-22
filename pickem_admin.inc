@@ -76,6 +76,20 @@ function pickem_admin_settings() {
     '#description' => t("This grabs the current weeks scores from espn."),
   );
 
+	$form['pickem_tz'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Pickem Time Zone'),
+    '#collapsible' => TRUE,
+  );
+  
+  $form['pickem_tz']['pickem_time_zone'] = array(
+    '#type' => 'select',
+    '#default_value' => variable_get('pickem_time_zone', 'TZ=US/Eastern'),
+    '#options' => array('TZ=US/Eastern'),
+    '#title' => t('Time zone for pickem weeks and games'),
+    '#description' => 'Current Server Time=' . date("r"),
+  );
+
 
   return system_settings_form($form);
 }

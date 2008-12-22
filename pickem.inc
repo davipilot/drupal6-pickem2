@@ -164,7 +164,8 @@ function get_games_split($league_id = 0, $user_id = 0) {
   // 
   $games = array();
   if ( $league_id == 0 && $user_id == 0 ) {
-    $query = "SELECT g.gid, g.wid, g.h_score, g.v_score, g.v_id, g.h_id, g.gametime FROM {pickem_games} g inner join {pickem_weeks} w on w.wid=g.wid where now() < adddate(w.wk_firstgame, INTERVAL 6 day) ORDER BY g.wid, g.gametime, g.gid";
+  	$mysqltime = date("Y-m-d H:i:s");
+    $query = "SELECT g.gid, g.wid, g.h_score, g.v_score, g.v_id, g.h_id, g.gametime FROM {pickem_games} g inner join {pickem_weeks} w on w.wid=g.wid where '". $mysqltime ."' < adddate(w.wk_firstgame, INTERVAL 6 day) ORDER BY g.wid, g.gametime, g.gid";
     $result = db_query($query);
     while ($row = db_fetch_object($result)) {
       $games[$row->wid][$row->gid] = array(
@@ -176,7 +177,7 @@ function get_games_split($league_id = 0, $user_id = 0) {
       );
     }
 
-    $query = "SELECT g.gid, g.wid, g.h_score, g.v_score, g.v_id, g.h_id, g.gametime FROM {pickem_games} g inner join {pickem_weeks} w on w.wid=g.wid where now() > adddate(w.wk_firstgame, INTERVAL 6 day) ORDER BY g.wid, g.gametime, g.gid";
+    $query = "SELECT g.gid, g.wid, g.h_score, g.v_score, g.v_id, g.h_id, g.gametime FROM {pickem_games} g inner join {pickem_weeks} w on w.wid=g.wid where '". $mysqltime ."' > adddate(w.wk_firstgame, INTERVAL 6 day) ORDER BY g.wid, g.gametime, g.gid";
     $result = db_query($query);
     while ($row = db_fetch_object($result)) {
       $games[$row->wid][$row->gid] = array(
@@ -190,7 +191,8 @@ function get_games_split($league_id = 0, $user_id = 0) {
   }
   else {
     // two parts query so current week is always ontop, and passed weeks are at the bottom.
-    $query = "select g.gid, g.wid, g.h_score, g.v_score, g.v_id, g.h_id, pp.winnerpick_id, g.gametime from {pickem_games} g inner join {pickem_weeks} w on w.wid=g.wid left outer join {pickem_picks} pp on pp.gid = g.gid and pp.uid=%d and pp.lid=%d where w.wk_firstgame > now() order by g.wid, g.gametime, g.gid";
+    $mysqltime = date("Y-m-d H:i:s");
+    $query = "select g.gid, g.wid, g.h_score, g.v_score, g.v_id, g.h_id, pp.winnerpick_id, g.gametime from {pickem_games} g inner join {pickem_weeks} w on w.wid=g.wid left outer join {pickem_picks} pp on pp.gid = g.gid and pp.uid=%d and pp.lid=%d where w.wk_firstgame > '". $mysqltime ."' order by g.wid, g.gametime, g.gid";
     $result = db_query($query, $user_id, $league_id);
     while ($row = db_fetch_object($result)) {
       $games[$row->wid][$row->gid] = array(
@@ -203,7 +205,7 @@ function get_games_split($league_id = 0, $user_id = 0) {
       );
     }
     
-    $query = "select g.gid, g.wid, g.h_score, g.v_score, g.v_id, g.h_id, pp.winnerpick_id, g.gametime from {pickem_games} g inner join {pickem_weeks} w on w.wid=g.wid left outer join {pickem_picks} pp on pp.gid = g.gid and pp.uid=%d and pp.lid=%d where w.wk_firstgame < now() order by g.wid, g.gametime, g.gid";
+    $query = "select g.gid, g.wid, g.h_score, g.v_score, g.v_id, g.h_id, pp.winnerpick_id, g.gametime from {pickem_games} g inner join {pickem_weeks} w on w.wid=g.wid left outer join {pickem_picks} pp on pp.gid = g.gid and pp.uid=%d and pp.lid=%d where w.wk_firstgame < '". $mysqltime ."' order by g.wid, g.gametime, g.gid";
     $result = db_query($query, $user_id, $league_id);
     while ($row = db_fetch_object($result)) {
       $games[$row->wid][$row->gid] = array(
@@ -239,12 +241,13 @@ function get_user_totals($league_id, $weekarg=0) {
   $league = league_load($league_id);
   if ($weekarg == 0) {
     // all games
-    $query = 'select g.gid, g.wid, g.h_score, g.v_score, g.v_id, g.v_spread, g.h_id, g.h_spread, p.uid, p.winnerpick_id, g.gametime,w.wk_points from {pickem_users} u inner join {pickem_picks} p on u.lid=p.lid and u.uid=p.uid inner join {pickem_games} g on p.gid = g.gid  inner join {pickem_weeks} w on w.wid=g.wid where p.lid=%d and w.wk_firstgame<now() order by g.wid, g.gametime, g.gid';
+		$mysqltime = date("Y-m-d H:i:s");    
+    $query = "select g.gid, g.wid, g.h_score, g.v_score, g.v_id, g.v_spread, g.h_id, g.h_spread, p.uid, p.winnerpick_id, g.gametime,w.wk_points from {pickem_users} u inner join {pickem_picks} p on u.lid=p.lid and u.uid=p.uid inner join {pickem_games} g on p.gid = g.gid  inner join {pickem_weeks} w on w.wid=g.wid where p.lid=%d and w.wk_firstgame < '". $mysqltime ."' order by g.wid, g.gametime, g.gid";
     $result = db_query($query, $league_id);
   } 
   else {
     // all games for a certain week
-    $query = 'select g.gid, g.wid, g.h_score, g.v_score, g.v_id, g.v_spread, g.h_id, g.h_spread, p.uid, p.winnerpick_id, g.gametime,w.wk_points from {pickem_users} u inner join {pickem_picks} p on u.lid=p.lid and u.uid=p.uid inner join {pickem_games} g on p.gid = g.gid  inner join {pickem_weeks} w on w.wid=g.wid where p.lid=%d and w.wid=%d order by g.wid, g.gametime, g.gid';
+    $query = "select g.gid, g.wid, g.h_score, g.v_score, g.v_id, g.v_spread, g.h_id, g.h_spread, p.uid, p.winnerpick_id, g.gametime,w.wk_points from {pickem_users} u inner join {pickem_picks} p on u.lid=p.lid and u.uid=p.uid inner join {pickem_games} g on p.gid = g.gid  inner join {pickem_weeks} w on w.wid=g.wid where p.lid=%d and w.wid=%d order by g.wid, g.gametime, g.gid";
     $result = db_query($query, $league_id, $weekarg);
   }
 
@@ -359,13 +362,14 @@ function sort_totals($a, $b) {
 }
 
 function get_current_week($nextweek = TRUE) {
+	$mysqltime = date("Y-m-d H:i:s");
   if ($nextweek == TRUE) {
     // once you pass the firstgame start you are on the next week
-    $row = db_fetch_object(db_query("SELECT pw.wid,pw.wk_firstgame, UNIX_TIMESTAMP(pw.wk_firstgame) - UNIX_TIMESTAMP(CURDATE()) as diff FROM {pickem_weeks} pw where wk_firstgame > now() order by wk_firstgame"));
+    $row = db_fetch_object(db_query("SELECT pw.wid,pw.wk_firstgame, UNIX_TIMESTAMP(pw.wk_firstgame) - UNIX_TIMESTAMP('". $mysqltime ."') as diff FROM {pickem_weeks} pw where wk_firstgame > '". $mysqltime ."' order by wk_firstgame"));
   } 
   else {
-    // ONLY once you pass the firstgame aer you on THIS week.
-    $row = db_fetch_object(db_query("SELECT pw.wid,pw.wk_firstgame, UNIX_TIMESTAMP(pw.wk_firstgame) - UNIX_TIMESTAMP(CURDATE()) as diff FROM {pickem_weeks} pw where wk_firstgame < now() order by wk_firstgame DESC"));
+    // ONLY once you pass the firstgame are you on THIS week.
+    $row = db_fetch_object(db_query("SELECT pw.wid,pw.wk_firstgame, UNIX_TIMESTAMP(pw.wk_firstgame) - UNIX_TIMESTAMP('". $mysqltime ."') as diff FROM {pickem_weeks} pw where wk_firstgame <= '". $mysqltime ."' order by wk_firstgame DESC"));
   }
   $w = array();
   $w['wid'] = $row->wid;
@@ -444,7 +448,8 @@ function get_totals_by_week($league_id) {
 
 function get_team_totals($league_id, $sort_by='win_loss') {
   // all games
-  $query = 'select g.gid, g.wid, g.h_score, g.v_score, g.v_id, g.h_id, p.uid, p.winnerpick_id, g.gametime,w.wk_points from {pickem_users} u inner join {pickem_picks} p on u.lid=p.lid and u.uid=p.uid inner join {pickem_games} g on p.gid = g.gid  inner join {pickem_weeks} w on w.wid=g.wid where p.lid=%d and w.wk_firstgame<now() order by g.wid, g.gametime, g.gid';
+  $mysqltime = date("Y-m-d H:i:s");
+  $query = "select g.gid, g.wid, g.h_score, g.v_score, g.v_id, g.h_id, p.uid, p.winnerpick_id, g.gametime,w.wk_points from {pickem_users} u inner join {pickem_picks} p on u.lid=p.lid and u.uid=p.uid inner join {pickem_games} g on p.gid = g.gid  inner join {pickem_weeks} w on w.wid=g.wid where p.lid=%d and w.wk_firstgame < '". $mysqltime ."' order by g.wid, g.gametime, g.gid";
   $result = db_query($query, $league_id);
 
   $totals = array();
