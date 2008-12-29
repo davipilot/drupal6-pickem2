@@ -72,6 +72,7 @@ function pickem_menu() {
     'page callback' => 'league_router', 
     'access arguments' => array('play pickem'), 
     'type' => MENU_NORMAL_ITEM,
+    'weight' => -10,
   );
 
   $items['pickem/%league'] = array(
@@ -300,12 +301,12 @@ function pickem_user($op, &$edit, &$account, $category = NULL) {
       $edit['pickem_user_email_reminders'] = variable_get('pickem_default_email_reminders', 1);
     break;
     case 'form':
-    	if ( $category == 'account') {
-		    $form['pickem'] = array('#type' => 'fieldset',
-		      '#title' => t('Pickem settings'),
-		      '#weight' => 5,
-		      '#collapsible' => TRUE,
-		    );
+      if ( $category == 'account') {
+        $form['pickem'] = array('#type' => 'fieldset',
+          '#title' => t('Pickem settings'),
+          '#weight' => 5,
+          '#collapsible' => TRUE,
+        );
 
         $leagues = get_my_leagues();
         $options = array();
@@ -313,22 +314,22 @@ function pickem_user($op, &$edit, &$account, $category = NULL) {
           $options[$l->lid] = $l->name; 
         }
 
-		    $form['pickem']['pickem_user_default_league'] = array(
-		      '#type' => 'select',
-		      '#title' => t('Default League'),
-		      '#default_value' => !empty($edit['pickem_user_default_league']) ? $edit['pickem_user_default_league'] : FALSE,
-		      '#description' => t('Show this league by default.'),
-		      '#options' => $options,
-		    );
-		    
-		    $form['pickem']['pickem_user_email_reminders'] = array(
-		      '#type' => 'checkbox',
-		      '#title' => t('Receive email reminders'),
-		      '#default_value' => !empty($edit['pickem_user_email_reminders']) ? $edit['pickem_user_email_reminders'] : FALSE,
-		      '#description' => t('Enable email reminders to be sent to you if you have not picked the current weeks games.'),
-		    );
-	    	return $form;
-    	}
+        $form['pickem']['pickem_user_default_league'] = array(
+          '#type' => 'select',
+          '#title' => t('Default League'),
+          '#default_value' => !empty($edit['pickem_user_default_league']) ? $edit['pickem_user_default_league'] : FALSE,
+          '#description' => t('Show this league by default.'),
+          '#options' => $options,
+        );
+        
+        $form['pickem']['pickem_user_email_reminders'] = array(
+          '#type' => 'checkbox',
+          '#title' => t('Receive email reminders'),
+          '#default_value' => !empty($edit['pickem_user_email_reminders']) ? $edit['pickem_user_email_reminders'] : FALSE,
+          '#description' => t('Enable email reminders to be sent to you if you have not picked the current weeks games.'),
+        );
+        return $form;
+      }
     break;
   }
 }
@@ -360,7 +361,7 @@ function pickem_cron() {
       if ( $missing_count > 0 ) {
         $user = user_load($row->uid);
         if ( $user->pickem_user_email_reminders == 1 ) {
-        	email_warning($user, $row->wid, $firstgame, $missing_count, $row->lid);
+          email_warning($user, $row->wid, $firstgame, $missing_count, $row->lid);
         }
       }      
     }
@@ -604,6 +605,9 @@ function page_mypicks_week($league, $week_num='') {
     }
   }
 
+  $breadcrumb = drupal_get_breadcrumb();
+  $breadcrumb[] = l($league->name, 'pickem/' . $league->lid);
+  drupal_set_breadcrumb($breadcrumb);
 
   // SINGLE WEEK VIEW
   $teams = get_teams();
@@ -864,32 +868,27 @@ function page_weeklypicks($league, $week_id) {
 function page_standings($league) {
   drupal_set_title("Standings");
 
+  $breadcrumb = drupal_get_breadcrumb();
+  $breadcrumb[] = l($league->name, 'pickem/' . $league->lid);
+  drupal_set_breadcrumb($breadcrumb);
+
+  drupal_add_js('misc/collapse.js');
+
   $totals = get_user_totals($league->lid);
-  $weeks = get_weeks(0, 'all');
+  $week_totals = get_totals_by_week($league->lid);
+  $weeks = get_weeks(0, 'regular');
 
   $flip = array('even' => 'odd', 'odd' => 'even');
   $class = 'even';
 
-  $output = '<div class="pickem">Click on week numbers to see weekly pick summary.<table class="standings"><tr><th>&nbsp;</th>';
+  $output = '<div class="pickem">Click on week numbers to see weekly pick summary.';
+  $output .= '<div><fieldset class="collapsible"><legend><a href="#">Regular Season</a></legend>';
+  $output .= '<table class="standings"><tr><th>&nbsp;</th>';
+
   $wk_summary = array();
   $output .= '<th colspan="2">TOT</th>';
   foreach ($weeks as $w => $w_data) {
     $output .= '<th class="week-numbers">'. l($w, 'pickem/'. $league->lid ."/weeklypicks/$w") .'</th>';
-    $max = 0;
-    $min = 100;
-    foreach ($totals as $uid => $user_totals) {
-      if ($user_totals['weeks'][$w] > $max) {
-        $max = $user_totals['weeks'][$w];
-      }
-      if ($user_totals['weeks'][$w] < $min && isset($user_totals['weeks'][$w])) {
-        $min = $user_totals['weeks'][$w];
-      }
-    }
-    $wk_summary[] = array(
-      "name" => $w,
-      "max" => $max,
-      "min" => $min
-    );
   }
   $output .= "</tr>";
 
@@ -906,21 +905,61 @@ function page_standings($league) {
       $output .= '<td>'. $u_object['total'] .'</td><td>+'. $u_object['pts_back'] .'</td>';
     }
     
-    foreach ($wk_summary as $wk) {
-      if ($u_object['weeks'][$wk["name"]] == $wk["min"] && $wk["min"] <> $wk["max"]) {
-        $output .= '<td class="weekly-low">'. $u_object['weeks'][$wk["name"]] .'</td>';
+    foreach ($weeks as $wid => $w) {
+      if ($u_object['weeks'][$wid] == $week_totals[$wid]["min"]) {
+        $output .= '<td class="weekly-low">'. $u_object['weeks'][$wid] .'</td>';
       }
-      elseif ($u_object['weeks'][$wk["name"]] == $wk["max"] && $wk["min"] <> $wk["max"]) {
-        $output .= '<td class="weekly-high">'. $u_object['weeks'][$wk["name"]] .'</td>';
+      else if ($u_object['weeks'][$wid] == $week_totals[$wid]["max"]) {
+        $output .= '<td class="weekly-high">'. $u_object['weeks'][$wid] .'</td>';
       }
       else {
-        $output .= '<td>'. $u_object['weeks'][$wk["name"]] .'</td>';
+        $output .= '<td>'. $u_object['weeks'][$wid] .'</td>';
       }
     }
     $output .= "</tr>";
   }
-  $output .= '</table></div>';
+  $output .= '</table></fieldset></div>';
+  
 
+
+  //playoff table
+  $playoff_weeks = get_weeks(0, 'playoffs');
+  $output .= '<div><fieldset class="collapsible"><legend><a href="#">Playoffs</a></legend>';
+  $output .= '<table class="standings">';
+  
+  $output .= '<tr><th>&nbsp;</th><th colspan="2">TOT</th>';
+  foreach ($playoff_weeks as $w => $w_data) {
+    $output .= '<th class="week-numbers">'. l('Week&nbsp;' . $w . '<br/>' . $w_data['wk_name'], 'pickem/'. $league->lid ."/weeklypicks/$w", array('html' => TRUE)) .'</th>';
+  }
+  $output .= "</tr>";
+  foreach ($totals as $uid => $u) {
+    $class = $flip[$class];
+    $output .= '<tr class="'. $class .'">';
+    $output .= '<th>'. $u['ranking'] .'.&nbsp;&nbsp;'. l($u['name'], 'user/'.$uid) .'</th>';
+
+    if ($u['pts_back'] == 0) {
+      $output .= '<td>'. $u['total'] .'</td><td>&nbsp;</td>';
+      $high = $u['total'];
+    }
+    else {
+      $output .= '<td>'. $u['total'] .'</td><td>+'. $u['pts_back'] .'</td>';
+    }
+    foreach ($playoff_weeks as $wid => $w) {
+      if ($u['weeks'][$wid] == $week_totals[$wid]["min"]) {
+        $output .= '<td class="weekly-low">'. $u['weeks'][$wid] .'</td>';
+      }
+      else if ($u['weeks'][$wid] == $week_totals[$wid]["max"]) {
+        $output .= '<td class="weekly-high">'. $u['weeks'][$wid] .'</td>';
+      }
+      else {
+        $output .= '<td>'. $u['weeks'][$wid] .'</td>';
+      }
+    }
+    $output .= "</tr>";
+  }
+  $output .= '</table></fieldset></div>';
+  
+  $output .= '</div>';
   print theme('page', $output);
 }
 
@@ -944,6 +983,10 @@ function league_router() {
 
 function page_league($league) {
   drupal_set_title($league->name . ' League');
+
+  $breadcrumb = drupal_get_breadcrumb();
+  $breadcrumb[1] = l($league->name, 'pickem/' . $league->lid);
+  drupal_set_breadcrumb($breadcrumb);
 
   $o  = '<div class="pickem"><table class="league-nav"><tr>';
   $o .= '<td class="col1">'. theme('league_nav', $league) .'</td>';
@@ -1008,18 +1051,18 @@ function theme_league_nav($league) {
 
 function theme_my_league_summary($league) {
   //drupal_set_message('theme_my_league_summary');
-	global $user;
+  global $user;
 
   $totals = get_user_totals($league->lid); //sorted by overall score
   $title = 'My Summary';
   $content = '<div class="my-league-summary">';
-	$content .= 'RANK: #' . $totals[$user->uid]['ranking'] . '<br/>';
-	if ( $totals[$user->uid]['ranking'] > 1 ) {
-		$content .= 'POINTS BACK: ' . $totals[$user->uid]['pts_back'] . '<br/>';
-	}
-	$content .= 'TOTAL POINTS: ' . $totals[$user->uid]['total'] . '<br/>';
-	$content .= 'BEST WEEK SCORE:  ' . $totals[$user->uid]['weeks'][$totals[$user->uid]['best_week_num']] . ' (Week' . $totals[$user->uid]['best_week_num']. ')<br/>';
-	$content .= 'WORST WEEK SCORE:  ' . $totals[$user->uid]['weeks'][$totals[$user->uid]['worst_week_num']] . ' (Week' . $totals[$user->uid]['worst_week_num']. ')<br/>';
+  $content .= 'RANK: #' . $totals[$user->uid]['ranking'] . '<br/>';
+  if ( $totals[$user->uid]['ranking'] > 1 ) {
+    $content .= 'POINTS BACK: ' . $totals[$user->uid]['pts_back'] . '<br/>';
+  }
+  $content .= 'TOTAL POINTS: ' . $totals[$user->uid]['total'] . '<br/>';
+  $content .= 'BEST WEEK SCORE:  ' . $totals[$user->uid]['weeks'][$totals[$user->uid]['best_week_num']] . ' (Week' . $totals[$user->uid]['best_week_num']. ')<br/>';
+  $content .= 'WORST WEEK SCORE:  ' . $totals[$user->uid]['weeks'][$totals[$user->uid]['worst_week_num']] . ' (Week' . $totals[$user->uid]['worst_week_num']. ')<br/>';
   $content .= '</div>';
   return theme('dash', $title, $content);
 }
@@ -1095,7 +1138,7 @@ function theme_leaderboard_block($league_id) {
     $content .= '<tr><td class="score">'. $totalinfo['total'] .'</td><td class="user"><a href="/user/'. $uid .'">'. $u_name .'</a></td></tr>';
     $i++;
     if ( $i >= $how_many ) {
-    	break;
+      break;
     }
   }
   $content .= '</table>';

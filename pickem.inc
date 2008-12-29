@@ -421,19 +421,25 @@ function get_totals_by_week($league_id) {
       $min = 100;
       $tot = 0;
       $count = 0;
-      foreach ($totals as $picker => $user_totals) {
-        if ( isset($user_totals['weeks'][$w]) ) {
-          if ($user_totals['weeks'][$w] > $max) {
-            $max = $user_totals['weeks'][$w];
+      foreach ($totals as $uid => $u) {
+        if ( isset($u['weeks'][$w]) ) {
+          if ($u['weeks'][$w] > $max) {
+            $max = $u['weeks'][$w];
           }
-          if ( $user_totals['weeks'][$w] < $min ) {
-            $min = $user_totals['weeks'][$w];
+          if ( $u['weeks'][$w] < $min ) {
+            $min = $u['weeks'][$w];
           }
-          $tot += $user_totals['weeks'][$w];
+          $tot += $u['weeks'][$w];
           $count += 1;
         }
       }
-      $wk_summary[] = array(
+      
+      if ( $max == $min ) {
+      	$max = '';
+      	$min = '';
+      }
+      
+      $wk_summary[$w] = array(
         "name" => $w,
         "max" => $max,
         "min" => $min,
