@@ -427,7 +427,7 @@ function page_grid($league) {
   drupal_set_title("NFL Schedule Grid");
 
   $breadcrumb = drupal_get_breadcrumb();
-  $breadcrumb[] = l($league->name, 'pickem/' . $league->lid);
+  $breadcrumb[] = l($league->name, 'pickem/'. $league->lid);
   drupal_set_breadcrumb($breadcrumb);
 
   $output = '';
@@ -441,7 +441,7 @@ function page_grid($league) {
     
     $header = array('&nbsp;');
     foreach ($weeks as $w => $w_data) {
-      $header[] = array('data'=>$w, 'title'=>'Week Number '.$w);
+      $header[] = array('data' => $w, 'title' => 'Week Number '. $w);
     }
   
     $query = "SELECT g.gid, g.wid, h.tm_abbrev as home, v.tm_abbrev as visitor, g.h_score, g.v_score FROM {pickem_games} g inner join {pickem_teams} h on h.tid=g.h_id inner join {pickem_teams} v on v.tid=g.v_id order by wid";
@@ -519,7 +519,7 @@ function page_grid($league) {
     foreach ($games as $tm => $teamsgames) {
       ksort($teamsgames);
       $row = array();
-      $row[] = array('data' => $tm, 'class'=>'team_head');
+      $row[] = array('data' => $tm, 'class' => 'team_head');
       foreach ($weeks as $w => $w_data) {
         if (isset ($teamsgames[$w])) {
           $class .= $teamsgames[$w]["h-a"];
@@ -527,7 +527,7 @@ function page_grid($league) {
           if ($teamsgames[$w]["h-a"] == "away") {
             $teamsgames[$w]["op"] = '@'. $teamsgames[$w]["op"];
           }
-          $row[] = array('data' => $teamsgames[$w]["op"], 'class'=>$teamsgames[$w]["w-l"], 'title'=>strtoupper($teamsgames[$w]["w-l"]) . ' ' . $teamsgames[$w]["score"]);
+          $row[] = array('data' => $teamsgames[$w]["op"], 'class' => $teamsgames[$w]["w-l"], 'title' => strtoupper($teamsgames[$w]["w-l"]) .' '. $teamsgames[$w]["score"]);
         } 
         else {
           if ($w_data->playoffs == 1) {
@@ -536,14 +536,14 @@ function page_grid($league) {
           } 
           else {
             // bye week
-            $row[] = array('data' => 'bye', 'class'=>'bye', 'title'=>'Bye Week');
+            $row[] = array('data' => 'bye', 'class' => 'bye', 'title' => 'Bye Week');
           }
         }
       }
       $rows[] = $row;
     }
     
-    $output .= theme('table', $header, $rows, array('class'=>'grid'));    
+    $output .= theme('table', $header, $rows, array('class' => 'grid'));    
     
 //    $output .= '<table class="grid">';
 //    $output .= '<tr><th class="legend-desc">Legend</th></tr>';
@@ -592,7 +592,7 @@ function page_mypicks_week($league, $week_num='') {
         }
       }
       drupal_set_message("Picks: saved for all leagues");
-      watchdog('pickem', 'Picks saved(all) for <i>' . $user->name . '</i>, week ' . $week_num . '.');
+      watchdog('pickem', 'Picks saved(all) for <i>'. $user->name .'</i>, week '. $week_num .'.');
 
     } 
     else {
@@ -601,12 +601,12 @@ function page_mypicks_week($league, $week_num='') {
         set_pick($gid[1], $user->uid, $league->lid, $pick);
       }
       drupal_set_message("Picks: saved");
-      watchdog('pickem', 'Picks saved for <i>' . $user->name . '</i>, week ' . $week_num . '.');
+      watchdog('pickem', 'Picks saved for <i>'. $user->name .'</i>, week '. $week_num .'.');
     }
   }
 
   $breadcrumb = drupal_get_breadcrumb();
-  $breadcrumb[] = l($league->name, 'pickem/' . $league->lid);
+  $breadcrumb[] = l($league->name, 'pickem/'. $league->lid);
   drupal_set_breadcrumb($breadcrumb);
 
   // SINGLE WEEK VIEW
@@ -712,7 +712,7 @@ function page_mypicks_all($league) {
   drupal_set_title("My Picks - ". $user->name);
 
   $breadcrumb = drupal_get_breadcrumb();
-  $breadcrumb[] = l($league->name, 'pickem/' . $league->lid);
+  $breadcrumb[] = l($league->name, 'pickem/'. $league->lid);
   drupal_set_breadcrumb($breadcrumb);
   
   $flip = array('even' => 'odd', 'odd' => 'even');
@@ -725,7 +725,7 @@ function page_mypicks_all($league) {
 
   // two parts query so current week is always ontop, and passed weeks are at the bottom.
   $mysqltime = date("Y-m-d H:i:s");
-  $query = "select g.gid, g.wid, g.h_score, g.v_score, g.v_id, g.h_id, pp.winnerpick_id, g.gametime from {pickem_games} g inner join {pickem_weeks} w on w.wid=g.wid left outer join {pickem_picks} pp on pp.gid = g.gid and pp.uid=%d and pp.lid=%d where w.wk_firstgame > '" . $mysqltime . "' order by g.wid, g.gametime, g.gid";
+  $query = "select g.gid, g.wid, g.h_score, g.v_score, g.v_id, g.h_id, pp.winnerpick_id, g.gametime from {pickem_games} g inner join {pickem_weeks} w on w.wid=g.wid left outer join {pickem_picks} pp on pp.gid = g.gid and pp.uid=%d and pp.lid=%d where w.wk_firstgame > '". $mysqltime ."' order by g.wid, g.gametime, g.gid";
   $result = db_query($query, $user->uid, $league->lid);
   while ($row = db_fetch_object($result)) {
     $games[$row->wid][$row->gid] = array(
@@ -738,7 +738,7 @@ function page_mypicks_all($league) {
     );
   }
   
-  $query = "select g.gid, g.wid, g.h_score, g.v_score, g.v_id, g.h_id, pp.winnerpick_id, g.gametime from {pickem_games} g inner join {pickem_weeks} w on w.wid=g.wid left outer join {pickem_picks} pp on pp.gid = g.gid and pp.uid=%d and pp.lid=%d where w.wk_firstgame < '" . $mysqltime . "' order by g.wid, g.gametime, g.gid";
+  $query = "select g.gid, g.wid, g.h_score, g.v_score, g.v_id, g.h_id, pp.winnerpick_id, g.gametime from {pickem_games} g inner join {pickem_weeks} w on w.wid=g.wid left outer join {pickem_picks} pp on pp.gid = g.gid and pp.uid=%d and pp.lid=%d where w.wk_firstgame < '". $mysqltime ."' order by g.wid, g.gametime, g.gid";
   $result = db_query($query, $user->uid, $league->lid);
   while ($row = db_fetch_object($result)) {
     $games[$row->wid][$row->gid] = array(
@@ -797,6 +797,10 @@ function page_mypicks_all($league) {
 
 function page_weeklypicks($league, $week_id) {
   global $user;
+
+  $breadcrumb = drupal_get_breadcrumb();
+  $breadcrumb[] = l($league->name, 'pickem/'. $league->lid);
+  drupal_set_breadcrumb($breadcrumb);
 
   $flip = array('even' => 'odd', 'odd' => 'even');
   $class = 'even';
@@ -869,7 +873,7 @@ function page_standings($league) {
   drupal_set_title("Standings");
 
   $breadcrumb = drupal_get_breadcrumb();
-  $breadcrumb[] = l($league->name, 'pickem/' . $league->lid);
+  $breadcrumb[] = l($league->name, 'pickem/'. $league->lid);
   drupal_set_breadcrumb($breadcrumb);
 
   drupal_add_js('misc/collapse.js');
@@ -895,7 +899,7 @@ function page_standings($league) {
   foreach ($totals as $uid => $u_object) {
     $class = $flip[$class];
     $output .= '<tr class="'. $class .'">';
-    $output .= '<th>'. $u_object['ranking'] .'.&nbsp;&nbsp;'. l($u_object['name'], 'user/'.$uid) .'</th>';
+    $output .= '<th>'. $u_object['ranking'] .'.&nbsp;&nbsp;'. l($u_object['name'], 'user/'. $uid) .'</th>';
 
     if ($u_object['pts_back'] == 0) {
       $output .= '<td>'. $u_object['total'] .'</td><td>&nbsp;</td>';
@@ -929,13 +933,13 @@ function page_standings($league) {
   
   $output .= '<tr><th>&nbsp;</th><th colspan="2">TOT</th>';
   foreach ($playoff_weeks as $w => $w_data) {
-    $output .= '<th class="week-numbers">'. l('Week&nbsp;' . $w . '<br/>' . $w_data['wk_name'], 'pickem/'. $league->lid ."/weeklypicks/$w", array('html' => TRUE)) .'</th>';
+    $output .= '<th class="week-numbers">'. l('Week&nbsp;'. $w .'<br/>'. $w_data['wk_name'], 'pickem/'. $league->lid ."/weeklypicks/$w", array('html' => TRUE)) .'</th>';
   }
   $output .= "</tr>";
   foreach ($totals as $uid => $u) {
     $class = $flip[$class];
     $output .= '<tr class="'. $class .'">';
-    $output .= '<th>'. $u['ranking'] .'.&nbsp;&nbsp;'. l($u['name'], 'user/'.$uid) .'</th>';
+    $output .= '<th>'. $u['ranking'] .'.&nbsp;&nbsp;'. l($u['name'], 'user/'. $uid) .'</th>';
 
     if ($u['pts_back'] == 0) {
       $output .= '<td>'. $u['total'] .'</td><td>&nbsp;</td>';
@@ -982,10 +986,10 @@ function league_router() {
 }
 
 function page_league($league) {
-  drupal_set_title($league->name . ' League');
+  drupal_set_title($league->name .' League');
 
   $breadcrumb = drupal_get_breadcrumb();
-  $breadcrumb[1] = l($league->name, 'pickem/' . $league->lid);
+  $breadcrumb[1] = l($league->name, 'pickem/'. $league->lid);
   drupal_set_breadcrumb($breadcrumb);
 
   $o  = '<div class="pickem"><table class="league-nav"><tr>';
@@ -1019,7 +1023,7 @@ function theme_league_nav($league) {
 
     $cur_w = get_current_week(false);
     if ($cur_w['wid'] != '') {
-      $o .= '<li>'. l('Pick Summary(week '. $cur_w['wid'] . ')', 'pickem/'. $league->lid .'/weeklypicks/' . $cur_w['wid']) .'</li>';
+      $o .= '<li>'. l('Pick Summary(week '. $cur_w['wid'] .')', 'pickem/'. $league->lid .'/weeklypicks/'. $cur_w['wid']) .'</li>';
     }
 
     $o .= '<li>'. l('Standings', 'pickem/'. $league->lid .'/standings') .'</li>';
@@ -1056,13 +1060,13 @@ function theme_my_league_summary($league) {
   $totals = get_user_totals($league->lid); //sorted by overall score
   $title = 'My Summary';
   $content = '<div class="my-league-summary">';
-  $content .= 'RANK: #' . $totals[$user->uid]['ranking'] . '<br/>';
+  $content .= 'RANK: #'. $totals[$user->uid]['ranking'] .'<br/>';
   if ( $totals[$user->uid]['ranking'] > 1 ) {
-    $content .= 'POINTS BACK: ' . $totals[$user->uid]['pts_back'] . '<br/>';
+    $content .= 'POINTS BACK: '. $totals[$user->uid]['pts_back'] .'<br/>';
   }
-  $content .= 'TOTAL POINTS: ' . $totals[$user->uid]['total'] . '<br/>';
-  $content .= 'BEST WEEK SCORE:  ' . $totals[$user->uid]['weeks'][$totals[$user->uid]['best_week_num']] . ' (Week' . $totals[$user->uid]['best_week_num']. ')<br/>';
-  $content .= 'WORST WEEK SCORE:  ' . $totals[$user->uid]['weeks'][$totals[$user->uid]['worst_week_num']] . ' (Week' . $totals[$user->uid]['worst_week_num']. ')<br/>';
+  $content .= 'TOTAL POINTS: '. $totals[$user->uid]['total'] .'<br/>';
+  $content .= 'BEST WEEK SCORE:  '. $totals[$user->uid]['weeks'][$totals[$user->uid]['best_week_num']] .' (Week'. $totals[$user->uid]['best_week_num'] .')<br/>';
+  $content .= 'WORST WEEK SCORE:  '. $totals[$user->uid]['weeks'][$totals[$user->uid]['worst_week_num']] .' (Week'. $totals[$user->uid]['worst_week_num'] .')<br/>';
   $content .= '</div>';
   return theme('dash', $title, $content);
 }
@@ -1200,10 +1204,10 @@ function page_team_stats($league) {
   drupal_set_title('Team Stats');
   
   $breadcrumb = drupal_get_breadcrumb();
-  $breadcrumb[] = l($league->name, 'pickem/' . $league->lid);
+  $breadcrumb[] = l($league->name, 'pickem/'. $league->lid);
   drupal_set_breadcrumb($breadcrumb);
   
-  $o  = '<div class="pickem">' . theme('team_stats') . '</div>';
+  $o  = '<div class="pickem">'. theme('team_stats') .'</div>';
   
   print theme('page', $o);  
 }
@@ -1259,20 +1263,20 @@ function theme_team_stats() {
   $rows = array();
   foreach ($teams as $tid => $d) {
     $rows[] = array(
-      $teams[$tid]->tm_city . ' ' . $teams[$tid]->tm_name, 
-      array('data'=>$teams[$tid]->wins, 'style'=>'width:10px;'), 
-      array('data'=>$teams[$tid]->losses, 'style'=>'width:10px;'), 
-      array('data'=>$teams[$tid]->ties, 'style'=>'width:10px;'), 
-      sprintf("%.3F",$teams[$tid]->win_percent),
+      $teams[$tid]->tm_city .' '. $teams[$tid]->tm_name, 
+      array('data' => $teams[$tid]->wins, 'style' => 'width:10px;'), 
+      array('data' => $teams[$tid]->losses, 'style' => 'width:10px;'), 
+      array('data' => $teams[$tid]->ties, 'style' => 'width:10px;'), 
+      sprintf("%.3F", $teams[$tid]->win_percent),
 
-      array('data'=>$teams[$tid]->pts_for, 'style'=>'width:10px;'), 
-      array('data'=>$teams[$tid]->pts_against, 'style'=>'width:10px;'), 
+      array('data' => $teams[$tid]->pts_for, 'style' => 'width:10px;'), 
+      array('data' => $teams[$tid]->pts_against, 'style' => 'width:10px;'), 
       );
   }
   
   $header = array(t('Team'), t('W'), t('L'), t('T'), t('PCT'), t('PF'), t('PA'));
   
-  $o = theme('table', $header, $rows, array('style'=>'width:400px;') );
+  $o = theme('table', $header, $rows, array('style' => 'width:400px;') );
   
   return $o;
 } 
@@ -1312,7 +1316,7 @@ function chart1($league, $user=NULL) {
   drupal_set_title('Charts');
 
   $breadcrumb = drupal_get_breadcrumb();
-  $breadcrumb[] = l($league->name, 'pickem/' . $league->lid);
+  $breadcrumb[] = l($league->name, 'pickem/'. $league->lid);
   drupal_set_breadcrumb($breadcrumb);
 
   $g = new open_flash_chart_api();
@@ -1412,7 +1416,7 @@ function chart2($league, $sort_by='win_lose') {
   drupal_set_title('Charts');
   
   $breadcrumb = drupal_get_breadcrumb();
-  $breadcrumb[] = l($league->name, 'pickem/' . $league->lid);
+  $breadcrumb[] = l($league->name, 'pickem/'. $league->lid);
   drupal_set_breadcrumb($breadcrumb);
   
   $g = new open_flash_chart_api();
@@ -1586,7 +1590,7 @@ function pickem_block($op = 'list', $delta = 0, $edit = array()) {
           break;
         case 2:
           $cur_w = get_current_week(false); 
-          $block['subject'] = 'Games(week '. $cur_w['wid'] . ')';
+          $block['subject'] = 'Games(week '. $cur_w['wid'] .')';
           $block['content'] = theme('this_weeks_games_block', arg(1));
       }
       return $block;
@@ -1607,15 +1611,15 @@ function get_my_league_switcher() {
     // discard first two items
     array_shift($list);
     array_shift($list);
-    $path = '/' . implode('/', $list);
+    $path = '/'. implode('/', $list);
   }
   
   foreach ($leagues as $l) {
     if ( arg(1) == $l->lid ) {
-      $o.=l('&raquo; '.$l->name, 'pickem/'. $l->lid . $path, array('html'=>TRUE)) .'<br/>';
+      $o.=l('&raquo; '. $l->name, 'pickem/'. $l->lid . $path, array('html' => TRUE)) .'<br/>';
     }
     else {
-      $o.=l($l->name, 'pickem/'. $l->lid .  $path) .'<br/>';
+      $o.=l($l->name, 'pickem/'. $l->lid . $path) .'<br/>';
     }
   }
   return $o;  
@@ -1626,7 +1630,7 @@ function get_all_league_switcher() {
   $o = '';
   foreach ($leagues as $l) {
     if ( arg(1) == $l->lid ) {
-      $o.=l('&raquo; '.$l->name, 'pickem/'. $l->lid, array('html'=>TRUE)) .'<br/>';
+      $o.=l('&raquo; '. $l->name, 'pickem/'. $l->lid, array('html' => TRUE)) .'<br/>';
     }
     else {
       $o.=l($l->name, 'pickem/'. $l->lid) .'<br/>';

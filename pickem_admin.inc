@@ -76,7 +76,7 @@ function pickem_admin_settings() {
     '#description' => t("This grabs the current weeks scores from espn."),
   );
 
-	$form['pickem_tz'] = array(
+  $form['pickem_tz'] = array(
     '#type' => 'fieldset',
     '#title' => t('Pickem Time Zone'),
     '#collapsible' => TRUE,
@@ -87,7 +87,7 @@ function pickem_admin_settings() {
     '#default_value' => variable_get('pickem_time_zone', 'TZ=US/Eastern'),
     '#options' => array('TZ=US/Eastern'),
     '#title' => t('Time zone for pickem weeks and games'),
-    '#description' => 'Current Server Time=' . date("r"),
+    '#description' => 'Current Server Time='. date("r"),
   );
 
 
@@ -1333,7 +1333,7 @@ function page_admin_scores($week_id = 0) {
 function league_forums() {
   $options = array();
   $options[0] = 'No Forum Selected';
-  if (module_exists("forum")) {	  
+  if (module_exists("forum")) {   
   $forums = forum_get_forums();
     if ($forums) {
       foreach ($forums as $tid => $forum) {

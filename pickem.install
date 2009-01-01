@@ -67,7 +67,7 @@ function pickem_schema() {
       'picktime'      => array('type' => 'datetime')
     ),
     'primary key' => array('pid'),
-    'unique keys' => array('pickem_picks_unique_idx'=> array('lid', 'uid', 'gid')),
+    'unique keys' => array('pickem_picks_unique_idx' => array('lid', 'uid', 'gid')),
   );
 
   $schema['pickem_teams'] = array(
