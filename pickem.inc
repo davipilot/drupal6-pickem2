@@ -133,6 +133,7 @@ function get_teams() {
   $result = db_query($query);
   $teams = array();
   while ($row = db_fetch_object($result)) {
+    $row->printing_name = ($row->tm_abbrev <> '') ? $row->tm_abbrev : $row->tm_name;
     $teams[$row->tid] = $row;
   }
   return $teams;
@@ -452,11 +453,17 @@ function get_totals_by_week($league_id) {
 }
 
 
-function get_team_totals($league_id, $sort_by='win_loss') {
+function get_team_totals($league_id, $sort_by='win_lose', $week_id="") {
   // all games
   $mysqltime = date("Y-m-d H:i:s");
-  $query = "select g.gid, g.wid, g.h_score, g.v_score, g.v_id, g.h_id, p.uid, p.winnerpick_id, g.gametime,w.wk_points from {pickem_users} u inner join {pickem_picks} p on u.lid=p.lid and u.uid=p.uid inner join {pickem_games} g on p.gid = g.gid  inner join {pickem_weeks} w on w.wid=g.wid where p.lid=%d and w.wk_firstgame < '". $mysqltime ."' order by g.wid, g.gametime, g.gid";
-  $result = db_query($query, $league_id);
+  if ( is_numeric($week_id) ) {
+    $query = "select g.gid, g.wid, g.h_score, g.v_score, g.v_id, g.h_id, p.uid, p.winnerpick_id, g.gametime,w.wk_points from {pickem_users} u inner join {pickem_picks} p on u.lid=p.lid and u.uid=p.uid inner join {pickem_games} g on p.gid = g.gid  inner join {pickem_weeks} w on w.wid=g.wid where p.lid=%d and w.wk_firstgame < '". $mysqltime ."' and w.wid=%d order by g.wid, g.gametime, g.gid";
+    $result = db_query($query, $league_id, $week_id);
+  }
+  else {
+    $query = "select g.gid, g.wid, g.h_score, g.v_score, g.v_id, g.h_id, p.uid, p.winnerpick_id, g.gametime,w.wk_points from {pickem_users} u inner join {pickem_picks} p on u.lid=p.lid and u.uid=p.uid inner join {pickem_games} g on p.gid = g.gid  inner join {pickem_weeks} w on w.wid=g.wid where p.lid=%d and w.wk_firstgame < '". $mysqltime ."' order by g.wid, g.gametime, g.gid";
+    $result = db_query($query, $league_id);
+  }
 
   $totals = array();
   $teams = get_teams();
@@ -470,44 +477,57 @@ function get_team_totals($league_id, $sort_by='win_loss') {
       'pickability_w' => 'NULL',
       'wins' => 0,
       'abbrev' => $team->tm_abbrev,
+      'times_picked' => 0,
+      'picked_perc' => NULL,
     );
   }
 
   while ($row = db_fetch_object($result)) {
     //print_r($row);
-    
+
     // Home Win, Correct
     if ($row->h_score > $row->v_score && $row->winnerpick_id == $row->h_id) {
       $totals[$row->v_id]['correct_picks'] += 1;
       $totals[$row->h_id]['correct_picks'] += 1;
       $totals[$row->h_id]['win_picks'] += 1;
       $totals[$row->h_id]['wins'] += 1;
-    } 
+    }
     // Visitor Win, Correct
     else if ($row->v_score > $row->h_score && $row->winnerpick_id == $row->v_id) {
       $totals[$row->v_id]['correct_picks'] += 1;
       $totals[$row->v_id]['win_picks'] += 1;
       $totals[$row->h_id]['correct_picks'] += 1;
       $totals[$row->v_id]['wins'] += 1;
-    } 
+    }
     // Tie
     else if ($row->v_score == $row->h_score && $row->h_score <> "") {
       $totals[$row->v_id]['correct_picks'] += 1;
       $totals[$row->h_id]['correct_picks'] += 1;
     }
-    
+
     $totals[$row->v_id]['total_picks'] += 1;
     $totals[$row->h_id]['total_picks'] += 1;
-    
+
+    if ( $row->winnerpick_id == $row->h_id ) {
+      $totals[$row->h_id]['times_picked'] += 1;
+    }
+
+    if ( $row->winnerpick_id == $row->v_id ) {
+      $totals[$row->v_id]['times_picked'] += 1;
+    }
+
     if ( $totals[$row->h_id]['total_picks'] != 0 ) {
       $totals[$row->h_id]['pickability'] = round($totals[$row->h_id]['correct_picks'] / $totals[$row->h_id]['total_picks'] * 100, 1);
       $totals[$row->h_id]['pickability_w'] = round($totals[$row->h_id]['win_picks'] / $totals[$row->h_id]['total_picks'] * 100, 1);
+      $totals[$row->h_id]['picked_perc'] = round($totals[$row->h_id]['times_picked'] / $totals[$row->h_id]['total_picks'] * 100, 0);
     }
     if ( $totals[$row->v_id]['total_picks'] != 0 ) {
       $totals[$row->v_id]['pickability'] = round($totals[$row->v_id]['correct_picks'] / $totals[$row->v_id]['total_picks'] * 100, 1);
       $totals[$row->v_id]['pickability_w'] = round($totals[$row->v_id]['win_picks'] / $totals[$row->v_id]['total_picks'] * 100, 1);
+      $totals[$row->v_id]['picked_perc'] = round($totals[$row->v_id]['times_picked'] / $totals[$row->v_id]['total_picks'] * 100, 0);
     }
-    
+
+
   }
   uasort($totals, "sort_$sort_by");
   return $totals;

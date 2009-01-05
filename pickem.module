@@ -1157,10 +1157,13 @@ function theme_this_weeks_games_block($league_id) {
   
   $teams = get_teams();
   $games = get_games($cur_w['wid']);
+  $picked = get_team_totals($league_id, 'win_lose', $cur_w['wid']);
 
   $content = '<table class="pickem-weeks-games">';
   foreach ($games as $gid => $row) {
-    $content .= '<tr><td class="team-abbrev">'. $teams[$row->v_id]->tm_abbrev .'</td><td class="score">'. $row->v_score .'</td><td class="team-abbrev">'. $teams[$row->h_id]->tm_abbrev .'</td><td class="score">'. $row->h_score .'</td></tr>';
+      $v_perc = ($picked[$row->v_id]['picked_perc'] <> '') ? '('. $picked[$row->v_id]['picked_perc'] .'%)' : '';
+      $h_perc = ($picked[$row->h_id]['picked_perc'] <> '') ? '('. $picked[$row->h_id]['picked_perc'] .'%)' : '';
+      $content .= '<tr><td class="team">'. $teams[$row->v_id]->printing_name . $v_perc . '</td><td class="score">'. $row->v_score .'</td><td class="team">'. $teams[$row->h_id]->printing_name . $h_perc .'</td><td class="score">'. $row->h_score .'</td></tr>';
   }
   $content .= '</table>';
   return $content;
