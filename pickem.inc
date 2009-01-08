@@ -140,19 +140,27 @@ function get_teams() {
 }
 
 
-function get_games($week_id="") {
+function get_games($week_id=NULL, $team_id=NULL) {
 
   //drupal_set_message($week_id);
 
-  if (is_numeric($week_id)) {
+	if ( is_null($week_id) && is_null($team_id) ) {
+    $query = "SELECT g.* FROM {pickem_games} g inner join {pickem_weeks} pw on pw.wid=g.wid order by g.wid, g.gametime, g.gid";
+    $result = db_query($query);
+  }
+  else if (is_numeric($week_id) && is_null($team_id) ) {
     $query = "SELECT g.* FROM {pickem_games} g inner join {pickem_weeks} pw on pw.wid=g.wid where g.wid=%d order by g.wid, g.gametime, g.gid";
     $result = db_query($query, $week_id);
   } 
-  else {
-    $query = "SELECT g.* FROM {pickem_games} g inner join {pickem_weeks} pw on pw.wid=g.wid order by g.wid, g.gametime, g.gid";
-    $result = db_query($query);
-    
-  }
+  else if (is_numeric($week_id) && is_numeric($team_id) ) {
+    $query = "SELECT g.* FROM {pickem_games} g inner join {pickem_weeks} pw on pw.wid=g.wid where g.wid=%d and (g.v_id=%d or g.h_id=%d) order by g.wid, g.gametime, g.gid";
+    $result = db_query($query, $week_id, $team_id, $team_id);
+  } 
+  else if (is_null($week_id) && is_numeric($team_id) ) {
+    $query = "SELECT g.* FROM {pickem_games} g inner join {pickem_weeks} pw on pw.wid=g.wid where (g.v_id=%d or g.h_id=%d) order by g.wid, g.gametime, g.gid";
+    $result = db_query($query, $team_id, $team_id);
+  } 
+
   $games = array();
   while ($row = db_fetch_object($result)) {
     $games[$row->gid] = $row;

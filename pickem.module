@@ -158,8 +158,16 @@ function pickem_menu() {
         'access arguments' => array('access content'),
         'type' => MENU_CALLBACK,
       );
+
+      $items['pickem/%league/chart3/%'] = array(
+        'title' => t('Team Points'), 
+        'page callback' => 'chart3', 
+        'page arguments' => array(1, 3),
+        'access arguments' => array('access content'),
+        'type' => MENU_CALLBACK,
+      );
     }
-    }
+  }
 
   // dynamic logo
   $items['pickem/logos.gif'] = array(
@@ -1210,18 +1218,22 @@ function page_team_stats($league) {
   $breadcrumb[] = l($league->name, 'pickem/'. $league->lid);
   drupal_set_breadcrumb($breadcrumb);
   
-  $o  = '<div class="pickem">'. theme('team_stats') .'</div>';
+  $o  = '<div class="pickem">'. theme('team_stats',$league->lid) .'</div>';
   
   print theme('page', $o);  
 }
 
-function theme_team_stats() {
+function theme_team_stats($league_id) {
   $teams = get_teams();
   foreach ($teams as $tid => $d) {
     $d->wins = 0;
     $d->losses = 0;
     $d->ties = 0;
     $d->games_played = 0;
+    $d->home_wins = 0;
+    $d->home_losses = 0;
+    $d->vis_wins = 0;
+    $d->vis_losses = 0;
     $d->win_percent = 0.0;
     $d->pts_for = 0;
     $d->pts_against = 0;
@@ -1235,11 +1247,15 @@ function theme_team_stats() {
     
     if ( $row->h_score > $row->v_score ) {
       $teams[$row->h_id]->wins++;
+      $teams[$row->h_id]->home_wins++;
       $teams[$row->v_id]->losses++;
+      $teams[$row->v_id]->vis_losses++;
     }
     elseif ( $row->h_score < $row->v_score ) {
       $teams[$row->v_id]->wins++;
+      $teams[$row->v_id]->vis_wins++;
       $teams[$row->h_id]->losses++;
+      $teams[$row->h_id]->home_losses++;
     }
     elseif ( $row->h_score == $row->v_score ) {
       $teams[$row->v_id]->ties++;
@@ -1265,21 +1281,31 @@ function theme_team_stats() {
 
   $rows = array();
   foreach ($teams as $tid => $d) {
+    
+    $team_link = $teams[$tid]->tm_city .' '. $teams[$tid]->tm_name;
+    if (module_exists("open_flash_chart_api")) {
+      $team_link = l($team_link, 'pickem/'. $league_id . '/chart3/'. $tid);
+    }
+    
     $rows[] = array(
-      $teams[$tid]->tm_city .' '. $teams[$tid]->tm_name, 
-      array('data' => $teams[$tid]->wins, 'style' => 'width:10px;'), 
-      array('data' => $teams[$tid]->losses, 'style' => 'width:10px;'), 
-      array('data' => $teams[$tid]->ties, 'style' => 'width:10px;'), 
-      sprintf("%.3F", $teams[$tid]->win_percent),
+      array('data' => $team_link), 
+      array('data' => $teams[$tid]->wins, 'style' => 'width:20px;'), 
+      array('data' => $teams[$tid]->losses, 'style' => 'width:20px;'), 
+      array('data' => $teams[$tid]->ties, 'style' => 'width:20px;'), 
+      array('data' => sprintf("%.3F", $teams[$tid]->win_percent), 'style' => 'width:55px;'), 
 
-      array('data' => $teams[$tid]->pts_for, 'style' => 'width:10px;'), 
-      array('data' => $teams[$tid]->pts_against, 'style' => 'width:10px;'), 
+      array('data' => $teams[$tid]->pts_for, 'style' => 'width:20px;'), 
+      array('data' => $teams[$tid]->pts_against, 'style' => 'width:20px;'), 
+      
+      array('data' => $teams[$tid]->home_wins .'-'. $teams[$tid]->home_losses, 'style' => 'width:20px;'), 
+      array('data' => $teams[$tid]->vis_wins .'-'. $teams[$tid]->vis_losses, 'style' => 'width:20px;'), 
+      
       );
   }
   
-  $header = array(t('Team'), t('W'), t('L'), t('T'), t('PCT'), t('PF'), t('PA'));
+  $header = array(t('Team'), t('W'), t('L'), t('T'), t('PCT'), t('PF'), t('PA'), t('HOME'), t('ROAD'));
   
-  $o = theme('table', $header, $rows, array('style' => 'width:400px;') );
+  $o = theme('table', $header, $rows, array('style' => '100%;') );
   
   return $o;
 } 
@@ -1467,6 +1493,61 @@ function chart2($league, $sort_by='win_lose') {
   else {
     $o .= l('Sort By "Correctly Picked To Win"', 'pickem/'. $league->lid .'/chart2/to_win', array('html' => TRUE));
   }
+  
+  print theme('page', $o); 
+}
+
+function chart3($league, $team_id) {
+  drupal_set_title('Charts');
+  
+  $breadcrumb = drupal_get_breadcrumb();
+  $breadcrumb[] = l($league->name, 'pickem/'. $league->lid);
+  drupal_set_breadcrumb($breadcrumb);
+  
+  $teams = get_teams();
+  
+  $g = new open_flash_chart_api();
+  $g->set_title( t('Team Scoring - '. $teams[$team_id]->tm_abbrev ), '{font-size: 20px;}' );
+  $g->set_width('100%');
+  $g->set_height('480');
+  
+  $x_labels = array();
+  $pf = array();
+  $pa = array();
+  $games = get_games(NULL, $team_id);
+  foreach ($games as $gid => $row) {
+    if ( $team_id == $row->h_id ) {
+      $pf[] = $row->h_score;
+      $pa[] = $row->v_score;
+      $x_labels[] = $teams[$row->v_id]->tm_abbrev;
+    }
+    else {
+      $pf[] = $row->v_score;
+      $pa[] = $row->h_score;
+      $x_labels[] = $teams[$row->h_id]->tm_abbrev;
+    }
+  }  
+  $g->set_data($pf);
+  $g->area_hollow( 2, 3, 25, '#000080', 'Points For', 12);
+
+  $g->set_data($pa);
+  $g->area_hollow( 2, 3, 25, '#800080', 'Points Against', 12);
+
+  $g->set_x_labels( $x_labels );
+  $g->set_x_label_style( 12, '#000000', 2);
+
+  $g->set_x_legend( 'Opponent', 12);
+  
+  $g->set_y_max( 60 );
+  $g->y_label_steps( 10 );
+  $g->set_y_legend( 'Points', 12);
+  
+  $g->set_bg_colour('0xDFFFDF');
+  //echo $g->render();  
+  
+  $g->set_tool_tip( '#x_label# (#val#)' );
+
+  $o = $g->render('js');
   
   print theme('page', $o); 
 }
