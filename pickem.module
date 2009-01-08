@@ -1297,8 +1297,8 @@ function theme_team_stats($league_id) {
       array('data' => $teams[$tid]->pts_for, 'style' => 'width:20px;'), 
       array('data' => $teams[$tid]->pts_against, 'style' => 'width:20px;'), 
       
-      array('data' => $teams[$tid]->home_wins .'-'. $teams[$tid]->home_losses, 'style' => 'width:20px;'), 
-      array('data' => $teams[$tid]->vis_wins .'-'. $teams[$tid]->vis_losses, 'style' => 'width:20px;'), 
+      array('data' => $teams[$tid]->home_wins .'-'. $teams[$tid]->home_losses, 'style' => 'width:58px;'), 
+      array('data' => $teams[$tid]->vis_wins .'-'. $teams[$tid]->vis_losses, 'style' => 'width:58px;'), 
       
       );
   }
@@ -1516,6 +1516,10 @@ function chart3($league, $team_id) {
   $pa = array();
   $games = get_games(NULL, $team_id);
   foreach ($games as $gid => $row) {
+    if ( is_null($row->h_score) || is_null($row->v_score)  ) {
+      continue;
+    }
+    
     if ( $team_id == $row->h_id ) {
       $pf[] = $row->h_score;
       $pa[] = $row->v_score;
