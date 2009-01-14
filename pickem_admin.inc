@@ -62,12 +62,6 @@ function pickem_admin_settings() {
     '#description' => t("Which league should users be signed up for?"),
   );
 
-  $form['pickem_nfl'] = array(
-    '#type' => 'fieldset',
-    '#title' => t('NFL'),
-    '#collapsible' => TRUE,
-  );
-
   $form['pickem_tz'] = array(
     '#type' => 'fieldset',
     '#title' => t('Pickem Time Zone'),
