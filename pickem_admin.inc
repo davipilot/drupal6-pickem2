@@ -68,14 +68,6 @@ function pickem_admin_settings() {
     '#collapsible' => TRUE,
   );
 
-  $form['pickem_nfl']['pickem_use_espn'] = array(
-    '#type' => 'checkbox',
-    '#title' => t('Use the ESPN NFL score scrape'),
-    '#return_value' => 1,
-    '#default_value' => variable_get('pickem_use_espn', 0),
-    '#description' => t("This grabs the current weeks scores from espn."),
-  );
-
   $form['pickem_tz'] = array(
     '#type' => 'fieldset',
     '#title' => t('Pickem Time Zone'),

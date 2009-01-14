@@ -415,9 +415,6 @@ function pickem_theme() {
     'this_weeks_games_block' => array(
       'arguments' => array('league_id' => NULL),
     ),
-    'this_weeks_games_scrape' => array(
-      'arguments' => array(),
-    ),
     'dash' => array(
       'arguments' => array('title' => NULL, 'content' => NULL, 'region' => 'main', 'link' => NULL, ),
     ),
@@ -1009,12 +1006,7 @@ function page_league($league) {
     $o .= '<tr><td colspan="2">'. theme('league_messages', $league) .'</td></tr>';
   }
 
-  if ( variable_get('pickem_use_espn', 0) == 0 ) {
-    $o .= '<tr><td colspan="2">'. theme('this_weeks_games') .'</td></tr></table></div>';
-  }
-  else {
-    $o .= '<tr><td colspan="2">'. theme('this_weeks_games_scrape') .'</td></tr></table></div>';
-  }
+  $o .= '<tr><td colspan="2">'. theme('this_weeks_games') .'</td></tr></table></div>';
 
 
   print theme('page', $o);
@@ -1171,44 +1163,10 @@ function theme_this_weeks_games_block($league_id) {
   foreach ($games as $gid => $row) {
       $v_perc = ($picked[$row->v_id]['picked_perc'] <> '') ? '('. $picked[$row->v_id]['picked_perc'] .'%)' : '';
       $h_perc = ($picked[$row->h_id]['picked_perc'] <> '') ? '('. $picked[$row->h_id]['picked_perc'] .'%)' : '';
-      $content .= '<tr><td class="team">'. $teams[$row->v_id]->printing_name . $v_perc . '</td><td class="score">'. $row->v_score .'</td><td class="team">'. $teams[$row->h_id]->printing_name . $h_perc .'</td><td class="score">'. $row->h_score .'</td></tr>';
+      $content .= '<tr><td class="team">'. $teams[$row->v_id]->printing_name .'&nbsp;'. $v_perc . '</td><td class="score">'. $row->v_score .'</td><td class="team">'. $teams[$row->h_id]->printing_name .'&nbsp;'. $h_perc .'</td><td class="score">'. $row->h_score .'</td></tr>';
   }
   $content .= '</table>';
   return $content;
-}
-
-function theme_this_weeks_games_scrape($cache_reset = FALSE) {
-  // get scores from espn mobile
-
-  // 10 minute cache for the scrape
-  if (!$cache_reset && ($cache = cache_get('pickem_games_scrape', 'cache')) && $cache->expire > time() && !empty($cache->data)) {
-    $raw = unserialize($cache->data);
-  } 
-  else {
-    $url = "http://mobileapp.espn.go.com/nfl/mp/redesign/scoreboard?markupType=XHTML";
-    $useragent="Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.8.1.1) Gecko/20061204 Firefox/2.0.0.1";
-    $ch = curl_init();
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-    curl_setopt($ch, CURLOPT_URL, $url);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 120);
-    curl_setopt($ch, CURLOPT_USERAGENT, $useragent);
-  
-    $raw = curl_exec($ch);
-    curl_close($ch);
-    cache_set('pickem_games_scrape', serialize($raw), 'cache', time() + (10*60) );
-  }
-
-  $pattern = '/<p class="header" ><b>(.*)<\/b><\/p>.*<div class="contentBlock">(.*)<\/div>/sU';
-  if ( preg_match($pattern, $raw, $matches) > 0 ) {
-    $title = $matches[1];
-    $content = $matches[2];
-  } 
-  else {
-    $title = "No Games Found";
-    $content = "";    
-  }
-    
-  return theme('dash', $title, $content);
 }
 
 function page_team_stats($league) {
