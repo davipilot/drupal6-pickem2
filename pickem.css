@@ -1,3 +1,121 @@
+<<<<<<< local
+/* $Id: pickem.css 65 2008-04-15 22:16:56Z vandervo $ */
+
+.dash {
+  margin:0;
+  padding:0;
+  font-size:10.5px;
+  vertical-align:top;
+}
+.dash table tr td{
+  border-style:none;
+}
+.dash table td {
+  margin:0;
+  padding:0;
+}
+.dash .title {
+  font-weight:bold;
+  text-decoration: underline;
+}
+
+
+
+
+.pickem table.grid {
+  font-size: 10px;
+  padding: 0;
+  margin: 0;
+}
+.pickem table.grid td {
+	padding: 0 1px 0 1px;
+  margin: 0;
+  border-left: 3px solid #cccccc;
+}
+
+
+
+.pickem table.picks td {
+  vertical-align:top;
+  padding:10px 3px 3px 10px;
+}
+
+.pickem table.standings td {
+  text-align: right;
+  padding-right: 5px;
+  vertical-align: middle;
+  font-family: Courier, monospace;
+  font-weight: bold;
+}
+.pickem table.standings td.totals {
+  font-weight:bold;
+  font-size: 1.4em;
+  padding:3px;
+  border-right-style: none;
+}
+.pickem table.standings td.gamesback {
+  font-weight:normal;
+  font-size: 0.9em;
+  border-left-style: none;
+  padding-left:10px;
+}
+
+
+
+
+table.block_scores {
+  margin-left: 10px;
+}
+table.block_scores td.vis-t {
+  text-align:left;
+}
+table.block_scores td.vis-s {
+  text-align: right;
+  font-family: Courier, monospace;
+  font-weight: bold;
+}
+table.block_scores td.home-t {
+  padding-left:20px;
+}
+table.block_scores td.home-s {
+  text-align:right;
+  font-family: Courier, monospace;
+  font-weight: bold;
+}
+
+
+
+
+.pickem th.win, .pickem td.win {
+  border-left: 3px solid #006400;
+  background: #90EE90;
+}
+.pickem table th.loss, .pickem table td.loss {
+  border-left: 3px solid #8B0000;
+  background: #FF7070;
+}
+.pickem table th.tie, .pickem table td.tie {
+  border-left: 3px solid #8B0000;
+  background: #90EE90;
+}
+.pickem table th.bye, .pickem table td.bye {
+  background: lightgray;
+}
+
+
+
+
+.pickem table.picks .pick_win {
+ color:green;
+ font-weight:bold; 
+}
+.pickem table.picks .pick_loss {
+ color:red;
+ font-weight:bold; 
+}
+
+
+=======
 /* $Id: pickem.css,v 1.1.2.1 2008/09/18 21:57:44 jvandervort Exp $ */
 
 /*
@@ -191,4 +309,4 @@
 .pickem-weeks-games td.score {
 	padding-left: 1px;
 	text-align: left;
-}
+}>>>>>>> other
