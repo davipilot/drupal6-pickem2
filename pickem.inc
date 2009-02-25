@@ -86,6 +86,20 @@ function league_load($league_id) {
   }
   return $valid ? $league : FALSE;
 }
+function team_load($team_id) {
+  $valid = TRUE;
+  $team = FALSE;
+  if ( is_numeric($team_id) ) {
+    $ret = get_teams($team_id);
+    if ( count($ret) > 0 ) {
+      $team = $ret[0];
+    }
+    else {
+      $valid = FALSE;
+    }
+  }
+  return $valid ? $team : FALSE;
+}
 
 function get_leagues($league_id=0) {
   if ( $league_id == 0 ) {
@@ -128,13 +142,26 @@ function is_my_league($league) {
 }
 
 
-function get_teams() {
-  $query = "SELECT * from {pickem_teams} order by tm_abbrev, tm_name";
-  $result = db_query($query);
+function get_teams($team_id=0) {
+
   $teams = array();
-  while ($row = db_fetch_object($result)) {
-    $row->printing_name = ($row->tm_abbrev <> '') ? $row->tm_abbrev : $row->tm_name;
-    $teams[$row->tid] = $row;
+  if ( $team_id == 0 ) {
+    //all teams
+    $query = "SELECT * from {pickem_teams} order by tm_abbrev, tm_name";
+    $result = db_query($query);
+	  while ($row = db_fetch_object($result)) {
+	    $row->printing_name = ($row->tm_abbrev <> '') ? $row->tm_abbrev : $row->tm_name;
+	    $teams[$row->tid] = $row;
+	  }
+  } 
+  else {
+    //one team
+    $query = "SELECT * from {pickem_teams} where tid=%d order by tm_abbrev, tm_name";
+    $result = db_query($query, $team_id);
+	  while ($row = db_fetch_object($result)) {
+	    $row->printing_name = ($row->tm_abbrev <> '') ? $row->tm_abbrev : $row->tm_name;
+	    $teams[] = $row;
+	  }
   }
   return $teams;
 }

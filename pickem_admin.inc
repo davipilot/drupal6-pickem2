@@ -6,7 +6,21 @@
  * includes all pickem admin functions.
 */
 
-function pickem_admin_settings() {
+/**
+ * Menu callback which shows an overview page.
+ */
+function pickem_overview_page() {
+ 
+  menu_cache_clear_all();
+  cache_clear_all();
+  menu_rebuild();
+  
+  $content = '';
+  $content .= 'Pickem Overview';
+  return $content;
+}
+
+function pickem_admin_settings(&$form_state) {
 
   $form = array();
 
@@ -92,7 +106,6 @@ function page_admin_leagues_users($league_id = "") {
 
 
 function page_admin_league_users($league) {
-
   /* 
     Post Actions
   */
@@ -126,7 +139,7 @@ function page_admin_league_users($league) {
   $output = theme('table', $header, $rows);
   $output .= drupal_get_form('user_select_form', $league->lid, 'Add User', 1);
  
-  drupal_set_title('Administer League - '. $league->title);
+  drupal_set_title('Administer League - '. $league->name);
   return $output;
 }
 
@@ -528,91 +541,27 @@ function admin_teams_form($form_state=NULL) {
     '#tree' => TRUE,
   );  
 
-  $query = "SELECT tid, tm_city, tm_abbrev, tm_nick, tm_name, conference, division from {pickem_teams} order by tid";
+  $query = "SELECT tid, tm_city, tm_abbrev, tm_nick, tm_name, conference, division from {pickem_teams} order by tm_city, tm_name, tm_abbrev";
   $result = db_query($query);
   while ($row = db_fetch_object($result)) {
     $form['teams'][$row->tid] = array(
-      'tid' => array(
-        '#type' => 'hidden',
-        '#value' => $row->tid
+      'tm_city' => array(
+        '#value' => $row->tm_city
       ),
-      'city' => array(
-        '#type' => 'textfield',
-        '#size' => 20,
-        '#maxlength' => 50,
-        '#default_value' => $row->tm_city
+      'tm_name' => array(
+        '#value' => $row->tm_name
       ),
-      'abbrev' => array(
-        '#type' => 'textfield',
-        '#size' => 5,
-        '#maxlength' => 5,
-        '#default_value' => $row->tm_abbrev
+      'tm_abbrev' => array(
+        '#value' => $row->tm_abbrev
       ),
-      'nick' => array(
-        '#type' => 'textfield',
-        '#size' => 10,
-        '#maxlength' => 50,
-        '#default_value' => $row->tm_nick
+      'edit_link' => array(
+        '#value' => l('edit', 'admin/content/pickem/teams/edit/' . $row->tid)
       ),
-      'name' => array(
-        '#type' => 'textfield',
-        '#size' => 15,
-        '#maxlength' => 50,
-        '#default_value' => $row->tm_name
-      ),
-      'conf' => array(
-        '#type' => 'textfield',
-        '#size' => 20,
-        '#maxlength' => 50,
-        '#default_value' => $row->conference
-      ),
-      'div' => array(
-        '#type' => 'textfield',
-        '#size' => 10,
-        '#maxlength' => 50,
-        '#default_value' => $row->division
+      'delete_link' => array(
+        '#value' => l('delete', 'admin/content/pickem/teams/delete/' . $row->tid)
       ),
     );
   }
-  
-  $form['new_row'] = array(
-    'city' => array(
-      '#type' => 'textfield',
-      '#size' => 20,
-      '#maxlength' => 50,
-      '#default_value' => ''
-    ),
-    'abbrev' => array(
-      '#type' => 'textfield',
-      '#size' => 5,
-      '#maxlength' => 5,
-      '#default_value' => ''
-    ),
-    'nick' => array(
-      '#type' => 'textfield',
-      '#size' => 35,
-      '#maxlength' => 50,
-      '#default_value' => ''
-    ),
-    'name' => array(
-      '#type' => 'textfield',
-      '#size' => 15,
-      '#maxlength' => 50,
-      '#default_value' => ''
-    ),
-    'conf' => array(
-      '#type' => 'textfield',
-      '#size' => 10,
-      '#maxlength' => 50,
-      '#default_value' => ''
-    ),
-    'div' => array(
-      '#type' => 'textfield',
-      '#size' => 10,
-      '#maxlength' => 50,
-      '#default_value' => ''
-    ),
-  );
   
   $form['save'] = array(
     '#type' => 'submit',
@@ -622,48 +571,26 @@ function admin_teams_form($form_state=NULL) {
   return $form;
 }
 function theme_admin_teams_form(&$form) {
-  //drupal_set_message("theme_admin_teams_form");
-  drupal_add_js('misc/collapse.js');
-  
-  $header = array(t('Abbrev'), t('City'), t('Name'), t('Nickname'), t('Conference'), t('Division'));
-  //$destination = drupal_get_destination();
+  $header = array(
+    t('Team'), 
+    array('data' => t('Operations'), 'colspan' => '3')
+  );
 
   $rows = array();
   foreach (element_children($form['teams']) as $key) {
     $rows[] = array(
-      drupal_render($form['teams'][$key]['abbrev']) . drupal_render($form['teams'][$key]['tid']), 
-      drupal_render($form['teams'][$key]['city']), 
-      drupal_render($form['teams'][$key]['name']), 
-      drupal_render($form['teams'][$key]['nick']),
-      drupal_render($form['teams'][$key]['conf']),
-      drupal_render($form['teams'][$key]['div']),
+      drupal_render($form['teams'][$key]['tm_city']) . ' ' . drupal_render($form['teams'][$key]['tm_name']) . ' (' . drupal_render($form['teams'][$key]['tm_abbrev']) . ')', 
+      drupal_render($form['teams'][$key]['edit_link']),
+      drupal_render($form['teams'][$key]['delete_link']),
     );
   }
  
   $output = '';
-  $output .= '<div><fieldset class="collapsible"><legend><a href="#">Team List</a></legend>';
   $output .= theme('table', $header, $rows);
-  $output .= "</fieldset></div>";
   
-  $new_row = array();
-  $new_row[] = array(
-      drupal_render($form['new_row']['abbrev']), 
-      drupal_render($form['new_row']['city']), 
-      drupal_render($form['new_row']['name']), 
-      drupal_render($form['new_row']['nick']),
-      drupal_render($form['new_row']['conf']),
-      drupal_render($form['new_row']['div']),
-  );
-
-  $output .= '<div><fieldset class="collapsible"><legend><a href="#">Add New Team</a></legend>';
-  $output .= theme('table', $header, $new_row);
-  $output .= "</fieldset></div>";
-  
-  
-  
-  $output .= drupal_render($form['save']);
-  $output .= drupal_render($form['form_id']);
-  $output .= drupal_render($form['form_token']);
+  //$output .= drupal_render($form['save']);
+  //$output .= drupal_render($form['form_id']);
+  //$output .= drupal_render($form['form_token']);
   
   return $output;
 }
@@ -687,6 +614,132 @@ function admin_teams_form_submit($form, &$form_state) {
   drupal_set_message("Teams Saved");
   
 }
+
+
+/**
+ * Menu callback; Build the pickem team editing form.
+ */
+function pickem_team_edit(&$form_state, $type, $team) {
+
+  if ( is_null($team) ) {
+  	// this should match the table field names
+    $team = new stdClass();
+  	$team->tid = 0;
+  	$team->tm_city = '';
+  	$team->tm_abbrev = '';
+  	$team->tm_nick = '';
+  	$team->tm_name = '';
+  	$team->conference = '';
+  	$team->division = '';
+  }
+
+	$form = array();
+	$form['team']['tid'] = array(
+      '#title'  => t('Team ID'),
+      '#type' => 'hidden',
+      '#size' => 20,
+      '#maxlength' => 50,
+      '#default_value' => $team->tid
+  );
+	
+  $form['team']['tm_city'] = array(
+      '#title'  => t('City'),
+      '#type' => 'textfield',
+      '#size' => 20,
+      '#maxlength' => 50,
+      '#default_value' => $team->tm_city
+  );
+  $form['team']['tm_abbrev'] = array(
+    '#title'  => t('Abbreviation'),
+    '#type' => 'textfield',
+    '#size' => 5,
+    '#maxlength' => 5,
+    '#default_value' => $team->tm_abbrev
+  );
+  $form['team']['tm_nick'] = array(
+    '#title'  => t('Nickname'),
+    '#type' => 'textfield',
+    '#size' => 35,
+    '#maxlength' => 50,
+    '#default_value' => $team->tm_nick
+  );
+  $form['team']['tm_name'] = array(
+    '#title'  => t('Name'),
+    '#type' => 'textfield',
+    '#size' => 15,
+    '#maxlength' => 50,
+    '#default_value' => $team->tm_name
+  );
+  $form['team']['conference'] = array(
+    '#title'  => t('Conference'),
+    '#type' => 'textfield',
+    '#size' => 10,
+    '#maxlength' => 50,
+    '#default_value' => $team->conference
+  ); 
+  $form['team']['division'] = array(
+    '#title'  => t('Division'),
+    '#type' => 'textfield',
+    '#size' => 10,
+    '#maxlength' => 50,
+    '#default_value' => $team->division
+  );
+
+  $form['submit'] = array('#type' => 'submit', '#value' => t('Save'));
+
+  return $form;
+}
+/**
+ * Validate form values for a menu link being added or edited.
+ */
+function pickem_team_edit_validate($form, &$form_state) {
+  $team = &$form_state['values'];
+  //if ($team['tm_name'] == 'lions') {
+  //  form_set_error('tm_name', t("Sorry for you.", array('@tm_name' => $team['tm_name'])));
+  //}
+}
+function pickem_team_edit_submit($form, &$form_state) {
+  $team = $form_state['values'];
+
+	if ( $team['tid'] == 0 ) {
+    $query = "insert into {pickem_teams} (tm_city, tm_abbrev, tm_name, tm_nick, conference, division) values('%s','%s','%s','%s','%s','%s')";
+    $result = db_query($query, $team['tm_city'], $team['tm_abbrev'], $team['tm_name'], $team['tm_nick'], $team['conference'], $team['division']);
+		drupal_set_message('Team added');
+	}
+	else {
+	  $query = "update {pickem_teams} set tm_city='%s', tm_abbrev='%s', tm_name='%s', tm_nick='%s', conference='%s', division='%s' where tid=%d";
+	  $result = db_query($query, $team['tm_city'], $team['tm_abbrev'], $team['tm_name'], $team['tm_nick'], $team['conference'], $team['division'], $team['tid']);
+	  drupal_set_message('Team updated');
+	}
+
+  $form_state['redirect'] = 'admin/content/pickem/teams';
+}
+/**
+ * Build a confirm form for deletion of a team.
+ */
+function pickem_team_delete_confirm(&$form_state, $team) {
+  $form['#team'] = $team;
+  $caption = '';
+  $caption .= '<p>'. t('This action cannot be undone.') .'</p>';
+  return confirm_form($form, t('Are you sure you want to delete the team %name?', array('%name' => $team->tm_city . ' ' . $team->tm_name)), 'admin/content/pickem/teams', $caption, t('Delete'));
+}
+/**
+ * Delete the team.
+ */
+function pickem_team_delete_confirm_submit($form, &$form_state) {
+  $team = $form['#team'];
+  db_query("DELETE FROM {pickem_teams} WHERE tid = %d", $team->tid);
+  $t_args = array('%name' => $team->tm_city . ' ' . $team->tm_name);
+  drupal_set_message(t('The pickem team %name has been deleted.', $t_args));
+  watchdog('pickem', 'Deleted team %name.', $t_args, WATCHDOG_NOTICE);
+  $form_state['redirect'] = 'admin/content/pickem/teams';
+}
+
+
+
+
+
+
 
 
 /*
@@ -889,11 +942,7 @@ function email_league_form_submit($form, &$form_state) {
 /**************
   Admin Leagues
 ***************/
-function page_admin_leagues() {
-  drupal_set_title('Pickem Leagues Admin');
-  return drupal_get_form('admin_leagues_form');
-}
-function admin_leagues_form($form_state=NULL) {
+function pickem_leagues_list(&$form_state) {
   //drupal_set_message("admin_leagues_form");
 
   $form = array(
