@@ -434,7 +434,7 @@ function pickem_cron() {
     while ($row = db_fetch_object($result)) {
       $missing_count = $row->games - $row->picks;
       if ( $missing_count > 0 ) {
-        $user = user_load($row->uid);
+        $user = user_load(array('uid'=>$row->uid));
         if ( $user->pickem_user_email_reminders == 1 ) {
           email_warning($user, $row->wid, $firstgame, $missing_count, $row->lid);
         }
