@@ -267,7 +267,7 @@ function pickem_menu() {
   $items['admin/content/pickem/teams'] = array(
     'title' => 'Teams',
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('admin_teams_form'),
+    'page arguments' => array('pickem_teams_list'),
     'access arguments' => array('administer pickem'),
     'weight' => -1,
     'file' => 'pickem_admin.inc',
@@ -310,12 +310,44 @@ function pickem_menu() {
    */
   $items['admin/content/pickem/games'] = array(
     'title' => t('Games'),
-    'page callback' => 'page_admin_games',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('pickem_games_list'),
     'access arguments' => array('administer pickem'),
     'weight' => -1,
     'file' => 'pickem_admin.inc',
     'type' => MENU_NORMAL_ITEM,
   );
+  $items['admin/content/pickem/games/list'] = array(
+    'title' => 'List Games',
+    'weight' => -1,
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+  );
+  $items['admin/content/pickem/games/add'] = array(
+    'title' => 'Add Game',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('pickem_game_edit', 'add', NULL),
+    'access arguments' => array('administer pickem'),
+    'file' => 'pickem_admin.inc',
+    'weight' => 0,
+    'type' => MENU_LOCAL_TASK,
+  );
+  $items['admin/content/pickem/games/edit/%game'] = array(
+    'title' => 'Edit Game',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('pickem_game_edit', 'edit', 5),
+    'access arguments' => array('administer pickem'),
+    'file' => 'pickem_admin.inc',
+    'type' => MENU_CALLBACK,
+  );
+  $items['admin/content/pickem/games/delete/%game'] = array(
+    'title' => 'Delete Game',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('pickem_game_delete_confirm', 5),
+    'access arguments' => array('administer pickem'),
+    'file' => 'pickem_admin.inc',
+    'type' => MENU_CALLBACK,
+  );
+
    
 
 
@@ -497,7 +529,7 @@ function pickem_theme() {
       'file' => 'pickem_admin.inc',
       'arguments' => array('form' => NULL),
     ),
-    'admin_teams_form' => array(
+    'pickem_teams_list' => array(
       'file' => 'pickem_admin.inc',
       'arguments' => array('form' => NULL),
     ),
@@ -505,7 +537,7 @@ function pickem_theme() {
       'file' => 'pickem_admin.inc',
       'arguments' => array('form' => NULL),
     ),
-    'admin_games_form' => array(
+    'pickem_games_list' => array(
       'file' => 'pickem_admin.inc',
       'arguments' => array('form' => NULL),
     ),

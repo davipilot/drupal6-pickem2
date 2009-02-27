@@ -145,208 +145,6 @@ function page_admin_league_users($league) {
 
 
 
-/*
-  Admin Games
-*/
-function page_admin_games() {
-  drupal_set_title('Pickem Games Admin');
-  return drupal_get_form('admin_games_form');
-}
-function admin_games_form($form_state=NULL) {
-  $form = array(
-    '#theme' => 'admin_games_form',
-    '#tree' => TRUE,
-  );  
-
-  $games = get_games();
-  $teams = get_teams();
-  $team_list = array();
-  $team_list[0] = "";
-  foreach ($teams as $t_id => $team_data) {
-    $team_list[$t_id] = ($team_data->tm_abbrev <> '')?$team_data->tm_abbrev:$team_data->tm_name;
-  }
-
-  $weeks = get_weeks(0, 'all');
-  $week_list = array();
-  $week_list[0] = "";
-  foreach ($weeks as $wid => $week) {
-    $week_list[$wid] = $week['wk_name'];
-  }
-
-  foreach ($games as $gid => $game_data) {
-    $form['games'][] = array(
-      'gid' => array(
-        '#type' => 'hidden',
-        '#value' => $gid
-      ),
-      'wid' => array(
-        '#type' => 'select',
-        '#default_value' => $game_data->wid,
-        '#options' => $week_list,
-      ),
-      'game_time' => array(
-        '#type' => 'textfield',
-        '#size' => 30,
-        '#maxlength' => 45,
-        '#default_value' => $game_data->gametime,
-      ),
-      'home_team' => array(
-        '#type' => 'select',
-        '#default_value' => $game_data->h_id,
-        '#options' => $team_list,
-      ),
-      'h_spread' => array(
-        '#type' => 'textfield',
-        '#size' => 4,
-        '#maxlength' => 10,
-        '#default_value' => $game_data->h_spread,
-      ),
-      'visitor_team' => array(
-        '#type' => 'select',
-        '#default_value' => $game_data->v_id,
-        '#options' => $team_list,
-      ),
-      'v_spread' => array(
-        '#type' => 'textfield',
-        '#size' => 4,
-        '#maxlength' => 10,
-        '#default_value' => $game_data->v_spread,
-      ),
-    );
-  }
-
-  // add new game
-  $form['new_game']['game'] = array(
-    'gid' => array(
-      '#type' => 'hidden',
-      '#value' => 0
-    ),
-    'wid' => array(
-      '#type' => 'select',
-      '#default_value' => 0,
-      '#options' => $week_list,
-    ),
-    'game_time' => array(
-      '#type' => 'textfield',
-      '#size' => 30,
-      '#maxlength' => 45,
-      '#default_value' => "",
-    ),
-    'home_team' => array(
-      '#type' => 'select',
-      '#default_value' => "",
-      '#options' => $team_list,
-    ),
-    'h_spread' => array(
-      '#type' => 'textfield',
-      '#size' => 4,
-      '#maxlength' => 10,
-      '#default_value' => 0,
-    ),
-    'visitor_team' => array(
-      '#type' => 'select',
-      '#default_value' => "",
-      '#options' => $team_list,
-    ),
-    'v_spread' => array(
-      '#type' => 'textfield',
-      '#size' => 4,
-      '#maxlength' => 10,
-      '#default_value' => 0,
-      ),
-  );
-
-  $form['save'] = array(
-    '#type' => 'submit',
-    '#value' => t('Save Games'),
-   );
-  return $form; 
-}
-
-
-function theme_admin_games_form(&$form) {
-  //drupal_set_message('theme_admin_games_form');
-  
-  $week = $_GET['page'] ? $_GET['page'] : 0;
-
-  $rows = array();
-  foreach (element_children($form['games']) as $key) {
-    if ($form['games'][$key]['wid']['#value'] == $week + 1) {
-      $rows[] = array(
-        drupal_render($form['games'][$key]['wid']), 
-        drupal_render($form['games'][$key]['game_time']), 
-        drupal_render($form['games'][$key]['visitor_team']), 
-        drupal_render($form['games'][$key]['v_spread']), 
-        drupal_render($form['games'][$key]['home_team']),
-        drupal_render($form['games'][$key]['h_spread']), 
-      );
-    }
-  }
-
-  $new_row = array();
-  foreach (element_children($form['new_game']) as $key) {
-    $form['new_game'][$key]['wid']['#value'] = $week + 1;  //set the new_game form element to be in the week currently being viewed.
-    $new_row[] = array(
-      drupal_render($form['new_game'][$key]['wid']), 
-      drupal_render($form['new_game'][$key]['game_time']), 
-      drupal_render($form['new_game'][$key]['visitor_team']), 
-      drupal_render($form['new_game'][$key]['v_spread']), 
-      drupal_render($form['new_game'][$key]['home_team']),
-      drupal_render($form['new_game'][$key]['h_spread']), 
-    );
-  }
-
-  $header = array(t('Week'), t('Time'), t('Visitor'), t('VSpread'), t('Home'), t('HSpread'));
-  $output = '';
-  $output .= '<div><fieldset class="collapsible"><legend><a href="#">Games</a></legend>';
-  $output .= theme('table', $header, $rows);
-  $output .= "</fieldset></div>";
-  
-  $output .= '<div><fieldset class="collapsible"><legend><a href="#">New game</a></legend>';
-  $output .= theme('table', $header, $new_row);
-  $output .= "</fieldset></div>";
-
-  $output .= drupal_render($form['save']);
-  $output .= drupal_render($form['form_id']);
-  $output .= drupal_render($form['form_token']);
-
-  $GLOBALS['pager_page_array'][] = $week;
-  $weeks = get_weeks(0, 'all');
-  $GLOBALS['pager_total'][] = count($weeks);
-
-  #if ($total_entries >= $page_increment) {
-  $output .= theme('pager', NULL, $page_increment);
-  #}
-
-  drupal_add_js('misc/collapse.js');
-
-  return $output;
-}
-function admin_games_form_submit($form, &$form_state) {
-  //drupal_set_message('admin_games_form_submit');
-
-  cache_clear_all('pickem_grid_scores', 'cache', TRUE); 
-
-  if ( isset($form_state['values']['games']) ) {
-    foreach ($form_state['values']['games'] as $key => $value) {
-      // this will filter by games on the current page only.
-      if ($value['gid'] <> 0 && $value['game_time'] != '' && $value['home_team'] <> 0 && $value['visitor_team'] <> 0) {
-        $query = "update {pickem_games} set wid=%d, gametime='%s', h_id=%d, h_spread=%d, v_id=%d, v_spread=%d where gid=%d";
-        $result = db_query($query, $value['wid'], date($value['game_time']), $value['home_team'], $value['h_spread'], $value['visitor_team'], $value['v_spread'], $value['gid']);
-      }
-    }
-  }
-
-  foreach ($form_state['values']['new_game'] as $key => $value) {
-    if ($value['gid'] == 0 && $value['game_time'] != '' && $value['home_team'] <> 0 && $value['visitor_team'] <> 0) {
-      $query = "insert into {pickem_games}(wid, gametime, h_id, h_spread, v_id, v_spread) values(%d, '%s', %d, %d, %d, %d)";
-      $result = db_query($query, $value['wid'], date($value['game_time']), $value['home_team'], $value['h_spread'], $value['visitor_team'], $value['v_spread']);
-      drupal_set_message("Games Saved");
-      drupal_goto('admin/content/pickem/games', 'page='. ($value['wid'] - 1));
-    }
-  }
-  drupal_set_message("Games Saved");
-}
 
 
 
@@ -528,11 +326,11 @@ function admin_weeks_form_submit($form, &$form_state) {
 /*
   Admin Teams
 */
-function admin_teams_form($form_state=NULL) {
+function pickem_teams_list($form_state=NULL) {
   //drupal_set_message("admin_teams_form");
 
   $form = array(
-    '#theme' => 'admin_teams_form',
+    '#theme' => 'pickem_teams_list',
     '#tree' => TRUE,
   );  
 
@@ -557,15 +355,10 @@ function admin_teams_form($form_state=NULL) {
       ),
     );
   }
-  
-  $form['save'] = array(
-    '#type' => 'submit',
-    '#value' => t('Save Teams')
-  );
 
   return $form;
 }
-function theme_admin_teams_form(&$form) {
+function theme_pickem_teams_list(&$form) {
   $header = array(
     t('Team'), 
     array('data' => t('Operations'), 'colspan' => '3')
@@ -719,7 +512,7 @@ function pickem_team_delete_confirm_submit($form, &$form_state) {
 /**************
   Admin Leagues
 ***************/
-function pickem_leagues_list(&$form_state) {
+function pickem_leagues_list(&$form_state=NULL) {
   //drupal_set_message("admin_leagues_form");
 
   $form = array(
@@ -770,30 +563,8 @@ function theme_pickem_leagues_list(&$form) {
   }
 
   $output .= theme('table', $header, $rows);
-
-  $output .= drupal_render($form['save']);
-  //$output .= drupal_render($form['form_id']);
-  //$output .= drupal_render($form['form_token']);
   
   return $output;
-}
-function admin_leagues_form_submit($form, &$form_state) {
-  //drupal_set_message("admin_league_form_submit");
-  
-  if ( isset($form_state['values']['leagues']) ) {
-    foreach ($form_state['values']['leagues'] as $key => $value) {
-      $query = "update {pickem_leagues} set name='%s', rules_node_id=%d, forum_id=%d, scoring_type=%d where lid=%d";
-      $result = db_query($query, $value['name'], $value['rules_node_id'], $value['forum_id'], $value['scoring_type'], $value['lid']);
-    }
-  }
-  
-  if ( $form_state['values']['add_league']['name'] <> '' ) {
-    $value = $form_state['values']['add_league'];
-    $query = "insert into {pickem_leagues} (name, rules_node_id, forum_id, scoring_type) values('%s', %d, %d, %d)";
-    $result = db_query($query, $value['name'], $value['rules_node_id'], $value['forum_id'], $value['scoring_type']);
-  }
-  
-  drupal_set_message("Leagues Saved");
 }
 
 /**
@@ -900,6 +671,221 @@ function pickem_leagues_delete_confirm_submit($form, &$form_state) {
   watchdog('pickem', 'Deleted league %name.', $t_args, WATCHDOG_NOTICE);
   $form_state['redirect'] = 'admin/content/pickem/leagues';
 }
+
+
+/*
+  Admin Games
+*/
+function pickem_games_list(&$form_state=NULL) {
+  $form = array(
+    '#theme' => 'pickem_games_list',
+    '#tree' => TRUE,
+  );  
+
+  $games = get_games();
+  $teams = get_teams();
+
+  foreach ($games as $gid => $game_data) {
+  	$home_team = ($teams[$game_data->h_id]->tm_abbrev <> '')?$teams[$game_data->h_id]->tm_abbrev:$teams[$game_data->h_id]->tm_name;
+  	$vis_team = ($teams[$game_data->v_id]->tm_abbrev <> '')?$teams[$game_data->v_id]->tm_abbrev:$teams[$game_data->v_id]->tm_name;
+  	$matchup = "$vis_team @ $home_team (" . $game_data->gametime . ")";
+    $form['games'][] = array(
+      'wid' => array(
+        '#value' => $game_data->wid,
+      ),
+      'week_name' => array(
+        '#value' => 'Week ' . $game_data->wid,
+      ),
+      'matchup' => array(
+        '#value' => $matchup
+      ),
+      'edit_link' => array(
+        '#value' => l('edit', 'admin/content/pickem/games/edit/' . $gid)
+      ),
+      'delete_link' => array(
+        '#value' => l('delete', 'admin/content/pickem/games/delete/' . $gid)
+      ),
+    );
+  }
+
+  return $form; 
+}
+
+
+function theme_pickem_games_list(&$form) {
+  $week = $_GET['page'] ? $_GET['page'] : 0;
+  $header = array(
+    t('Week'), 
+    t('Matchup'), 
+    array('data' => t('Operations'), 'colspan' => '3')
+  );
+  $rows = array();
+  foreach (element_children($form['games']) as $key) {
+    if ($form['games'][$key]['wid']['#value'] == $week + 1) {
+      $rows[] = array(
+        drupal_render($form['games'][$key]['week_name']), 
+        drupal_render($form['games'][$key]['matchup']), 
+        drupal_render($form['games'][$key]['edit_link']),
+        drupal_render($form['games'][$key]['delete_link']),
+      );
+    }
+  }
+  $output = theme('table', $header, $rows);
+
+  $GLOBALS['pager_page_array'][] = $week;
+  $weeks = get_weeks(0, 'all');
+  $GLOBALS['pager_total'][] = count($weeks);
+
+  #if ($total_entries >= $page_increment) {
+  $output .= theme('pager', NULL, $page_increment);
+  #}
+
+  return $output;
+}
+function pickem_game_edit(&$form_state, $type, $game) {
+  if ( is_null($game) ) {
+  	// this should match the table field names
+    $game = new stdClass();
+  	$game->gid = 0;
+  	$game->wid = '';
+  	$game->gametime = '';
+  	$game->h_id = '';
+  	$game->v_id = '';
+  	$game->h_spread = '';
+  	$game->v_spread = '';
+  }
+  
+  $teams = get_teams();
+  $team_list = array();
+  $team_list[0] = "";
+  foreach ($teams as $t_id => $team_data) {
+    $team_list[$t_id] = ($team_data->tm_abbrev <> '')?$team_data->tm_abbrev:$team_data->tm_name;
+  }   
+  
+  $weeks = get_weeks(0, 'all');
+  $week_list = array();
+  $week_list[0] = "";
+  foreach ($weeks as $wid => $week) {
+    $week_list[$wid] = $week['wk_name'];
+  }   
+  
+	$form = array();
+  $form['game']['gid'] = array(
+    '#title' => t('Game ID'),
+    '#type' => 'hidden',
+    '#value' => $game->gid
+  );
+  $form['game']['wid'] = array(
+    '#title' => t('Week ID'),
+    '#type' => 'select',
+    '#default_value' => $game->wid,
+    '#options' => $week_list,
+    '#required' => TRUE,
+  );
+  $form['game']['game_time'] = array(
+    '#title' => t('Game Time'),
+    '#type' => 'textfield',
+    '#size' => 30,
+    '#maxlength' => 45,
+    '#default_value' => $game->gametime,
+  );
+  $form['game']['home_team'] = array(
+    '#title' => t('Home Team'),
+    '#type' => 'select',
+    '#default_value' => $game->h_id,
+    '#options' => $team_list,
+    '#required' => TRUE,
+  );
+	$form['game']['h_spread'] = array(
+	  '#title' => t('Home Spread'),
+	  '#type' => 'textfield',
+		'#size' => 4,
+		'#maxlength' => 10,
+		'#default_value' => $game->h_spread,
+  );
+	$form['game']['visitor_team'] = array(
+	  '#title' => t('Visitor Team'),
+	  '#type' => 'select',
+		'#default_value' => $game->v_id,
+		'#options' => $team_list,
+		'#required' => TRUE,
+	);
+	$form['game']['v_spread'] = array(
+	  '#title' => t('Visitor Spread'),
+	  '#type' => 'textfield',
+		'#size' => 4,
+		'#maxlength' => 10,
+		'#default_value' => $game->v_spread,
+	);
+
+  $form['submit'] = array('#type' => 'submit', '#value' => t('Save'));
+
+  return $form;
+}
+/**
+ * Validate form values for a game being added or edited.
+ */
+function pickem_game_edit_validate($form, &$form_state) {
+  $game = &$form_state['values'];
+
+  if ( $game['v_spread'] != -$game['h_spread']) {
+  	form_set_error('h_spread', t('The spread fields must be equal and opposite (ie 3 and -3).'));
+  }
+}
+function pickem_game_edit_submit($form, &$form_state) {
+  $game = $form_state['values'];
+
+  // since you are adding or editing games, clear the schedule grid cache
+  cache_clear_all('pickem_grid_scores', 'cache', TRUE); 
+
+	if ( $game['gid'] == 0 ) {
+    $query = "insert into {pickem_games}(wid, gametime, h_id, h_spread, v_id, v_spread) values(%d, '%s', %d, %d, %d, %d)";
+    $result = db_query($query, $game['wid'], date($game['game_time']), $game['home_team'], $game['h_spread'], $game['visitor_team'], $game['v_spread']);
+		drupal_set_message('Game added');
+	}
+	else {
+    $query = "update {pickem_games} set wid=%d, gametime='%s', h_id=%d, h_spread=%d, v_id=%d, v_spread=%d where gid=%d";
+    $result = db_query($query, $game['wid'], date($game['game_time']), $game['home_team'], $game['h_spread'], $game['visitor_team'], $game['v_spread'], $game['gid']);
+		drupal_set_message('Game updated');
+	}
+  //drupal_goto('admin/content/pickem/games', 'page='. ($game['wid'] - 1));
+  $form_state['redirect'] = array('admin/content/pickem/games', 'page=' . ($game['wid'] - 1) );
+}
+/**
+ * Build a confirm form for deletion of a game.
+ */
+function pickem_game_delete_confirm(&$form_state, $game) {
+  $form['#game'] = $game;
+  $caption = '';
+  $caption .= '<p>'. t('This action cannot be undone.') .'</p>';
+
+  //return confirm_form($form, t('Are you sure you want to delete the team %name?', array('%name' => $league->name)), 'admin/content/pickem/leagues', $caption, t('Delete'));
+
+  return confirm_form($form, t('Are you sure you want to delete this game?'), 'admin/content/pickem/games', $caption, t('Delete'));
+}
+/**
+ * Delete the game.
+ */
+function pickem_game_delete_confirm_submit($form, &$form_state) {
+  $game = $form['#game'];
+  db_query("DELETE FROM {pickem_games} WHERE gid = %d", $game->gid);
+  drupal_set_message(t('The pickem game has been deleted.'));
+  watchdog('pickem', 'Deleted game id' . $game->gid, NULL, WATCHDOG_NOTICE);
+  $form_state['redirect'] = array('admin/content/pickem/games', 'page=' . ($game->wid - 1) );
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

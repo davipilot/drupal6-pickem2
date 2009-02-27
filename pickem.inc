@@ -100,6 +100,23 @@ function team_load($team_id) {
   }
   return $valid ? $team : FALSE;
 }
+function game_load($game_id) {
+  $valid = TRUE;
+  $game = FALSE;
+  if ( is_numeric($game_id) ) {
+    $ret = get_games(NULL, NULL, $game_id);
+    if ( count($ret) > 0 ) {
+    	$tmp = each($ret);
+      $game = $tmp['value'];
+    }
+    else {
+      $valid = FALSE;
+    }
+  }
+  return $valid ? $game : FALSE;
+}
+
+
 
 function get_leagues($league_id=0) {
   if ( $league_id == 0 ) {
@@ -167,11 +184,14 @@ function get_teams($team_id=0) {
 }
 
 
-function get_games($week_id=NULL, $team_id=NULL) {
+function get_games($week_id=NULL, $team_id=NULL, $game_id=NULL) {
 
   //drupal_set_message($week_id);
-
-	if ( is_null($week_id) && is_null($team_id) ) {
+	if ( ! is_null($game_id ) ) {
+    $query = "SELECT g.* FROM {pickem_games} g inner join {pickem_weeks} pw on pw.wid=g.wid where g.gid=%d order by g.wid, g.gametime, g.gid";
+    $result = db_query($query, $game_id);
+  }
+	else if ( is_null($week_id) && is_null($team_id) ) {
     $query = "SELECT g.* FROM {pickem_games} g inner join {pickem_weeks} pw on pw.wid=g.wid order by g.wid, g.gametime, g.gid";
     $result = db_query($query);
   }
