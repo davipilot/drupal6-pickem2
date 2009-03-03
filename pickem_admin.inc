@@ -10,11 +10,11 @@
  * Menu callback which shows an overview page.
  */
 function pickem_overview_page() {
- 
+
   menu_cache_clear_all();
   cache_clear_all();
   menu_rebuild();
-   
+
   $content = 'Pickem Overview';
   return $content;
 }
@@ -60,13 +60,13 @@ function pickem_admin_settings(&$form_state) {
     '#default_value' => variable_get('pickem_auto_signup_enable', 0),
     '#description' => t("This will automatically assign new users to the selected league."),
   );
-  
+
   $all_leagues = get_leagues();
   $leagues = array();
   foreach ($all_leagues as $l) {
     $leagues[$l->lid] = $l->name;
   }
-  
+
   $form['pickem_auto_signup']['pickem_auto_signup_default_league'] = array(
     '#type' => 'select',
     '#default_value' => variable_get('pickem_auto_signup_default_league', 0),
@@ -80,7 +80,7 @@ function pickem_admin_settings(&$form_state) {
     '#title' => t('Pickem Time Zone'),
     '#collapsible' => TRUE,
   );
-  
+
   $form['pickem_tz']['pickem_time_zone'] = array(
     '#type' => 'select',
     '#default_value' => variable_get('pickem_time_zone', 'TZ=US/Eastern'),
@@ -93,246 +93,372 @@ function pickem_admin_settings(&$form_state) {
   return system_settings_form($form);
 }
 
-function page_admin_leagues_users($league_id = "") {
-  
-  if ( is_numeric($_POST['league_select']) ) {
-    drupal_goto("admin/content/pickem/league_users/" . $_POST['league_select']);
-  }
-  
-  drupal_set_title('Choose a League to administer');
-  return drupal_get_form('league_select_form');
-}
+/**
+ * Admin Leagues
+ */
+function theme_pickem_leagues_list(&$form) {
 
+  $header = array(
+    t('League'),
+    array('data' => t('Operations'), 'colspan' => '3')
+  );
 
-function page_admin_league_users($league) {
-  /* 
-    Post Actions
-  */
-  if ( $_POST['user_select'] && $_POST['op'] == t('Add') ) {
-  // user_select
-    $u = user_load(array('uid' => $_POST['user_select']));
-    db_query("insert into {pickem_users} (lid,uid) values (%d,%d)", $league->lid, $u->uid);
-    drupal_set_message($u->name .' added to '. $league->name);
-    drupal_goto("admin/content/pickem/league_users/". $league->lid);
-  }
-
-  if ( arg(5) == "delete_user" && is_numeric(arg(6)) ) {
-    $u = user_load(array('uid' => arg(6)));
-    db_query("delete from {pickem_users} where lid=%d and uid=%d", $league->lid, $u->uid);
-    drupal_set_message($u->name .' removed from '. $league->name);
-    drupal_goto("admin/content/pickem/league_users/". $league->lid);
-  }
-
-
-  /*
-    Page Display
-  */
-  $header = array(t('Name'), t('Operations'));
   $rows = array();
-  
-  $query = "SELECT u.uid,name from {users} u inner join {pickem_users} pu on pu.uid=u.uid where u.uid<>0 and lid=%d order by u.uid";
-  $result = db_query($query, $league->lid);
-  while ($row = db_fetch_object($result)) {
-    $rows[] = array(l($row->name, 'user/'. $row->uid), l(t('delete user'), 'admin/content/pickem/league_users/'. $league->lid .'/delete_user/'. $row->uid));
+  foreach (element_children($form['leagues']) as $key) {
+    $rows[] = array(
+      drupal_render($form['leagues'][$key]['name']),
+      drupal_render($form['leagues'][$key]['edit_link']),
+      drupal_render($form['leagues'][$key]['list_users_link']),
+      drupal_render($form['leagues'][$key]['delete_link'])
+    );
   }
-  $output = theme('table', $header, $rows);
-  $output .= drupal_get_form('user_select_form', $league->lid, 'Add User', 1);
- 
-  drupal_set_title('Administer League - '. $league->name);
+
+  $output .= theme('table', $header, $rows);
+
   return $output;
 }
+function pickem_leagues_list(&$form_state=NULL) {
+  //drupal_set_message("admin_leagues_form");
 
+  $form = array(
+    '#theme' => 'pickem_leagues_list',
+    '#tree' => TRUE,
+  );
 
+  $query = "SELECT * from {pickem_leagues} order by lid";
+  $result = db_query($query);
 
+  while ($row = db_fetch_object($result)) {
+    $form['leagues'][$row->lid] = array(
+      'name' => array(
+        '#value' => $row->name
+      ),
+      'edit_link' => array(
+        '#value' => l('edit league', 'admin/content/pickem/leagues/edit/' . $row->lid)
+      ),
+      'list_users_link' => array(
+        '#value' => l('list users', 'admin/content/pickem/users/' . $row->lid)
+      ),
+      'delete_link' => array(
+        '#value' => l('delete league', 'admin/content/pickem/leagues/delete/' . $row->lid)
+      ),
+    );
+  }
 
-
-
-
-
-
-
-
-/*
-  Admin Weeks
-*/
-function page_admin_weeks() {
-  drupal_set_title('Pickem Weeks Admin');
-  return drupal_get_form('admin_weeks_form');
+  return $form;
 }
-function admin_weeks_form($form_state=NULL) {
+
+
+/**
+ * LEAGUES
+ * Menu callback; Build the pickem league editing form.
+ */
+function pickem_league_edit(&$form_state, $type, $league) {
+
+  if ( is_null($league) ) {
+    // this should match the table field names
+    $league = new stdClass();
+    $league->lid = 0;
+    $league->name = '';
+    $league->forum_id = 0;
+    $league->rules_node_id = '';
+    $league->scoring_type = 0;
+  }
+  $league_forums_options = league_forums();
+
+  $form = array();
+  $form['league']['lid'] = array(
+    '#title'  => t('League ID'),
+    '#type' => 'hidden',
+    '#size' => 20,
+    '#maxlength' => 50,
+    '#default_value' => $league->lid
+  );
+  $form['league']['name'] = array(
+    '#title'  => t('Name'),
+    '#required' => TRUE,
+    '#type' => 'textfield',
+    '#size' => 50,
+    '#default_value' => $league->name
+  );
+  $form['league']['forum_id'] = array(
+    '#title'  => t('Forum ID'),
+    '#type' => 'select',
+    '#default_value' => $league->forum_id,
+    '#options' => $league_forums_options,
+   );
+  $form['league']['rules_node_id'] = array(
+    '#title'  => t('Rules Node ID'),
+    '#type' => 'textfield',
+    '#size' => 5,
+    '#default_value' => $league->rules_node_id
+   );
+  $form['league']['scoring_type'] = array(
+    '#title'  => t('Scoring Type'),
+    '#type' => 'radios',
+    '#default_value' => $league->scoring_type,
+    '#options' => array( 0 => t('Win-Loss'), 1 => t('Spread') ),
+  );
+
+  $form['submit'] = array('#type' => 'submit', '#value' => t('Save'));
+
+  return $form;
+}
+/**
+ * Validate form values for a league being added or edited.
+ */
+function pickem_league_edit_validate($form, &$form_state) {
+  $league = &$form_state['values'];
+  // not used since it is required, keep this for a while.
+  if (empty($league['name'])) {
+    form_set_error('name', t('You must at least choose a name.'));
+  }
+}
+/**
+ * Submit form values for a league being added or edited.
+ */
+function pickem_league_edit_submit($form, &$form_state) {
+  $league = $form_state['values'];
+
+  if ( $league['lid'] == 0 ) {
+    $query = "insert into {pickem_leagues} (name, rules_node_id, forum_id, scoring_type) values('%s', %d, %d, %d)";
+    $result = db_query($query, $league['name'], $league['rules_node_id'], $league['forum_id'], $league['scoring_type']);
+    drupal_set_message('Team added');
+  }
+  else {
+    $query = "update {pickem_leagues} set name='%s', rules_node_id=%d, forum_id=%d, scoring_type=%d where lid=%d";
+    $result = db_query($query, $league['name'], $league['rules_node_id'], $league['forum_id'], $league['scoring_type'], $league['lid']);
+    drupal_set_message('Team updated');
+  }
+
+  $form_state['redirect'] = 'admin/content/pickem/leagues';
+}
+/**
+ * Build a confirm form for deletion of a league.
+ */
+function pickem_league_delete_confirm(&$form_state, $league) {
+  $form['#league'] = $league;
+  $caption = '';
+  $caption .= '<p>'. t('This action cannot be undone.') .'</p>';
+  return confirm_form($form, t('Are you sure you want to delete the team %name?', array('%name' => $league->name)), 'admin/content/pickem/leagues', $caption, t('Delete'));
+}
+/**
+ * Delete the league.
+ */
+function pickem_league_delete_confirm_submit($form, &$form_state) {
+  $league = $form['#league'];
+  db_query("DELETE FROM {pickem_leagues} WHERE lid = %d", $league->lid);
+  $t_args = array('%name' => $league->name);
+  drupal_set_message(t('The pickem league %name has been deleted.', $t_args));
+  watchdog('pickem', 'Deleted league %name.', $t_args, WATCHDOG_NOTICE);
+  $form_state['redirect'] = 'admin/content/pickem/leagues';
+}
+
+
+/**
+ * Admin Weeks
+ */
+function theme_pickem_weeks_list(&$form) {
+  $header = array(
+    t('Name'),
+    t('FirstGame'),
+    t('Points'),
+    array('data' => t('Operations'), 'colspan' => '3')
+  );
+  $rows = array();
+  foreach (element_children($form['weeks']) as $key) {
+    $rows[] = array(
+      drupal_render($form['weeks'][$key]['name']),
+      drupal_render($form['weeks'][$key]['firstgame']),
+      drupal_render($form['weeks'][$key]['points']),
+      drupal_render($form['weeks'][$key]['edit_link']),
+      drupal_render($form['weeks'][$key]['delete_link']),
+    );
+  }
+  $output = theme('table', $header, $rows);
+
+  return $output;
+}
+function pickem_weeks_list($form_state=NULL) {
   //drupal_set_message('admin_weeks_form');
   $form = array(
-    '#theme' => 'admin_weeks_form',
+    '#theme' => 'pickem_weeks_list',
     '#tree' => TRUE,
-  );  
-  
+  );
+
   $query = "SELECT wid, wk_name, wk_abbrev, wk_firstgame, wk_points, playoffs from {pickem_weeks} ORDER BY wid";
   $result = db_query($query);
   while ($row = db_fetch_object($result)) {
     $form['weeks'][] = array(
-      'wid' => array(
-        '#type' => 'hidden',
-        '#value' => $row->wid
-      ),
-      'num' => array(
-        '#type' => 'textfield',
-        '#size' => 3,
-        '#maxlength' => 3,
-        '#default_value' => $row->wid
-      ),
       'name' => array(
-        '#type' => 'textfield',
-        '#size' => 30,
-        '#maxlength' => 45,
-        '#default_value' => $row->wk_name,
-      ),
-      'abbrev' => array(
-        '#type' => 'textfield',
-        '#size' => 10,
-        '#maxlength' => 15,
-        '#default_value' => $row->wk_abbrev,
+        '#value' => $row->wk_name,
       ),
       'firstgame' => array(
-        '#type' => 'textfield',
-        '#size' => 20,
-        '#maxlength' => 35,
-        '#default_value' => $row->wk_firstgame,
+        '#value' => $row->wk_firstgame,
       ),
       'points' => array(
-        '#type' => 'textfield',
-        '#size' => 5,
-        '#maxlength' => 5,
-        '#default_value' => $row->wk_points,
+        '#value' => $row->wk_points,
       ),
-      'playoffs' => array(
-        '#type' => 'radios',
-        '#default_value' => $row->playoffs,
-        '#options' => array( 0 => t('Regular Season'), 1 => t('Playoffs') )
-      )
-      
+      'edit_link' => array(
+        '#value' => l('edit', 'admin/content/pickem/weeks/edit/' . $row->wid)
+      ),
+      'delete_link' => array(
+        '#value' => l('delete', 'admin/content/pickem/weeks/delete/' . $row->wid)
+      ),
     );
   }
-  // add new week
-  $form['new_row'] = array(
-    'wid' => array(
-      '#type' => 'textfield',
-      '#size' => 3,
-      '#maxlength' => 3,
-      '#default_value' => ""
-    ),
-    'name' => array(
-      '#type' => 'textfield',
-      '#size' => 30,
-      '#maxlength' => 45,
-      '#default_value' => "",
-    ),
-    'abbrev' => array(
-      '#type' => 'textfield',
-      '#size' => 10,
-      '#maxlength' => 15,
-      '#default_value' => "",
-    ),
-    'firstgame' => array(
-      '#type' => 'textfield',
-      '#size' => 20,
-      '#maxlength' => 35,
-      '#default_value' => "",
-    ),
-    'points' => array(
-      '#type' => 'textfield',
-      '#size' => 5,
-      '#maxlength' => 5,
-      '#default_value' => "",
-    ),
-    'playoffs' => array(
-      '#type' => 'radios',
-      '#default_value' => 0,
-      '#options' => array( 0 => t('Regular Season'), 1 => t('Playoffs') )
-    )
-  );
 
   $form['save'] = array(
     '#type' => 'submit',
     '#value' => t('Save Weeks')
   );
-  return $form;  
+  return $form;
 }
-function theme_admin_weeks_form(&$form) {
-  //drupal_set_message('theme_admin_weeks_form');
-  
-  drupal_add_js('misc/collapse.js');
-  $header = array( t('Num'), t('Name'), t('Abbrev'), t('FirstGame'), t('Points'));
-  $rows = array();
-  foreach (element_children($form['weeks']) as $key) {
-    $rows[] = array(
-      drupal_render($form['weeks'][$key]['wid']) .
-      drupal_render($form['weeks'][$key]['num']), 
-      drupal_render($form['weeks'][$key]['name']), 
-      drupal_render($form['weeks'][$key]['abbrev']), 
-      drupal_render($form['weeks'][$key]['firstgame']), 
-      drupal_render($form['weeks'][$key]['points']),
-      drupal_render($form['weeks'][$key]['playoffs']),
-    );
-  }
-  $output = '';
-  $output .= '<div><fieldset class="collapsible"><legend><a href="#">Weeks</a></legend>';
-  $output .= theme('table', $header, $rows);
-  $output .= "</fieldset></div>";
+/**
+ * Menu callback; Build the pickem single team editing form.
+ */
+function pickem_week_edit(&$form_state, $type, $week) {
 
-  $new_row = array();
-  $new_row[] = array(
-    drupal_render($form['new_row']['wid']) .
-    drupal_render($form['new_row']['num']), 
-    drupal_render($form['new_row']['name']), 
-    drupal_render($form['new_row']['abbrev']), 
-    drupal_render($form['new_row']['firstgame']), 
-    drupal_render($form['new_row']['points']),
-    drupal_render($form['new_row']['playoffs']),
+  if ( is_null($week) ) {
+    // this should match the table field names
+    $week = new stdClass();
+    $week->wid = 0;
+    $week->wk_number = 0;
+    $week->wk_name = '';
+    $week->wk_abbrev = '';
+    $week->wk_firstgame = '';
+    $week->wk_points = 1;
+    $week->playoffs = 0;
+  }
+
+  $form = array();
+  $form['week'] = array(
+    'wid' => array(
+      '#title' => 'Week ID',
+      '#type' => 'hidden',
+      '#maxlength' => 3,
+      '#default_value' => $week->wid
+    ),
+    'wk_number' => array(
+      '#title' => 'Week Number',
+      '#type' => 'textfield',
+      '#size' => 3,
+      '#maxlength' => 3,
+      '#default_value' => $week->wid
+    ),
+    'wk_name' => array(
+      '#title' => 'Name',
+      '#type' => 'textfield',
+      '#size' => 30,
+      '#maxlength' => 45,
+      '#default_value' => $week->wk_name,
+    ),
+    'wk_abbrev' => array(
+      '#title' => 'Abbrev',
+      '#type' => 'textfield',
+      '#size' => 10,
+      '#maxlength' => 15,
+      '#default_value' => $week->wk_abbrev,
+    ),
+    'wk_firstgame' => array(
+      '#title' => 'First Game',
+      '#type' => 'textfield',
+      '#size' => 30,
+      '#maxlength' => 35,
+      '#default_value' => $week->wk_firstgame,
+    ),
+    'wk_points' => array(
+      '#title' => 'Points',
+      '#type' => 'textfield',
+      '#size' => 5,
+      '#maxlength' => 5,
+      '#default_value' => $week->wk_points,
+    ),
+    'playoffs' => array(
+      '#title' => 'Week Type',
+      '#type' => 'radios',
+      '#default_value' => $week->playoffs,
+      '#options' => array( 0 => t('Regular Season'), 1 => t('Playoffs') )
+    )
   );
 
-  $output .= '<div><fieldset class="collapsible"><legend><a href="#">Add New Week</a></legend>';
-  $output .= theme('table', $header, $new_row);
-  $output .= "</fieldset></div>";
+  $form['submit'] = array('#type' => 'submit', '#value' => t('Save'));
 
-  $output .= drupal_render($form['save']);
-  $output .= drupal_render($form['form_id']);
-  $output .= drupal_render($form['form_token']);
+  return $form;
+}
+/**
+ * Validate form values for a menu link being added or edited.
+ */
+function pickem_week_edit_validate($form, &$form_state) {
+  $week = &$form_state['values'];
+}
+function pickem_week_edit_submit($form, &$form_state) {
+  $week = $form_state['values'];
+
+  if ( $week['wid'] == 0 ) {
+    $query = "insert into {pickem_weeks}(wid, wk_name, wk_abbrev, wk_firstgame, wk_points, playoffs) values(%d, '%s', '%s', '%s', %d, %d)";
+    $result = db_query($query, $week['wk_number'], $week['wk_name'], $week['wk_abbrev'], date($week['wk_firstgame']), $week['wk_points'], $week['playoffs']);
+    drupal_set_message('Week added');
+  }
+  else {
+    $query = "update {pickem_weeks} set wid=%d, wk_name='%s', wk_abbrev='%s', wk_firstgame='%s', wk_points=%d, playoffs=%d where wid=%d";
+    $result = db_query($query, $week['wk_number'], $week['wk_name'], $week['wk_abbrev'], date($week['wk_firstgame']), $week['wk_points'], $week['playoffs'], $week['wid']);
+    drupal_set_message('Week updated');
+  }
+
+  cache_clear_all('pickem_grid_scores', 'cache', TRUE);
+  $form_state['redirect'] = 'admin/content/pickem/weeks';
+}
+/**
+ * Build a confirm form for deletion of a team.
+ */
+function pickem_week_delete_confirm(&$form_state, $week) {
+  $form['#week'] = $week;
+  $caption = '';
+  $caption .= '<p>'. t('This action cannot be undone.') .'</p>';
+  return confirm_form($form, t('Are you sure you want to delete the week %name?', array('%name' => $week->wk_name)), 'admin/content/pickem/weeks', $caption, t('Delete'));
+}
+/**
+ * Delete the team.
+ */
+function pickem_week_delete_confirm_submit($form, &$form_state) {
+  $week = $form['#week'];
+  db_query("DELETE FROM {pickem_weeks} WHERE wid = %d", $week->wid);
+  $t_args = array('%name' => $week->wk_name);
+  drupal_set_message(t('The pickem team %name has been deleted.', $t_args));
+  watchdog('pickem', 'Deleted team %name.', $t_args, WATCHDOG_NOTICE);
+  $form_state['redirect'] = 'admin/content/pickem/weeks';
+}
+
+/**
+ * Admin Teams
+ */
+function theme_pickem_teams_list(&$form) {
+  $header = array(
+    t('Team'),
+    array('data' => t('Operations'), 'colspan' => '3')
+  );
+
+  $rows = array();
+  foreach (element_children($form['teams']) as $key) {
+    $rows[] = array(
+      drupal_render($form['teams'][$key]['tm_city']) . ' ' . drupal_render($form['teams'][$key]['tm_name']) . ' (' . drupal_render($form['teams'][$key]['tm_abbrev']) . ')',
+      drupal_render($form['teams'][$key]['edit_link']),
+      drupal_render($form['teams'][$key]['delete_link']),
+    );
+  }
+
+  $output = theme('table', $header, $rows);
 
   return $output;
 }
-
-function admin_weeks_form_submit($form, &$form_state) {
-  //drupal_set_message('admin_weeks_form_submit');
-  
-  if ( isset($form_state['values']['weeks']) ) {
-    foreach ($form_state['values']['weeks'] as $key => $value) {
-        $query = "update {pickem_weeks} set wid=%d, wk_name='%s', wk_abbrev='%s', wk_firstgame='%s', wk_points=%d, playoffs=%d where wid=%d";
-        $result = db_query($query, $value['num'], $value['name'], $value['abbrev'], date($value['firstgame']), $value['points'], $value['playoffs'], $value['wid']);
-    }
-  }
-
-  if ( $form_state['values']['new_row']['wid'] <> '' ) {
-    $value = $form_state['values']['new_row'];
-    $query = "insert into {pickem_weeks}(wid, wk_name, wk_abbrev, wk_firstgame, wk_points, playoffs) values(%d, '%s', '%s', '%s', %d, %d)";
-    $result = db_query($query, $value['wid'], $value['name'], $value['abbrev'], date($value['firstgame']), $value['points'], $value['playoffs']);
-  }
-
-  cache_clear_all('pickem_grid_scores', 'cache', TRUE); 
-  drupal_set_message("Weeks Saved");
-}
-
-
-
-/*
-  Admin Teams
-*/
 function pickem_teams_list($form_state=NULL) {
   //drupal_set_message("admin_teams_form");
 
   $form = array(
     '#theme' => 'pickem_teams_list',
     '#tree' => TRUE,
-  );  
+  );
 
   $query = "SELECT tid, tm_city, tm_abbrev, tm_nick, tm_name, conference, division from {pickem_teams} order by tm_city, tm_name, tm_abbrev";
   $result = db_query($query);
@@ -358,54 +484,32 @@ function pickem_teams_list($form_state=NULL) {
 
   return $form;
 }
-function theme_pickem_teams_list(&$form) {
-  $header = array(
-    t('Team'), 
-    array('data' => t('Operations'), 'colspan' => '3')
-  );
-
-  $rows = array();
-  foreach (element_children($form['teams']) as $key) {
-    $rows[] = array(
-      drupal_render($form['teams'][$key]['tm_city']) . ' ' . drupal_render($form['teams'][$key]['tm_name']) . ' (' . drupal_render($form['teams'][$key]['tm_abbrev']) . ')', 
-      drupal_render($form['teams'][$key]['edit_link']),
-      drupal_render($form['teams'][$key]['delete_link']),
-    );
-  }
- 
-  $output = theme('table', $header, $rows);
-  
-  return $output;
-}
-
-
-
 /**
  * Menu callback; Build the pickem single team editing form.
  */
 function pickem_team_edit(&$form_state, $type, $team) {
 
   if ( is_null($team) ) {
-  	// this should match the table field names
+    // this should match the table field names
     $team = new stdClass();
-  	$team->tid = 0;
-  	$team->tm_city = '';
-  	$team->tm_abbrev = '';
-  	$team->tm_nick = '';
-  	$team->tm_name = '';
-  	$team->conference = '';
-  	$team->division = '';
+    $team->tid = 0;
+    $team->tm_city = '';
+    $team->tm_abbrev = '';
+    $team->tm_nick = '';
+    $team->tm_name = '';
+    $team->conference = '';
+    $team->division = '';
   }
 
-	$form = array();
-	$form['team']['tid'] = array(
+  $form = array();
+  $form['team']['tid'] = array(
       '#title'  => t('Team ID'),
       '#type' => 'hidden',
       '#size' => 20,
       '#maxlength' => 50,
       '#default_value' => $team->tid
   );
-	
+
   $form['team']['tm_city'] = array(
       '#title'  => t('City'),
       '#type' => 'textfield',
@@ -440,7 +544,7 @@ function pickem_team_edit(&$form_state, $type, $team) {
     '#size' => 10,
     '#maxlength' => 50,
     '#default_value' => $team->conference
-  ); 
+  );
   $form['team']['division'] = array(
     '#title'  => t('Division'),
     '#type' => 'textfield',
@@ -465,16 +569,16 @@ function pickem_team_edit_validate($form, &$form_state) {
 function pickem_team_edit_submit($form, &$form_state) {
   $team = $form_state['values'];
 
-	if ( $team['tid'] == 0 ) {
+  if ( $team['tid'] == 0 ) {
     $query = "insert into {pickem_teams} (tm_city, tm_abbrev, tm_name, tm_nick, conference, division) values('%s','%s','%s','%s','%s','%s')";
     $result = db_query($query, $team['tm_city'], $team['tm_abbrev'], $team['tm_name'], $team['tm_nick'], $team['conference'], $team['division']);
-		drupal_set_message('Team added');
-	}
-	else {
-	  $query = "update {pickem_teams} set tm_city='%s', tm_abbrev='%s', tm_name='%s', tm_nick='%s', conference='%s', division='%s' where tid=%d";
-	  $result = db_query($query, $team['tm_city'], $team['tm_abbrev'], $team['tm_name'], $team['tm_nick'], $team['conference'], $team['division'], $team['tid']);
-	  drupal_set_message('Team updated');
-	}
+    drupal_set_message('Team added');
+  }
+  else {
+    $query = "update {pickem_teams} set tm_city='%s', tm_abbrev='%s', tm_name='%s', tm_nick='%s', conference='%s', division='%s' where tid=%d";
+    $result = db_query($query, $team['tm_city'], $team['tm_abbrev'], $team['tm_name'], $team['tm_nick'], $team['conference'], $team['division'], $team['tid']);
+    drupal_set_message('Team updated');
+  }
 
   $form_state['redirect'] = 'admin/content/pickem/teams';
 }
@@ -500,195 +604,52 @@ function pickem_team_delete_confirm_submit($form, &$form_state) {
 }
 
 
-
-
-
-
-
-
-
-
-
-/**************
-  Admin Leagues
-***************/
-function pickem_leagues_list(&$form_state=NULL) {
-  //drupal_set_message("admin_leagues_form");
-
-  $form = array(
-    '#theme' => 'pickem_leagues_list',
-    '#tree' => TRUE,
-  );  
-
-  $query = "SELECT * from {pickem_leagues} order by lid";
-  $result = db_query($query);
-  
-  while ($row = db_fetch_object($result)) {
-    $form['leagues'][$row->lid] = array(
-      'name' => array(
-        '#value' => $row->name
-      ),
-      'edit_link' => array(
-        '#value' => l('edit', 'admin/content/pickem/leagues/edit/' . $row->lid)
-      ),
-      'delete_link' => array(
-        '#value' => l('delete', 'admin/content/pickem/leagues/delete/' . $row->lid)
-      ),
-    );
-  }
-  
-  /*
-  $form['save'] = array(
-    '#type' => 'submit',
-    '#value' => t('Save Leagues')
-  );
-  */
-
-  return $form;
-}
-function theme_pickem_leagues_list(&$form) {
-
-  $header = array(
-    t('League'), 
-    array('data' => t('Operations'), 'colspan' => '3')
-  );
-
-  $rows = array();
-  foreach (element_children($form['leagues']) as $key) {
-    $rows[] = array(
-      drupal_render($form['leagues'][$key]['name']), 
-      drupal_render($form['leagues'][$key]['edit_link']),
-      drupal_render($form['leagues'][$key]['delete_link'])
-    );
-  }
-
-  $output .= theme('table', $header, $rows);
-  
-  return $output;
-}
-
-/**
- * LEAGUES
- * Menu callback; Build the pickem league editing form.
- */
-function pickem_leagues_edit(&$form_state, $type, $league) {
-
-  if ( is_null($league) ) {
-  	// this should match the table field names
-    $league = new stdClass();
-  	$league->lid = 0;
-  	$league->name = '';
-  	$league->forum_id = 0;
-  	$league->rules_node_id = '';
-  	$league->scoring_type = 0;
-  }
-  $league_forums_options = league_forums();
-  
-	$form = array();
-	$form['league']['lid'] = array(
-    '#title'  => t('League ID'),
-    '#type' => 'hidden',
-    '#size' => 20,
-    '#maxlength' => 50,
-    '#default_value' => $league->lid
-  );
-  $form['league']['name'] = array(
-  	'#title'  => t('Name'),
-  	'#required' => TRUE, 
-    '#type' => 'textfield',
-    '#size' => 50,
-    '#default_value' => $league->name
-  );
-  $form['league']['forum_id'] = array(
-    '#title'  => t('Forum ID'),
-    '#type' => 'select',
-    '#default_value' => $league->forum_id,
-    '#options' => $league_forums_options,
-   );
-  $form['league']['rules_node_id'] = array(
-    '#title'  => t('Rules Node ID'),
-    '#type' => 'textfield',
-    '#size' => 5,
-    '#default_value' => $league->rules_node_id
-   );
-  $form['league']['scoring_type'] = array(
-  	'#title'  => t('Scoring Type'),
-    '#type' => 'radios',
-    '#default_value' => $league->scoring_type,
-    '#options' => array( 0 => t('Win-Loss'), 1 => t('Spread') ),
-  );
-
-  $form['submit'] = array('#type' => 'submit', '#value' => t('Save'));
-
-  return $form;
-}
-/**
- * Validate form values for a league being added or edited.
- */
-function pickem_leagues_edit_validate($form, &$form_state) {
-  $league = &$form_state['values'];
-  // not used since it is required, keep this for a while.
-  if (empty($league['name'])) {
-  	form_set_error('name', t('You must at least choose a name.'));
-  }
-}
-/**
- * Submit form values for a league being added or edited.
- */
-function pickem_leagues_edit_submit($form, &$form_state) {
-  $league = $form_state['values'];
-
-	if ( $league['lid'] == 0 ) {
-    $query = "insert into {pickem_leagues} (name, rules_node_id, forum_id, scoring_type) values('%s', %d, %d, %d)";
-    $result = db_query($query, $league['name'], $league['rules_node_id'], $league['forum_id'], $league['scoring_type']);
-		drupal_set_message('Team added');
-	}
-	else {
-    $query = "update {pickem_leagues} set name='%s', rules_node_id=%d, forum_id=%d, scoring_type=%d where lid=%d";
-    $result = db_query($query, $league['name'], $league['rules_node_id'], $league['forum_id'], $league['scoring_type'], $league['lid']);
-	  drupal_set_message('Team updated');
-	}
-
-  $form_state['redirect'] = 'admin/content/pickem/leagues';
-}
-/**
- * Build a confirm form for deletion of a league.
- */
-function pickem_leagues_delete_confirm(&$form_state, $league) {
-  $form['#league'] = $league;
-  $caption = '';
-  $caption .= '<p>'. t('This action cannot be undone.') .'</p>';
-  return confirm_form($form, t('Are you sure you want to delete the team %name?', array('%name' => $league->name)), 'admin/content/pickem/leagues', $caption, t('Delete'));
-}
-/**
- * Delete the league.
- */
-function pickem_leagues_delete_confirm_submit($form, &$form_state) {
-  $league = $form['#league'];
-  db_query("DELETE FROM {pickem_leagues} WHERE lid = %d", $league->lid);
-  $t_args = array('%name' => $league->name);
-  drupal_set_message(t('The pickem league %name has been deleted.', $t_args));
-  watchdog('pickem', 'Deleted league %name.', $t_args, WATCHDOG_NOTICE);
-  $form_state['redirect'] = 'admin/content/pickem/leagues';
-}
-
-
 /*
   Admin Games
 */
+function theme_pickem_games_list(&$form) {
+  $week = $_GET['page'] ? $_GET['page'] : 0;
+  $header = array(
+    t('Week'),
+    t('Matchup'),
+    array('data' => t('Operations'), 'colspan' => '3')
+  );
+  $rows = array();
+  foreach (element_children($form['games']) as $key) {
+    if ($form['games'][$key]['wid']['#value'] == $week + 1) {
+      $rows[] = array(
+        drupal_render($form['games'][$key]['week_name']),
+        drupal_render($form['games'][$key]['matchup']),
+        drupal_render($form['games'][$key]['edit_link']),
+        drupal_render($form['games'][$key]['delete_link']),
+      );
+    }
+  }
+  $output = theme('table', $header, $rows);
+
+  $GLOBALS['pager_page_array'][] = $week;
+  $weeks = get_weeks(0, 'all');
+  $GLOBALS['pager_total'][] = count($weeks);
+
+  #if ($total_entries >= $page_increment) {
+  $output .= theme('pager', NULL, $page_increment);
+  #}
+
+  return $output;
+}
 function pickem_games_list(&$form_state=NULL) {
   $form = array(
     '#theme' => 'pickem_games_list',
     '#tree' => TRUE,
-  );  
+  );
 
   $games = get_games();
   $teams = get_teams();
 
   foreach ($games as $gid => $game_data) {
-  	$home_team = ($teams[$game_data->h_id]->tm_abbrev <> '')?$teams[$game_data->h_id]->tm_abbrev:$teams[$game_data->h_id]->tm_name;
-  	$vis_team = ($teams[$game_data->v_id]->tm_abbrev <> '')?$teams[$game_data->v_id]->tm_abbrev:$teams[$game_data->v_id]->tm_name;
-  	$matchup = "$vis_team @ $home_team (" . $game_data->gametime . ")";
+    $home_team = ($teams[$game_data->h_id]->tm_abbrev <> '')?$teams[$game_data->h_id]->tm_abbrev:$teams[$game_data->h_id]->tm_name;
+    $vis_team = ($teams[$game_data->v_id]->tm_abbrev <> '')?$teams[$game_data->v_id]->tm_abbrev:$teams[$game_data->v_id]->tm_name;
+    $matchup = "$vis_team @ $home_team (" . $game_data->gametime . ")";
     $form['games'][] = array(
       'wid' => array(
         '#value' => $game_data->wid,
@@ -708,68 +669,36 @@ function pickem_games_list(&$form_state=NULL) {
     );
   }
 
-  return $form; 
-}
-
-
-function theme_pickem_games_list(&$form) {
-  $week = $_GET['page'] ? $_GET['page'] : 0;
-  $header = array(
-    t('Week'), 
-    t('Matchup'), 
-    array('data' => t('Operations'), 'colspan' => '3')
-  );
-  $rows = array();
-  foreach (element_children($form['games']) as $key) {
-    if ($form['games'][$key]['wid']['#value'] == $week + 1) {
-      $rows[] = array(
-        drupal_render($form['games'][$key]['week_name']), 
-        drupal_render($form['games'][$key]['matchup']), 
-        drupal_render($form['games'][$key]['edit_link']),
-        drupal_render($form['games'][$key]['delete_link']),
-      );
-    }
-  }
-  $output = theme('table', $header, $rows);
-
-  $GLOBALS['pager_page_array'][] = $week;
-  $weeks = get_weeks(0, 'all');
-  $GLOBALS['pager_total'][] = count($weeks);
-
-  #if ($total_entries >= $page_increment) {
-  $output .= theme('pager', NULL, $page_increment);
-  #}
-
-  return $output;
+  return $form;
 }
 function pickem_game_edit(&$form_state, $type, $game) {
   if ( is_null($game) ) {
-  	// this should match the table field names
+    // this should match the table field names
     $game = new stdClass();
-  	$game->gid = 0;
-  	$game->wid = '';
-  	$game->gametime = '';
-  	$game->h_id = '';
-  	$game->v_id = '';
-  	$game->h_spread = '';
-  	$game->v_spread = '';
+    $game->gid = 0;
+    $game->wid = '';
+    $game->gametime = '';
+    $game->h_id = '';
+    $game->v_id = '';
+    $game->h_spread = '';
+    $game->v_spread = '';
   }
-  
+
   $teams = get_teams();
   $team_list = array();
   $team_list[0] = "";
   foreach ($teams as $t_id => $team_data) {
     $team_list[$t_id] = ($team_data->tm_abbrev <> '')?$team_data->tm_abbrev:$team_data->tm_name;
-  }   
-  
+  }
+
   $weeks = get_weeks(0, 'all');
   $week_list = array();
   $week_list[0] = "";
   foreach ($weeks as $wid => $week) {
-    $week_list[$wid] = $week['wk_name'];
-  }   
-  
-	$form = array();
+    $week_list[$wid] = $week->wk_name;
+  }
+
+  $form = array();
   $form['game']['gid'] = array(
     '#title' => t('Game ID'),
     '#type' => 'hidden',
@@ -796,27 +725,27 @@ function pickem_game_edit(&$form_state, $type, $game) {
     '#options' => $team_list,
     '#required' => TRUE,
   );
-	$form['game']['h_spread'] = array(
-	  '#title' => t('Home Spread'),
-	  '#type' => 'textfield',
-		'#size' => 4,
-		'#maxlength' => 10,
-		'#default_value' => $game->h_spread,
+  $form['game']['h_spread'] = array(
+    '#title' => t('Home Spread'),
+    '#type' => 'textfield',
+    '#size' => 4,
+    '#maxlength' => 10,
+    '#default_value' => $game->h_spread,
   );
-	$form['game']['visitor_team'] = array(
-	  '#title' => t('Visitor Team'),
-	  '#type' => 'select',
-		'#default_value' => $game->v_id,
-		'#options' => $team_list,
-		'#required' => TRUE,
-	);
-	$form['game']['v_spread'] = array(
-	  '#title' => t('Visitor Spread'),
-	  '#type' => 'textfield',
-		'#size' => 4,
-		'#maxlength' => 10,
-		'#default_value' => $game->v_spread,
-	);
+  $form['game']['visitor_team'] = array(
+    '#title' => t('Visitor Team'),
+    '#type' => 'select',
+    '#default_value' => $game->v_id,
+    '#options' => $team_list,
+    '#required' => TRUE,
+  );
+  $form['game']['v_spread'] = array(
+    '#title' => t('Visitor Spread'),
+    '#type' => 'textfield',
+    '#size' => 4,
+    '#maxlength' => 10,
+    '#default_value' => $game->v_spread,
+  );
 
   $form['submit'] = array('#type' => 'submit', '#value' => t('Save'));
 
@@ -829,25 +758,25 @@ function pickem_game_edit_validate($form, &$form_state) {
   $game = &$form_state['values'];
 
   if ( $game['v_spread'] != -$game['h_spread']) {
-  	form_set_error('h_spread', t('The spread fields must be equal and opposite (ie 3 and -3).'));
+    form_set_error('h_spread', t('The spread fields must be equal and opposite (ie 3 and -3).'));
   }
 }
 function pickem_game_edit_submit($form, &$form_state) {
   $game = $form_state['values'];
 
   // since you are adding or editing games, clear the schedule grid cache
-  cache_clear_all('pickem_grid_scores', 'cache', TRUE); 
+  cache_clear_all('pickem_grid_scores', 'cache', TRUE);
 
-	if ( $game['gid'] == 0 ) {
+  if ( $game['gid'] == 0 ) {
     $query = "insert into {pickem_games}(wid, gametime, h_id, h_spread, v_id, v_spread) values(%d, '%s', %d, %d, %d, %d)";
     $result = db_query($query, $game['wid'], date($game['game_time']), $game['home_team'], $game['h_spread'], $game['visitor_team'], $game['v_spread']);
-		drupal_set_message('Game added');
-	}
-	else {
+    drupal_set_message('Game added');
+  }
+  else {
     $query = "update {pickem_games} set wid=%d, gametime='%s', h_id=%d, h_spread=%d, v_id=%d, v_spread=%d where gid=%d";
     $result = db_query($query, $game['wid'], date($game['game_time']), $game['home_team'], $game['h_spread'], $game['visitor_team'], $game['v_spread'], $game['gid']);
-		drupal_set_message('Game updated');
-	}
+    drupal_set_message('Game updated');
+  }
   //drupal_goto('admin/content/pickem/games', 'page='. ($game['wid'] - 1));
   $form_state['redirect'] = array('admin/content/pickem/games', 'page=' . ($game['wid'] - 1) );
 }
@@ -887,6 +816,46 @@ function pickem_game_delete_confirm_submit($form, &$form_state) {
 
 
 
+function pickem_users_list($league) {
+  /*
+    Post Actions
+  */
+  if ( $_POST['user_select'] && $_POST['op'] == t('Add') ) {
+  // user_select
+    $u = user_load(array('uid' => $_POST['user_select']));
+    db_query("insert into {pickem_users} (lid,uid) values (%d,%d)", $league->lid, $u->uid);
+    drupal_set_message($u->name .' added to '. $league->name);
+    drupal_goto("admin/content/pickem/league_users/". $league->lid);
+  }
+
+  if ( arg(5) == "delete_user" && is_numeric(arg(6)) ) {
+    $u = user_load(array('uid' => arg(6)));
+    db_query("delete from {pickem_users} where lid=%d and uid=%d", $league->lid, $u->uid);
+    drupal_set_message($u->name .' removed from '. $league->name);
+    drupal_goto("admin/content/pickem/league_users/". $league->lid);
+  }
+
+
+  /**
+   * Page Display
+   */
+  $header = array(t('Name'), t('Operations'));
+  $rows = array();
+
+  $query = "SELECT u.uid,name from {users} u inner join {pickem_users} pu on pu.uid=u.uid where u.uid<>0 and lid=%d order by u.uid";
+  $result = db_query($query, $league->lid);
+  while ($row = db_fetch_object($result)) {
+    $rows[] = array(l($row->name, 'user/'. $row->uid), l(t('delete user'), 'admin/content/pickem/league_users/'. $league->lid .'/delete_user/'. $row->uid));
+  }
+  $output = theme('table', $header, $rows);
+  $output .= drupal_get_form('user_select_form', $league->lid, 'Add User', 1);
+
+  drupal_set_title('User list for league: '. $league->name);
+  return $output;
+}
+
+
+
 
 
 
@@ -914,9 +883,9 @@ function league_select_form($form_state) {
   $leagues = get_leagues();
   $options = array();
   foreach ($leagues as $l) {
-    $options[$l->lid] = $l->name; 
+    $options[$l->lid] = $l->name;
   }
-  
+
   $form['league_select'] = array( '#type' => 'select', '#title' => t('Select League'), '#default_value' => 1, '#options' => $options);
   $form['op'] = array(
     '#type' => 'button',
@@ -925,20 +894,20 @@ function league_select_form($form_state) {
   return $form;
 }
 function user_select_form($form_state=NULL, $league_id=0, $title='Select User To Modify', $not_in_league=0) {
-  
+
   //drupal_set_message('test user_select_form');
-  
+
   $users = get_users($league_id, $not_in_league);
   $user_list = array();
   foreach ($users as $u_id => $user_data) {
     $user_list[$u_id] = $user_data["name"];
   }
-  
+
   $form = array();
   $form['user_select'] = array(
     '#type' => 'select',
-    '#title' => t($title), 
-    '#default_value' => 1, 
+    '#title' => t($title),
+    '#default_value' => 1,
     '#options' => $user_list,
   );
   $op = explode(' ', $title);
@@ -961,7 +930,7 @@ function page_admin_email_league() {
 
 function email_league_form() {
   global $user;
-  
+
   $all_leagues = get_leagues();
   $leagues = array();
   foreach ($all_leagues as $l) {
@@ -1008,7 +977,7 @@ function email_league_form() {
       '#type'  => 'submit',
       '#value' => t('Send e-mail'),
     );
-  } 
+  }
   else {
     $form['error'] = array(
       '#value' => '<p><b>'. t('You must create at least one category before using this form.') .'</b>',
@@ -1083,7 +1052,7 @@ function email_league_form_submit($form, &$form_state) {
     drupal_set_message('[Success] Email(s) Sent');
   }
   else {
-    drupal_set_message('[!Errors] errors encountered sending message. Please check the logs and try again.');  
+    drupal_set_message('[!Errors] errors encountered sending message. Please check the logs and try again.');
   }
 
 }
@@ -1104,7 +1073,7 @@ function email_league_form_submit($form, &$form_state) {
 function page_admin_picks($league_id=0, $user_id = 0, $week_id = 0) {
   global $user;
 
-  
+
   if ( is_numeric($_POST['league_select']) ) {
     drupal_goto("admin/content/pickem/picks/" . $_POST['league_select']);
   }
@@ -1121,13 +1090,13 @@ function page_admin_picks($league_id=0, $user_id = 0, $week_id = 0) {
     return drupal_get_form('user_select_form', $league_id);
   }
 
-  $week = get_weeks($week_id);
+  //$week = get_weeks($week_id);
   $teams = get_teams();
   $u = user_load(array('uid' => $user_id));
 
 
   if ( $league_id != 0 && $user_id != 0 && $week_id != 0 && count($_POST) > 0 ) {
-    
+
     //POSTING, save picks
       $type = "";
       foreach ($_POST as $gid => $pick) {
@@ -1137,7 +1106,7 @@ function page_admin_picks($league_id=0, $user_id = 0, $week_id = 0) {
         if ($row = db_fetch_object($result)) {
           if ($row->pickcount > 0) {
             $type = "update";
-          } 
+          }
           else {
             $type = "insert";
           }
@@ -1153,13 +1122,12 @@ function page_admin_picks($league_id=0, $user_id = 0, $week_id = 0) {
       }
       drupal_set_message("Picks Saved");
   }
-  
-  $l = get_leagues($league_id);
 
+  $l = get_leagues($league_id);
   // SINGLE WEEK
   if ( $week_id != 0 ) {
-    drupal_set_title('Administer Picks - '. $l[$league_id]->title .' - '. $u->name ." - Week ". $week_id);
-    
+    drupal_set_title('Administer Picks - '. $l[$league_id]->name .' - '. $u->name ." - Week ". $week_id);
+
     // load up the games array
     $query = "SELECT g.gid, g.wid, g.h_score, g.v_score, g.v_id, g.h_id, pp.winnerpick_id, g.gametime FROM {pickem_games} g LEFT OUTER JOIN {pickem_picks} pp ON pp.gid = g.gid and pp.lid=%d and pp.uid=%d where g.wid=%d ORDER BY g.wid, g.gametime, g.gid";
     $result = db_query($query, $league_id, $u->uid, $week_id);
@@ -1172,10 +1140,10 @@ function page_admin_picks($league_id=0, $user_id = 0, $week_id = 0) {
         "gametime" => $row->gametime
       );
     }
-    
+
     $header = array(t('Visitor'), t('Home Team'), t('Game Time(EST)') );
     $rows = array();
-    
+
     foreach ($games as $wid => $weeksgames) {
       foreach ($weeksgames as $gid => $game) {
         $v_sel = "";
@@ -1183,17 +1151,17 @@ function page_admin_picks($league_id=0, $user_id = 0, $week_id = 0) {
 
         $v_team = ($teams[$game["vid"]]->tm_abbrev <> '')?$teams[$game["vid"]]->tm_abbrev:$teams[$game["vid"]]->tm_name;
         $h_team = ($teams[$game["hid"]]->tm_abbrev <> '')?$teams[$game["hid"]]->tm_abbrev:$teams[$game["hid"]]->tm_name;
-        
+
         if ($game["pick"] == $game["vid"]) {
           $v_sel = "checked";
         }
         elseif ($game["pick"] == $game["hid"]) {
           $h_sel = "checked";
         }
-        
+
         if (isset($game["pick"])) {
           $class = 'pick';
-        } 
+        }
         else {
           $class = 'nopick';
         }
@@ -1205,16 +1173,16 @@ function page_admin_picks($league_id=0, $user_id = 0, $week_id = 0) {
         );
       }
     }
-    
+
     $output = '<div class="pickem"><form action="" method="post">';
     $output .= theme('table', $header, $rows);
     $output .= '<input type="submit" value="Save Picks"/>';
     $output .= '</form></div>';
 
-  } 
+  }
   else {
     // ALL WEEKS, missing week_id, requires correct week start date
-    drupal_set_title('Administer Picks - '. $l[$league_id]->title .' - '. $u->name);
+    drupal_set_title('Administer Picks - '. $l[$league_id]->name .' - '. $u->name);
 
     $flip = array('even' => 'odd', 'odd' => 'even');
     $class = 'even';
@@ -1226,7 +1194,7 @@ function page_admin_picks($league_id=0, $user_id = 0, $week_id = 0) {
 
         $v_team = ($teams[$game["vid"]]->tm_abbrev <> '')?$teams[$game["vid"]]->tm_abbrev:$teams[$game["vid"]]->tm_name;
         $h_team = ($teams[$game["hid"]]->tm_abbrev <> '')?$teams[$game["hid"]]->tm_abbrev:$teams[$game["hid"]]->tm_name;
-        
+
         $inner .= '<div class="game-list-horiz">';
         if ( isset ($game["pick"]) ) {
           if ($game["pick"] == $game["vid"] && $game["vscore"] > $game["hscore"]) {
@@ -1257,7 +1225,7 @@ function page_admin_picks($league_id=0, $user_id = 0, $week_id = 0) {
             // PICK VIS, GAME NOT PLAYED
             $inner .= $v_team .'<br/>@'. $h_team;
           }
-        } 
+        }
         else {
           // NO PICK
           $inner .= $v_team .'<br/>@'. $h_team;
@@ -1309,7 +1277,7 @@ function page_admin_scores($week_id = 0) {
       $query = "";
       if ($game["vid"] == $gid[2]) {
         $query = "update {pickem_games} set v_score=%d where gid=%d";
-      } 
+      }
       elseif ($game["hid"] == $gid[2]) {
         $query = "update {pickem_games} set h_score=%d where gid=%d";
       }
@@ -1317,12 +1285,12 @@ function page_admin_scores($week_id = 0) {
         $result = db_query($query, $score, $gid[1]);
       }
     }
-    cache_clear_all('pickem_grid_scores', 'cache', TRUE); 
+    cache_clear_all('pickem_grid_scores', 'cache', TRUE);
     drupal_set_message("Scores Saved");
   }
 
   $teams = get_teams();
-  
+
   if ( $week_id == 0 ) {
     // all weeks
 
@@ -1332,8 +1300,8 @@ function page_admin_scores($week_id = 0) {
     $class = 'even';
 
     foreach ($games as $wid => $weeksgames) {
-      
-      $class = $flip[$class];      
+
+      $class = $flip[$class];
       $output .= '<tr class="'. $class .'"><th>'. l("$wid", 'admin/content/pickem/scores/'. $wid) .'</th><td>';
       foreach ($weeksgames as $gid => $game) {
         $v_team = ($teams[$game["vid"]]->tm_abbrev <> '')?$teams[$game["vid"]]->tm_abbrev:$teams[$game["vid"]]->tm_name;
@@ -1343,7 +1311,7 @@ function page_admin_scores($week_id = 0) {
       $output .= "</td></tr>";
     }
     $output .= '</table></div>';
-  } 
+  }
   else {
     drupal_set_title("$title - Week $week_id");
     $query = "SELECT g.gid, g.wid, g.h_score, g.v_score, g.v_id, g.h_id, g.gametime FROM {pickem_games} g where g.wid=%d ORDER BY g.wid, g.gametime, g.gid";
@@ -1364,7 +1332,7 @@ function page_admin_scores($week_id = 0) {
       foreach ($weeksgames as $gid => $game) {
         $v_team = ($teams[$game["vid"]]->tm_abbrev <> '')?$teams[$game["vid"]]->tm_abbrev:$teams[$game["vid"]]->tm_name;
         $h_team = ($teams[$game["hid"]]->tm_abbrev <> '')?$teams[$game["hid"]]->tm_abbrev:$teams[$game["hid"]]->tm_name;
-        
+
         $output .= '<tr>';
         $output .= '<td class="team">'. $v_team .'</td><td class="score"><input name="gid_'. $gid .'_'. $game['vid'] .'" type="text" size="3" value="'. $game['vscore'] .'" /></td>';
         $output .= '<td class="team">'. $h_team .'</td><td class="score"><input name="gid_'. $gid .'_'. $game['hid'] .'" type="text" size="3" value="'. $game['hscore'] .'" /></td>';
@@ -1382,11 +1350,11 @@ function page_admin_scores($week_id = 0) {
 function league_forums() {
   $options = array();
   $options[0] = 'No Forum Selected';
-  if (module_exists("forum")) {   
+  if (module_exists("forum")) {
   $forums = forum_get_forums();
     if ($forums) {
       foreach ($forums as $tid => $forum) {
-         $options[$tid] = $forum->name; 
+         $options[$tid] = $forum->name;
       }
     }
   }
@@ -1422,11 +1390,11 @@ function admin_import_form($form_state=NULL) {
     '#value' => t('Load data now'),
   );
 
-  return $form; 
+  return $form;
 }
 
 function admin_import_form_submit($form, &$form_state) {
-  
+
   if ( $form_state['values']['pickem_data_load_options'] == 0 ) {
     clear_league_data();
     load_nfl_teams_csv();
@@ -1467,7 +1435,7 @@ function load_nfl_teams_csv() {
       for ($c=0; $c < $num; $c++) {
         $field_names[$data[$c]] = $c;
       }
-    } 
+    }
     else {
       db_query("INSERT INTO {pickem_teams} (tid, tm_city, tm_abbrev, tm_nick, tm_name, conference, division) VALUES (%d, '%s', '%s', '%s', '%s', '%s', '%s')", $data[$field_names['tid']], $data[$field_names['tm_city']], $data[$field_names['tm_abbrev']], $data[$field_names['tm_nick']], $data[$field_names['tm_name']], $data[$field_names['conference']], $data[$field_names['division']] );
     }
@@ -1487,7 +1455,7 @@ function load_nfl_weeks_csv() {
       for ($c=0; $c < $num; $c++) {
         $field_names[$data[$c]] = $c;
       }
-    } 
+    }
     else {
       db_query("INSERT INTO {pickem_weeks} (wid, wk_name, wk_abbrev, wk_firstgame, wk_points, playoffs) VALUES (%d, '%s', '%s', '%s', %d, %d)", $data[$field_names['wid']], $data[$field_names['wk_name']], $data[$field_names['wk_abbrev']], $data[$field_names['wk_firstgame']], $data[$field_names['wk_points']], $data[$field_names['playoffs']] );
     }
@@ -1507,7 +1475,7 @@ function load_nfl_games_csv() {
       for ($c=0; $c < $num; $c++) {
         $field_names[$data[$c]] = $c;
       }
-    } 
+    }
     else {
       //drupal_set_message("wid=".$data[$field_names['wid']] . ' gametime=' . $data[$field_names['gametime']] . ' h_id=' . $data[$field_names['h_id']]  . ' v_id=' . $data[$field_names['v_id']] ) ;
       db_query("INSERT INTO {pickem_games} (wid, gametime, h_id, v_id) VALUES (%d, '%s', %d, %d)", $data[$field_names['wid']], $data[$field_names['gametime']], $data[$field_names['h_id']], $data[$field_names['v_id']] );

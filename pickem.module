@@ -205,7 +205,7 @@ function pickem_menu() {
     'type' => MENU_NORMAL_ITEM,
     'file' => 'pickem_admin.inc',
   );
- 
+
   /* Settings */
   $items['admin/content/pickem/settings'] = array(
     'title' => 'Settings',
@@ -237,7 +237,7 @@ function pickem_menu() {
   $items['admin/content/pickem/leagues/add'] = array(
     'title' => 'Add League',
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('pickem_leagues_edit', 'add', NULL),
+    'page arguments' => array('pickem_league_edit', 'add', NULL),
     'access arguments' => array('administer pickem'),
     'file' => 'pickem_admin.inc',
     'weight' => 0,
@@ -246,7 +246,7 @@ function pickem_menu() {
   $items['admin/content/pickem/leagues/edit/%league'] = array(
     'title' => 'Edit League',
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('pickem_leagues_edit', 'edit', 5),
+    'page arguments' => array('pickem_league_edit', 'edit', 5),
     'access arguments' => array('administer pickem'),
     'file' => 'pickem_admin.inc',
     'type' => MENU_CALLBACK,
@@ -254,11 +254,42 @@ function pickem_menu() {
   $items['admin/content/pickem/leagues/delete/%league'] = array(
     'title' => 'Delete League',
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('pickem_leagues_delete_confirm', 5),
+    'page arguments' => array('pickem_league_delete_confirm', 5),
     'access arguments' => array('administer pickem'),
     'file' => 'pickem_admin.inc',
     'type' => MENU_CALLBACK,
   );
+  
+  
+
+  /**
+   * USERS, gets linked into the leagues list
+   */
+  $items['admin/content/pickem/users/%league'] = array(
+    'title' => t('League User List'),
+    'page callback' => 'pickem_users_list',
+    'page arguments' => array(4),
+    'access arguments' => array('administer pickem'),
+    'weight' => 2,
+    'file' => 'pickem_admin.inc',
+    'type' => MENU_NORMAL_ITEM,
+  );
+  $items['admin/content/pickem/users/%league/list'] = array(
+    'title' => 'List Users',
+    'weight' => -1,
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+  );
+  $items['admin/content/pickem/users/%league/add'] = array(
+    'title' => 'Add User',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('pickem_leagues_edit', 'add', NULL),
+    'access arguments' => array('administer pickem'),
+    'file' => 'pickem_admin.inc',
+    'weight' => 0,
+    'type' => MENU_LOCAL_TASK,
+  );
+  
+  
 
 
   /**
@@ -348,7 +379,49 @@ function pickem_menu() {
     'type' => MENU_CALLBACK,
   );
 
-   
+
+  /**
+   * WEEKS
+   */
+  $items['admin/content/pickem/weeks'] = array(
+    'title' => t('Weeks'),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('pickem_weeks_list'),
+    'access arguments' => array('administer pickem'),
+    'weight' => 6,
+    'file' => 'pickem_admin.inc',
+    'type' => MENU_NORMAL_ITEM,
+  );
+  $items['admin/content/pickem/weeks/list'] = array(
+    'title' => 'List Weeks',
+    'weight' => -1,
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+  );
+  $items['admin/content/pickem/weeks/add'] = array(
+    'title' => 'Add Week',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('pickem_week_edit', 'add', NULL),
+    'access arguments' => array('administer pickem'),
+    'file' => 'pickem_admin.inc',
+    'weight' => 0,
+    'type' => MENU_LOCAL_TASK,
+  );
+  $items['admin/content/pickem/weeks/edit/%week'] = array(
+    'title' => 'Edit Week',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('pickem_week_edit', 'edit', 5),
+    'access arguments' => array('administer pickem'),
+    'file' => 'pickem_admin.inc',
+    'type' => MENU_CALLBACK,
+  );
+  $items['admin/content/pickem/weeks/delete/%week'] = array(
+    'title' => 'Delete Week',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('pickem_week_delete_confirm', 5),
+    'access arguments' => array('administer pickem'),
+    'file' => 'pickem_admin.inc',
+    'type' => MENU_CALLBACK,
+  );
 
 
 
@@ -370,42 +443,7 @@ function pickem_menu() {
     'file' => 'pickem_admin.inc',
     'type' => MENU_NORMAL_ITEM,
   );
-  $items['admin/content/pickem/weeks'] = array(
-    'title' => t('Weeks'),
-    'page callback' => 'page_admin_weeks',
-    'access arguments' => array('administer pickem'),
-    'weight' => 6,
-    'file' => 'pickem_admin.inc',
-    'type' => MENU_NORMAL_ITEM,
-  );
 
-
-
-
-
-
-
-
-
-
-  $items['admin/content/pickem/league_users'] = array(
-    'title' => t('League Users'),
-    'page callback' => 'page_admin_leagues_users',
-    'access arguments' => array('administer pickem'),
-    'weight' => 2,
-    'file' => 'pickem_admin.inc',
-    'type' => MENU_LOCAL_TASK,
-  );
-
-  $items['admin/content/pickem/league_users/%league'] = array(
-    'title' => t('League User Admin'),
-    'page callback' => 'page_admin_league_users',
-    'page arguments' => array(4),
-    'access arguments' => array('administer pickem'),
-    'weight' => 2,
-    'file' => 'pickem_admin.inc',
-    'type' => MENU_LOCAL_TASK,
-  );
 
 
 
@@ -525,7 +563,7 @@ function pickem_cron() {
  */
 function pickem_theme() {
   return array(
-    'pickem_leagues_list' => array( 
+    'pickem_leagues_list' => array(
       'file' => 'pickem_admin.inc',
       'arguments' => array('form' => NULL),
     ),
@@ -533,7 +571,7 @@ function pickem_theme() {
       'file' => 'pickem_admin.inc',
       'arguments' => array('form' => NULL),
     ),
-    'admin_weeks_form' => array(
+    'pickem_weeks_list' => array(
       'file' => 'pickem_admin.inc',
       'arguments' => array('form' => NULL),
     ),
@@ -722,7 +760,7 @@ function page_mypicks_week($league, $week_num='') {
 
   //POSTING, save picks
   if (count($_POST) > 0) {
-    if ($week[$week_num]['week_past'] == 1) {
+    if ($week[$week_num]->week_past == 1) {
       drupal_set_title($week[$week_num]['name'] .' picks are locked.');
       print theme('page', "You cannot change your picks now.");
       return;
@@ -790,7 +828,7 @@ function page_mypicks_week($league, $week_num='') {
           $h_sel = "checked";
         }
 
-        if ($week[$week_num]['week_past'] == 0) {
+        if ($week[$week_num]->week_past == 0) {
           $output .= '<tr>';
           $output .= '<td><input type="radio" name="gid_'. $gid .'" value="'. $game["vid"] .'" '. $v_sel .'/>'. $teams[$game["vid"]]->tm_abbrev .'</td>';
           if ($league->scoring_type == 1) {
@@ -839,7 +877,7 @@ function page_mypicks_week($league, $week_num='') {
     }
     $output .= '</table>';
 
-    if ($week[$week_num]['week_past'] == 0 ) {
+    if ($week[$week_num]->week_past == 0 ) {
       if ( count($_pickem_my_leagues) > 1 ) {
         $output .= '<input type="checkbox" name="apply_to_all_my_leagues">Apply picks to all my leagues<br/><br/>';
       }
@@ -1011,7 +1049,7 @@ function page_weeklypicks($league, $week_id) {
 
   $output .= '</table></div>';
 
-  drupal_set_title($week[$week_id]['name'] .' Pick Summary');
+  drupal_set_title($week[$week_id]->wk_name .' Pick Summary');
   print theme('page', $output);
 }
 
@@ -1070,8 +1108,6 @@ function page_standings($league) {
   }
   $output .= '</table></fieldset></div>';
 
-
-
   //playoff table
   $playoff_weeks = get_weeks(0, 'playoffs');
   $output .= '<div><fieldset class="collapsible"><legend><a href="#">Playoffs</a></legend>';
@@ -1079,7 +1115,7 @@ function page_standings($league) {
 
   $output .= '<tr><th>&nbsp;</th><th colspan="2">TOT</th>';
   foreach ($playoff_weeks as $w => $w_data) {
-    $output .= '<th class="week-numbers">'. l('Week&nbsp;'. $w .'<br/>'. $w_data['wk_name'], 'pickem/'. $league->lid ."/weeklypicks/$w", array('html' => TRUE)) .'</th>';
+    $output .= '<th class="week-numbers">'. l('Week&nbsp;'. $w .'<br/>'. $w_data->wk_name, 'pickem/'. $league->lid ."/weeklypicks/$w", array('html' => TRUE)) .'</th>';
   }
   $output .= "</tr>";
   foreach ($totals as $uid => $u) {
