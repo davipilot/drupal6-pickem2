@@ -15,7 +15,20 @@ function pickem_overview_page() {
   cache_clear_all();
   menu_rebuild();
 
-  $content = 'Pickem Overview';
+  $items = pickem_menu();
+  $content = '<dl class="admin-list">';
+  foreach ( $items as $path => $menu ) {
+    $t = explode('/', $path);
+    if ( count($t) == 3 ) {
+      if ( ( $t[0] == 'admin' ) && $t[1] == 'pickem'  && $menu['type'] == MENU_NORMAL_ITEM) {
+        $content .= '<dt>' . l($menu['title'], $path) . '</dt>';
+        if ( isset($menu['description']) ) {
+          $content .= '<dd>' . $menu['description'] . '</dd>';
+        }
+      }
+    }
+  }
+  $content .= "</dl>";
   return $content;
 }
 
@@ -134,13 +147,13 @@ function pickem_leagues_list(&$form_state=NULL) {
         '#value' => $row->name
       ),
       'edit_link' => array(
-        '#value' => l('edit league', 'admin/content/pickem/leagues/edit/' . $row->lid)
+        '#value' => l('edit league', 'admin/pickem/leagues/edit/' . $row->lid)
       ),
       'list_users_link' => array(
-        '#value' => l('list users', 'admin/content/pickem/users/' . $row->lid)
+        '#value' => l('list users', 'admin/pickem/users/' . $row->lid)
       ),
       'delete_link' => array(
-        '#value' => l('delete league', 'admin/content/pickem/leagues/delete/' . $row->lid)
+        '#value' => l('delete league', 'admin/pickem/leagues/delete/' . $row->lid)
       ),
     );
   }
@@ -231,7 +244,7 @@ function pickem_league_edit_submit($form, &$form_state) {
     drupal_set_message('Team updated');
   }
 
-  $form_state['redirect'] = 'admin/content/pickem/leagues';
+  $form_state['redirect'] = 'admin/pickem/leagues';
 }
 /**
  * Build a confirm form for deletion of a league.
@@ -240,7 +253,7 @@ function pickem_league_delete_confirm(&$form_state, $league) {
   $form['#league'] = $league;
   $caption = '';
   $caption .= '<p>'. t('This action cannot be undone.') .'</p>';
-  return confirm_form($form, t('Are you sure you want to delete the team %name?', array('%name' => $league->name)), 'admin/content/pickem/leagues', $caption, t('Delete'));
+  return confirm_form($form, t('Are you sure you want to delete the team %name?', array('%name' => $league->name)), 'admin/pickem/leagues', $caption, t('Delete'));
 }
 /**
  * Delete the league.
@@ -251,7 +264,7 @@ function pickem_league_delete_confirm_submit($form, &$form_state) {
   $t_args = array('%name' => $league->name);
   drupal_set_message(t('The pickem league %name has been deleted.', $t_args));
   watchdog('pickem', 'Deleted league %name.', $t_args, WATCHDOG_NOTICE);
-  $form_state['redirect'] = 'admin/content/pickem/leagues';
+  $form_state['redirect'] = 'admin/pickem/leagues';
 }
 
 
@@ -261,7 +274,7 @@ function pickem_league_delete_confirm_submit($form, &$form_state) {
 function theme_pickem_weeks_list(&$form) {
   $header = array(
     t('Name'),
-    t('FirstGame'),
+    t('First Game Time'),
     t('Points'),
     array('data' => t('Operations'), 'colspan' => '3')
   );
@@ -300,10 +313,10 @@ function pickem_weeks_list($form_state=NULL) {
         '#value' => $row->wk_points,
       ),
       'edit_link' => array(
-        '#value' => l('edit', 'admin/content/pickem/weeks/edit/' . $row->wid)
+        '#value' => l('edit', 'admin/pickem/weeks/edit/' . $row->wid)
       ),
       'delete_link' => array(
-        '#value' => l('delete', 'admin/content/pickem/weeks/delete/' . $row->wid)
+        '#value' => l('delete', 'admin/pickem/weeks/delete/' . $row->wid)
       ),
     );
   }
@@ -361,7 +374,7 @@ function pickem_week_edit(&$form_state, $type, $week) {
       '#default_value' => $week->wk_abbrev,
     ),
     'wk_firstgame' => array(
-      '#title' => 'First Game',
+      '#title' => 'First Game Time',
       '#type' => 'textfield',
       '#size' => 30,
       '#maxlength' => 35,
@@ -407,7 +420,7 @@ function pickem_week_edit_submit($form, &$form_state) {
   }
 
   cache_clear_all('pickem_grid_scores', 'cache', TRUE);
-  $form_state['redirect'] = 'admin/content/pickem/weeks';
+  $form_state['redirect'] = 'admin/pickem/weeks';
 }
 /**
  * Build a confirm form for deletion of a team.
@@ -416,7 +429,7 @@ function pickem_week_delete_confirm(&$form_state, $week) {
   $form['#week'] = $week;
   $caption = '';
   $caption .= '<p>'. t('This action cannot be undone.') .'</p>';
-  return confirm_form($form, t('Are you sure you want to delete the week %name?', array('%name' => $week->wk_name)), 'admin/content/pickem/weeks', $caption, t('Delete'));
+  return confirm_form($form, t('Are you sure you want to delete the week %name?', array('%name' => $week->wk_name)), 'admin/pickem/weeks', $caption, t('Delete'));
 }
 /**
  * Delete the team.
@@ -427,7 +440,7 @@ function pickem_week_delete_confirm_submit($form, &$form_state) {
   $t_args = array('%name' => $week->wk_name);
   drupal_set_message(t('The pickem team %name has been deleted.', $t_args));
   watchdog('pickem', 'Deleted team %name.', $t_args, WATCHDOG_NOTICE);
-  $form_state['redirect'] = 'admin/content/pickem/weeks';
+  $form_state['redirect'] = 'admin/pickem/weeks';
 }
 
 /**
@@ -442,7 +455,7 @@ function theme_pickem_teams_list(&$form) {
   $rows = array();
   foreach (element_children($form['teams']) as $key) {
     $rows[] = array(
-      drupal_render($form['teams'][$key]['tm_city']) . ' ' . drupal_render($form['teams'][$key]['tm_name']) . ' (' . drupal_render($form['teams'][$key]['tm_abbrev']) . ')',
+      drupal_render($form['teams'][$key]['long_name']),
       drupal_render($form['teams'][$key]['edit_link']),
       drupal_render($form['teams'][$key]['delete_link']),
     );
@@ -459,25 +472,18 @@ function pickem_teams_list($form_state=NULL) {
     '#theme' => 'pickem_teams_list',
     '#tree' => TRUE,
   );
-
-  $query = "SELECT tid, tm_city, tm_abbrev, tm_nick, tm_name, conference, division from {pickem_teams} order by tm_city, tm_name, tm_abbrev";
-  $result = db_query($query);
-  while ($row = db_fetch_object($result)) {
-    $form['teams'][$row->tid] = array(
-      'tm_city' => array(
-        '#value' => $row->tm_city
-      ),
-      'tm_name' => array(
-        '#value' => $row->tm_name
-      ),
-      'tm_abbrev' => array(
-        '#value' => $row->tm_abbrev
+  
+  $teams = get_teams();
+  foreach ($teams as $tid => $team) {
+    $form['teams'][$tid] = array(
+      'long_name' => array(
+        '#value' => $team->long_name
       ),
       'edit_link' => array(
-        '#value' => l('edit', 'admin/content/pickem/teams/edit/' . $row->tid)
+        '#value' => l('edit', 'admin/pickem/teams/edit/' . $tid)
       ),
       'delete_link' => array(
-        '#value' => l('delete', 'admin/content/pickem/teams/delete/' . $row->tid)
+        '#value' => l('delete', 'admin/pickem/teams/delete/' . $tid)
       ),
     );
   }
@@ -580,7 +586,7 @@ function pickem_team_edit_submit($form, &$form_state) {
     drupal_set_message('Team updated');
   }
 
-  $form_state['redirect'] = 'admin/content/pickem/teams';
+  $form_state['redirect'] = 'admin/pickem/teams';
 }
 /**
  * Build a confirm form for deletion of a team.
@@ -589,7 +595,7 @@ function pickem_team_delete_confirm(&$form_state, $team) {
   $form['#team'] = $team;
   $caption = '';
   $caption .= '<p>'. t('This action cannot be undone.') .'</p>';
-  return confirm_form($form, t('Are you sure you want to delete the team %name?', array('%name' => $team->tm_city . ' ' . $team->tm_name)), 'admin/content/pickem/teams', $caption, t('Delete'));
+  return confirm_form($form, t('Are you sure you want to delete the team %name?', array('%name' => $team->tm_city . ' ' . $team->tm_name)), 'admin/pickem/teams', $caption, t('Delete'));
 }
 /**
  * Delete the team.
@@ -600,7 +606,7 @@ function pickem_team_delete_confirm_submit($form, &$form_state) {
   $t_args = array('%name' => $team->tm_city . ' ' . $team->tm_name);
   drupal_set_message(t('The pickem team %name has been deleted.', $t_args));
   watchdog('pickem', 'Deleted team %name.', $t_args, WATCHDOG_NOTICE);
-  $form_state['redirect'] = 'admin/content/pickem/teams';
+  $form_state['redirect'] = 'admin/pickem/teams';
 }
 
 
@@ -661,10 +667,10 @@ function pickem_games_list(&$form_state=NULL) {
         '#value' => $matchup
       ),
       'edit_link' => array(
-        '#value' => l('edit', 'admin/content/pickem/games/edit/' . $gid)
+        '#value' => l('edit', 'admin/pickem/games/edit/' . $gid)
       ),
       'delete_link' => array(
-        '#value' => l('delete', 'admin/content/pickem/games/delete/' . $gid)
+        '#value' => l('delete', 'admin/pickem/games/delete/' . $gid)
       ),
     );
   }
@@ -777,8 +783,8 @@ function pickem_game_edit_submit($form, &$form_state) {
     $result = db_query($query, $game['wid'], date($game['game_time']), $game['home_team'], $game['h_spread'], $game['visitor_team'], $game['v_spread'], $game['gid']);
     drupal_set_message('Game updated');
   }
-  //drupal_goto('admin/content/pickem/games', 'page='. ($game['wid'] - 1));
-  $form_state['redirect'] = array('admin/content/pickem/games', 'page=' . ($game['wid'] - 1) );
+  //drupal_goto('admin/pickem/games', 'page='. ($game['wid'] - 1));
+  $form_state['redirect'] = array('admin/pickem/games', 'page=' . ($game['wid'] - 1) );
 }
 /**
  * Build a confirm form for deletion of a game.
@@ -788,9 +794,9 @@ function pickem_game_delete_confirm(&$form_state, $game) {
   $caption = '';
   $caption .= '<p>'. t('This action cannot be undone.') .'</p>';
 
-  //return confirm_form($form, t('Are you sure you want to delete the team %name?', array('%name' => $league->name)), 'admin/content/pickem/leagues', $caption, t('Delete'));
+  //return confirm_form($form, t('Are you sure you want to delete the team %name?', array('%name' => $league->name)), 'admin/pickem/leagues', $caption, t('Delete'));
 
-  return confirm_form($form, t('Are you sure you want to delete this game?'), 'admin/content/pickem/games', $caption, t('Delete'));
+  return confirm_form($form, t('Are you sure you want to delete this game?'), 'admin/pickem/games', $caption, t('Delete'));
 }
 /**
  * Delete the game.
@@ -800,7 +806,7 @@ function pickem_game_delete_confirm_submit($form, &$form_state) {
   db_query("DELETE FROM {pickem_games} WHERE gid = %d", $game->gid);
   drupal_set_message(t('The pickem game has been deleted.'));
   watchdog('pickem', 'Deleted game id' . $game->gid, NULL, WATCHDOG_NOTICE);
-  $form_state['redirect'] = array('admin/content/pickem/games', 'page=' . ($game->wid - 1) );
+  $form_state['redirect'] = array('admin/pickem/games', 'page=' . ($game->wid - 1) );
 }
 
 
@@ -844,7 +850,7 @@ function pickem_users_list($form_state=NULL, $league) {
         '#value' => l($user->name, 'user/'. $user->uid)
       ),
       'remove_link' => array(
-        '#value' => l('Remove', 'admin/content/pickem/users/' . $league->lid . '/remove/' . $user->uid)
+        '#value' => l('Remove', 'admin/pickem/users/' . $league->lid . '/remove/' . $user->uid)
       ),
     );
   }
@@ -867,21 +873,21 @@ function pickem_users_add_submit($form, &$form_state) {
   $league = $form['#league'];
   $user_id = $form_state['values']['user_select'];
   $user = user_load(array('uid' => $user_id));
-  
+
   db_query("insert into {pickem_users} (lid,uid) values (%d,%d)", $league->lid, $user_id);
 
   $t_args = array('%name' => $user->name, '%league_name' => $league->name);
   drupal_set_message(t('"%name" was added to league "%league_name".', $t_args));
   watchdog('pickem', '"%name" was added to league "%league_name".', $t_args, WATCHDOG_NOTICE);
 
-  $form_state['redirect'] = 'admin/content/pickem/users/' . $league->lid;
+  $form_state['redirect'] = 'admin/pickem/users/' . $league->lid;
 }
 function pickem_users_remove_confirm(&$form_state, $league, $user) {
   $form['#user'] = $user;
   $form['#league'] = $league;
   $caption = '';
   $caption .= '<p>'. t('This action cannot be undone.') .'</p>';
-  return confirm_form($form, t('Are you sure you want to remove "%name" from league "%league_name"?', array('%name' => $user->name, '%league_name' => $league->name)), 'admin/content/pickem/users/' . $league->lid, $caption, t('Delete'));
+  return confirm_form($form, t('Are you sure you want to remove "%name" from league "%league_name"?', array('%name' => $user->name, '%league_name' => $league->name)), 'admin/pickem/users/' . $league->lid, $caption, t('Delete'));
 }
 function pickem_users_remove_confirm_submit($form, &$form_state) {
   $user = $form['#user'];
@@ -891,7 +897,7 @@ function pickem_users_remove_confirm_submit($form, &$form_state) {
   $t_args = array('%name' => $user->name, '%league_name' => $league->name);
   drupal_set_message(t('"%name" was removed from league "%league_name".', $t_args));
   watchdog('pickem', '"%name" was removed from league "%league_name".', $t_args, WATCHDOG_NOTICE);
-  $form_state['redirect'] = 'admin/content/pickem/users/' . $league->lid;
+  $form_state['redirect'] = 'admin/pickem/users/' . $league->lid;
 }
 
 
@@ -915,11 +921,11 @@ function pickem_mail($key, &$message, $params) {
 /**
  * Good General Use Forms
  */
-function league_select_form($form_state) {
-  $leagues = get_leagues();
+function league_select_form($form_state=NULL) {
   $options = array();
-  foreach ($leagues as $l) {
-    $options[$l->lid] = $l->name;
+  $leagues = get_leagues();
+  foreach ($leagues as $lid => $l) {
+    $options[$lid] = $l->name;
   }
 
   $form['league_select'] = array( '#type' => 'select', '#title' => t('Select League'), '#default_value' => 1, '#options' => $options);
@@ -1111,10 +1117,10 @@ function page_admin_picks($league_id=0, $user_id = 0, $week_id = 0) {
 
 
   if ( is_numeric($_POST['league_select']) ) {
-    drupal_goto("admin/content/pickem/picks/" . $_POST['league_select']);
+    drupal_goto("admin/pickem/picks/" . $_POST['league_select']);
   }
   if ( is_numeric($_POST['user_select']) ) {
-    drupal_goto("admin/content/pickem/picks/$league_id/" . $_POST['user_select']);
+    drupal_goto("admin/pickem/picks/$league_id/" . $_POST['user_select']);
   }
 
   if ( $league_id == 0 ) {
@@ -1269,7 +1275,7 @@ function page_admin_picks($league_id=0, $user_id = 0, $week_id = 0) {
         $inner .= "</div>";
       }
       $rows[] = array(
-        l("$wid", "admin/content/pickem/picks/$league_id/$user_id/$wid"),
+        l("$wid", "admin/pickem/picks/$league_id/$user_id/$wid"),
         $inner,
       );
     }
@@ -1282,7 +1288,7 @@ function page_admin_picks($league_id=0, $user_id = 0, $week_id = 0) {
 
 
 /*
-  Path:     admin/content/pickem/scores
+  Path:     admin/pickem/scores
 */
 function page_admin_scores($week_id = 0) {
 
@@ -1338,7 +1344,7 @@ function page_admin_scores($week_id = 0) {
     foreach ($games as $wid => $weeksgames) {
 
       $class = $flip[$class];
-      $output .= '<tr class="'. $class .'"><th>'. l("$wid", 'admin/content/pickem/scores/'. $wid) .'</th><td>';
+      $output .= '<tr class="'. $class .'"><th>'. l("$wid", 'admin/pickem/scores/'. $wid) .'</th><td>';
       foreach ($weeksgames as $gid => $game) {
         $v_team = ($teams[$game["vid"]]->tm_abbrev <> '')?$teams[$game["vid"]]->tm_abbrev:$teams[$game["vid"]]->tm_name;
         $h_team = ($teams[$game["hid"]]->tm_abbrev <> '')?$teams[$game["hid"]]->tm_abbrev:$teams[$game["hid"]]->tm_name;

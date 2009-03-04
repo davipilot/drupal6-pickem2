@@ -138,7 +138,7 @@ function get_leagues($league_id=0) {
   }
   $leagues = array();
   while ($row = db_fetch_object($result)) {
-    $leagues[$league_id] = $row;
+    $leagues[$row->lid] = $row;
   }
 
   return $leagues;
@@ -179,7 +179,11 @@ function get_teams($team_id=0) {
   }
   $teams = array();
   while ($row = db_fetch_object($result)) {
-    $row->printing_name = ($row->tm_abbrev <> '') ? $row->tm_abbrev : $row->tm_name;
+    $row->short_name = ($row->tm_abbrev <> '') ? $row->tm_abbrev : $row->tm_name;
+    $row->long_name = $row->tm_city . ' ' . $row->tm_name;
+    if ( $row->tm_abbrev <> '' ) {
+    	$row->long_name .=  ' (' . $row->tm_abbrev . ')';
+    }
     $teams[$row->tid] = $row;
   }
   return $teams;
@@ -313,9 +317,9 @@ function get_user_totals($league_id, $weekarg=0) {
   $users = get_users($league_id);
 
   foreach ($users as $u) {
-    $totals[$u['uid']] = array(
+    $totals[$u->uid] = array(
       'total' => 0,
-      'name' => $u['name'],
+      'name' => $u->name,
       'best_week_num' => -1,
       'worst_week_num' => -1,
       'ranking' => 0,
