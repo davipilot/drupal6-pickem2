@@ -120,11 +120,7 @@ function get_users($league_id=0, $not_in_league=0) {
   }
   $users = array();
   while ($row = db_fetch_object($result)) {
-    $users[$row->uid] = array(
-      "uid" => $row->uid,
-      "name" => $row->name,
-      "mail" => $row->mail,
-    );
+    $users[$row->uid] = $row;
   }
   return $users;
 }

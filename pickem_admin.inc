@@ -814,56 +814,90 @@ function pickem_game_delete_confirm_submit($form, &$form_state) {
 
 
 
+function theme_pickem_users_list(&$form) {
+  $header = array(
+    t('User'),
+    array('data' => t('Operations'), 'colspan' => '3')
+  );
 
-
-function pickem_users_list($league) {
-  /*
-    Post Actions
-  */
-  if ( $_POST['user_select'] && $_POST['op'] == t('Add') ) {
-  // user_select
-    $u = user_load(array('uid' => $_POST['user_select']));
-    db_query("insert into {pickem_users} (lid,uid) values (%d,%d)", $league->lid, $u->uid);
-    drupal_set_message($u->name .' added to '. $league->name);
-    drupal_goto("admin/content/pickem/league_users/". $league->lid);
-  }
-
-  if ( arg(5) == "delete_user" && is_numeric(arg(6)) ) {
-    $u = user_load(array('uid' => arg(6)));
-    db_query("delete from {pickem_users} where lid=%d and uid=%d", $league->lid, $u->uid);
-    drupal_set_message($u->name .' removed from '. $league->name);
-    drupal_goto("admin/content/pickem/league_users/". $league->lid);
-  }
-
-
-  /**
-   * Page Display
-   */
-  $header = array(t('Name'), t('Operations'));
   $rows = array();
-
-  $query = "SELECT u.uid,name from {users} u inner join {pickem_users} pu on pu.uid=u.uid where u.uid<>0 and lid=%d order by u.uid";
-  $result = db_query($query, $league->lid);
-  while ($row = db_fetch_object($result)) {
-    $rows[] = array(l($row->name, 'user/'. $row->uid), l(t('delete user'), 'admin/content/pickem/league_users/'. $league->lid .'/delete_user/'. $row->uid));
+  foreach (element_children($form['users']) as $key) {
+    $rows[] = array(
+      drupal_render($form['users'][$key]['user_link']),
+      drupal_render($form['users'][$key]['remove_link'])
+    );
   }
-  $output = theme('table', $header, $rows);
-  $output .= drupal_get_form('user_select_form', $league->lid, 'Add User', 1);
 
-  drupal_set_title('User list for league: '. $league->name);
+  $output .= theme('table', $header, $rows);
+
   return $output;
+}
+function pickem_users_list($form_state=NULL, $league) {
+  $form = array(
+    '#theme' => 'pickem_users_list',
+    '#tree' => TRUE,
+  );
+  $users = get_users($league->lid);
+  foreach ( $users as $user ) {
+    $form['users'][] = array(
+      'user_link' => array(
+        '#value' => l($user->name, 'user/'. $user->uid)
+      ),
+      'remove_link' => array(
+        '#value' => l('Remove', 'admin/content/pickem/users/' . $league->lid . '/remove/' . $user->uid)
+      ),
+    );
+  }
+  return $form;
+}
+function pickem_users_add(&$form_state, $league) {
+  $form = user_select_form($form_state, $league->lid, 'Add User', 1);
+  $form['#league'] = $league;
+  $form['submit'] = array('#type' => 'submit', '#value' => t('Add User'));
+  unset($form['op']);  // may change this later
+  return $form;
+}
+function pickem_users_add_validate($form, &$form_state) {
+  //$user = &$form_state['values'];
+  //if ($team['tm_name'] == 'lions') {
+  //  form_set_error('tm_name', t("Sorry for you.", array('@tm_name' => $team['tm_name'])));
+  //}
+}
+function pickem_users_add_submit($form, &$form_state) {
+  $league = $form['#league'];
+  $user_id = $form_state['values']['user_select'];
+  $user = user_load(array('uid' => $user_id));
+  
+  db_query("insert into {pickem_users} (lid,uid) values (%d,%d)", $league->lid, $user_id);
+
+  $t_args = array('%name' => $user->name, '%league_name' => $league->name);
+  drupal_set_message(t('"%name" was added to league "%league_name".', $t_args));
+  watchdog('pickem', '"%name" was added to league "%league_name".', $t_args, WATCHDOG_NOTICE);
+
+  $form_state['redirect'] = 'admin/content/pickem/users/' . $league->lid;
+}
+function pickem_users_remove_confirm(&$form_state, $league, $user) {
+  $form['#user'] = $user;
+  $form['#league'] = $league;
+  $caption = '';
+  $caption .= '<p>'. t('This action cannot be undone.') .'</p>';
+  return confirm_form($form, t('Are you sure you want to remove "%name" from league "%league_name"?', array('%name' => $user->name, '%league_name' => $league->name)), 'admin/content/pickem/users/' . $league->lid, $caption, t('Delete'));
+}
+function pickem_users_remove_confirm_submit($form, &$form_state) {
+  $user = $form['#user'];
+  $league = $form['#league'];
+  db_query("delete from {pickem_users} where lid=%d and uid=%d", $league->lid, $user->uid);
+
+  $t_args = array('%name' => $user->name, '%league_name' => $league->name);
+  drupal_set_message(t('"%name" was removed from league "%league_name".', $t_args));
+  watchdog('pickem', '"%name" was removed from league "%league_name".', $t_args, WATCHDOG_NOTICE);
+  $form_state['redirect'] = 'admin/content/pickem/users/' . $league->lid;
 }
 
 
-
-
-
-
-
-
-/*
-  implementation of hook_mail
-*/
+/**
+ * implementation of hook_mail
+ */
 function pickem_mail($key, &$message, $params) {
   switch ($key) {
     case 'notice':
@@ -876,9 +910,11 @@ function pickem_mail($key, &$message, $params) {
 
 
 
-/*
-  Good General Use Forms
-*/
+
+
+/**
+ * Good General Use Forms
+ */
 function league_select_form($form_state) {
   $leagues = get_leagues();
   $options = array();
@@ -900,7 +936,7 @@ function user_select_form($form_state=NULL, $league_id=0, $title='Select User To
   $users = get_users($league_id, $not_in_league);
   $user_list = array();
   foreach ($users as $u_id => $user_data) {
-    $user_list[$u_id] = $user_data["name"];
+    $user_list[$u_id] = $user_data->name;
   }
 
   $form = array();

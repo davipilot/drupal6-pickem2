@@ -267,8 +267,8 @@ function pickem_menu() {
    */
   $items['admin/content/pickem/users/%league'] = array(
     'title' => t('League User List'),
-    'page callback' => 'pickem_users_list',
-    'page arguments' => array(4),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('pickem_users_list', 4),
     'access arguments' => array('administer pickem'),
     'weight' => 2,
     'file' => 'pickem_admin.inc',
@@ -282,11 +282,20 @@ function pickem_menu() {
   $items['admin/content/pickem/users/%league/add'] = array(
     'title' => 'Add User',
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('pickem_leagues_edit', 'add', NULL),
+    'page arguments' => array('pickem_users_add', 4),
     'access arguments' => array('administer pickem'),
     'file' => 'pickem_admin.inc',
     'weight' => 0,
     'type' => MENU_LOCAL_TASK,
+  );
+  $items['admin/content/pickem/users/%league/remove/%user'] = array(
+    'title' => 'Remove User',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('pickem_users_remove_confirm', 4, 6),
+    'access arguments' => array('administer pickem'),
+    'file' => 'pickem_admin.inc',
+    'weight' => 0,
+    'type' => MENU_CALLBACK,
   );
   
   
@@ -576,6 +585,10 @@ function pickem_theme() {
       'arguments' => array('form' => NULL),
     ),
     'pickem_games_list' => array(
+      'file' => 'pickem_admin.inc',
+      'arguments' => array('form' => NULL),
+    ),
+    'pickem_users_list' => array(
       'file' => 'pickem_admin.inc',
       'arguments' => array('form' => NULL),
     ),
