@@ -612,7 +612,7 @@ function pickem_week_edit_submit($form, &$form_state) {
   cache_clear_all('pickem_grid_scores', 'cache', TRUE);
   $form_state['redirect'] = 'admin/pickem/weeks/'. $week['gsid'];
 }
-function pickem_week_delete_confirm(&$form_state, $week) {
+function pickem_week_delete_confirm(&$form_state, $gameset, $week) {
   $form['#week'] = $week;
   $caption = '';
   $caption .= '<p>'. t('This action cannot be undone.') .'</p>';
@@ -622,7 +622,7 @@ function pickem_week_delete_confirm_submit($form, &$form_state) {
   $week = $form['#week'];
   db_query("DELETE FROM {pickem_weeks} WHERE wid = %d", $week->wid);
 
-  $t_string = t('Deleted team %name.', array('%name' => $week->wk_name));
+  $t_string = t('Deleted week %name.', array('%name' => $week->wk_name));
   drupal_set_message($t_string);
   watchdog('pickem', $t_string, NULL, WATCHDOG_NOTICE);
 

@@ -373,7 +373,7 @@ function pickem_menu() {
     $items['admin/pickem/weeks/%gameset/delete/%week'] = array(
       'title' => 'Delete Week',
       'page callback' => 'drupal_get_form',
-      'page arguments' => array('pickem_week_delete_confirm', 4),
+      'page arguments' => array('pickem_week_delete_confirm', 3, 5),
       'access arguments' => array('administer pickem'),
       'file' => 'pickem_admin.inc',
       'type' => MENU_CALLBACK,
