@@ -37,8 +37,32 @@ function pickem_schema() {
       'forum_id'       => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
       'rules_node_id'  => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
       'scoring_type'   => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
+      'gsid'           => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
+      'partial_league' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
     ),
     'primary key' => array('lid')
+  );
+
+  $schema['pickem_gamesets'] = array(
+    'fields' => array(
+      'gsid'    => array('type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE),
+      'gs_name' => array('type' => 'varchar', 'length' => 50, 'not null' => TRUE, 'default' => '', 'description' => t('The name of the gameset, "NCAA March Madness".'), ),
+    ),
+    'primary key' => array('gsid')
+  );
+
+  $schema['pickem_weeks'] = array(
+    'fields' => array(
+      'wid'          => array('type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE),
+      'gsid'         => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
+      'wk_number'    => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
+      'wk_name'      => array('type' => 'varchar', 'length' => 50, 'not null' => TRUE, 'default' => '', 'description' => t('The full week name.'), ),
+      'wk_abbrev'    => array('type' => 'varchar', 'length' => 5, 'not null' => TRUE, 'default' => '', 'description' => t('The very short week abbreviation (5 chars).'), ),
+      'wk_firstgame' => array('type' => 'datetime'),
+      'wk_points'    => array('type' => 'int', 'unsigned' => TRUE, 'default' => 0),
+      'playoffs'     => array('type' => 'int', 'unsigned' => TRUE, 'default' => 0, 'size' => 'small')
+    ),
+    'primary key' => array('wid')
   );
 
   $schema['pickem_games'] = array(
@@ -57,6 +81,7 @@ function pickem_schema() {
     'primary key' => array('gid')
   );
 
+
   $schema['pickem_picks'] = array(
     'fields' => array(
       'pid'           => array('type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE),
@@ -70,30 +95,6 @@ function pickem_schema() {
     'unique keys' => array('pickem_picks_unique_idx' => array('lid', 'uid', 'gid')),
   );
 
-  $schema['pickem_teams'] = array(
-    'fields' => array(
-      'tid'       => array('type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE),
-      'tm_city'   => array('type' => 'varchar', 'length' => 50, 'not null' => TRUE, 'default' => '', 'description' => t('The home city for the team.'), ),
-      'tm_abbrev' => array('type' => 'varchar', 'length' => 5,  'not null' => TRUE, 'default' => '', 'description' => t('The very short home city abbreviation(3 chars).'), ),
-      'tm_nick'   => array('type' => 'varchar', 'length' => 50, 'not null' => TRUE, 'default' => '', 'description' => t('The team nickname.  Not always a good thing.'), ),
-      'tm_name'   => array('type' => 'varchar', 'length' => 50, 'not null' => TRUE, 'default' => '', 'description' => t('The full team name.'), ),
-      'conference' => array('type' => 'varchar', 'length' => 50, 'not null' => TRUE, 'default' => '', 'description' => t('Team Conference.'), ),
-      'division'   => array('type' => 'varchar', 'length' => 50, 'not null' => TRUE, 'default' => '', 'description' => t('Team Division.'), )
-    ),
-    'primary key' => array('tid')
-  );
-
-  $schema['pickem_weeks'] = array(
-    'fields' => array(
-      'wid'          => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
-      'wk_name'      => array('type' => 'varchar', 'length' => 50, 'not null' => TRUE, 'default' => '', 'description' => t('The full week name.'), ),
-      'wk_abbrev'    => array('type' => 'varchar', 'length' => 5, 'not null' => TRUE, 'default' => '', 'description' => t('The very short week abbreviation (5 chars).'), ),
-      'wk_firstgame' => array('type' => 'datetime'),
-      'wk_points'    => array('type' => 'int', 'unsigned' => TRUE, 'default' => 0),
-      'playoffs'     => array('type' => 'int', 'unsigned' => TRUE, 'default' => 0, 'size' => 'small')
-    ),
-    'primary key' => array('wid')
-  );
 
   $schema['pickem_users'] = array(
     'fields' => array(
@@ -101,6 +102,21 @@ function pickem_schema() {
       'uid' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE),
     ),
     'primary key' => array('lid', 'uid')
+  );
+
+
+  $schema['pickem_teams'] = array(
+    'fields' => array(
+      'tid'        => array('type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE),
+      'gsid'       => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
+      'tm_city'    => array('type' => 'varchar', 'length' => 50, 'not null' => TRUE, 'default' => '', 'description' => t('The home city for the team.'), ),
+      'tm_abbrev'  => array('type' => 'varchar', 'length' => 5,  'not null' => TRUE, 'default' => '', 'description' => t('The very short home city abbreviation(3 chars).'), ),
+      'tm_nick'    => array('type' => 'varchar', 'length' => 50, 'not null' => TRUE, 'default' => '', 'description' => t('The team nickname.  Not always a good thing.'), ),
+      'tm_name'    => array('type' => 'varchar', 'length' => 50, 'not null' => TRUE, 'default' => '', 'description' => t('The full team name.'), ),
+      'conference' => array('type' => 'varchar', 'length' => 50, 'not null' => TRUE, 'default' => '', 'description' => t('Team Conference.'), ),
+      'division'   => array('type' => 'varchar', 'length' => 50, 'not null' => TRUE, 'default' => '', 'description' => t('Team Division.'), )
+    ),
+    'primary key' => array('tid')
   );
 
   return $schema;
@@ -117,7 +133,7 @@ function pickem_schema() {
 
 
 function pickem_update_6100() {
-  
+
   $ret = array();
 
   /*
@@ -136,7 +152,7 @@ function pickem_update_6100() {
     'primary key' => array('lid')
   );
   db_create_table($ret, 'pickem_leagues', $leagues_schema);
-  
+
   // add temp field for data updates
   db_add_field($ret, 'pickem_leagues', 'leagacy_cck_id', array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0));
 
@@ -151,10 +167,10 @@ function pickem_update_6100() {
   db_add_field($ret, 'pickem_games', 'v_spread', array('type' => 'numeric', 'precision' => 10, 'scale' => 1, 'default' => 0));
 
 
-  /* 
-    DATA UPDATES 
+  /*
+    DATA UPDATES
   */
-  
+
   // add leagues from the old CCK nodes
   $query = "SELECT n.* from {node} n where n.type='league'";
   $result = db_query($query);
@@ -175,7 +191,7 @@ function pickem_update_6100() {
   //update picks table
   $query = 'update {pickem_picks} pp set lid = (select lid from {pickem_leagues} pl where pl.leagacy_cck_id=pp.nid)';
   if (db_query($query) == FALSE) {
-    $data_errors = TRUE; 
+    $data_errors = TRUE;
   }
 
 
@@ -199,3 +215,54 @@ function pickem_update_6101() {
   return $ret;
 }
 
+function pickem_update_6200() {
+  $ret = array();
+  db_drop_primary_key($ret, 'pickem_weeks');
+  db_change_field($ret, 'pickem_weeks', 'wid', 'wk_number', array('type' => 'int', 'unsigned' => TRUE, 'not null' => FALSE, 'default' => 0) );
+
+  db_add_field($ret, 'pickem_weeks',    'wid', array('type' => 'serial', 'unsigned' => TRUE), array('primary key' => array('wid')));
+
+  db_add_field($ret, 'pickem_weeks',    'gsid', array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0) );
+  db_add_field($ret, 'pickem_teams',    'gsid', array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0) );
+  db_add_field($ret, 'pickem_games',    'gsid', array('type' => 'int', 'unsigned' => TRUE, 'not null' => FALSE, 'default' => NULL) );
+  db_add_field($ret, 'pickem_leagues',  'gsid', array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0) );
+  db_add_field($ret, 'pickem_leagues',  'partial_league', array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0) );
+
+  // create new leagues table
+  $gs_schema = array(
+    'fields' => array(
+      'gsid'    => array('type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE),
+      'gs_name' => array('type' => 'varchar', 'length' => 50, 'not null' => TRUE, 'default' => '', 'description' => t('The name of the gameset, "NCAA March Madness".'), ),
+    ),
+    'primary key' => array('gsid')
+  );
+  db_create_table($ret, 'pickem_gamesets', $gs_schema);
+
+  $data_errors = FALSE;
+  if (db_query("INSERT INTO {pickem_gamesets} (gs_name) VALUES ('%s')", 'Default Game Set') == FALSE) {
+    $data_errors = TRUE;
+  }
+  $gsid = db_last_insert_id('pickem_gamesets', 'gsid');
+
+  //update leagues table
+  $partial = variable_get('pickem_partial_league', 0);
+  if (db_query('update {pickem_leagues} set gsid = %d, partial_league=%d', $gsid, $partial) == FALSE) {
+    $data_errors = TRUE;
+  }
+
+  //update weeks table
+  if (db_query('update {pickem_weeks} set gsid = %d', $gsid) == FALSE) {
+    $data_errors = TRUE;
+  }
+
+  //update teams table
+  if (db_query('update {pickem_teams} set gsid = %d', $gsid) == FALSE) {
+    $data_errors = TRUE;
+  }
+
+  // old variables
+  variable_del('pickem_partial_league');
+  variable_del('pickem_use_espn');
+
+  return $ret;
+}
