@@ -69,6 +69,7 @@ function pickem_schema() {
     'fields' => array(
       'gid'       => array('type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE),
       'wid'       => array('type' => 'int',    'unsigned' => TRUE, 'not null' => TRUE),
+      'gsid'         => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
       'gametime'  => array('type' => 'datetime'),
       'h_id'      => array('type' => 'int',    'unsigned' => TRUE),
       'h_spread'  => array('type' => 'numeric', 'precision' => 10, 'scale' => 1, 'default' => 0),
