@@ -1598,12 +1598,10 @@ function league_forums() {
 
 function gameset_options() {
   $options = array();
-  if (module_exists("forum")) {
   $gamesets = get_gamesets();
-    if ($gamesets) {
-      foreach ($gamesets as $gsid => $gameset) {
-         $options[$gsid] = $gameset->gs_name;
-      }
+  if ($gamesets) {
+    foreach ($gamesets as $gsid => $gameset) {
+       $options[$gsid] = $gameset->gs_name;
     }
   }
   return $options;
