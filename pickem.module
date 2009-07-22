@@ -1250,9 +1250,7 @@ function page_league($league) {
   }
   $o .= '</tr>';
 
-  if ( $league->forum_id != 0 ) {
-    $o .= '<tr><td colspan="2">'. theme('league_messages', $league) .'</td></tr>';
-  }
+  $o .= '<tr><td colspan="2">'. theme('league_messages', $league) .'</td></tr>';
 
   $o .= '<tr><td colspan="2">'. theme('this_weeks_games') .'</td></tr></table></div>';
 
@@ -1330,12 +1328,13 @@ function theme_my_league_summary($league) {
 function theme_league_messages($league) {
   global $user;
 
-  if ( is_my_league($league) ) {
+  if ( is_my_league($league) && $league->forum_id != 0 ) {
     $post_link = '/node/add/forum/'. $league->forum_id;
     $output = '<a href="'. $post_link .'">Post new forum topic.</a>';
   }
   $output .= '<ul>';
   $cur_w = get_current_week($league, TRUE);
+
   if ( $cur_w->firstgame_date != '' ) {
     if ( $cur_w->firstgame_dow <> "Sunday" ) {
       $output .= '<li class="warning">Warning: The first game is on <span style="text-decoration:underline;">'. strtoupper($cur_w->firstgame_dow) .'</span>.</li>';
@@ -1346,29 +1345,31 @@ function theme_league_messages($league) {
   }
 
 
-  $sql = db_rewrite_sql("SELECT n.nid, n.title, l.comment_count, l.last_comment_timestamp, u.name, c.cid, c.comment, c.subject comment_subject, cu.name comment_name, c.timestamp comment_timestamp FROM {node} n INNER JOIN {node_comment_statistics} l ON n.nid = l.nid inner join {users} u on u.uid=n.uid inner join {term_node} tn on tn.nid=n.nid left outer join {comments} c on c.nid=n.nid left outer join {users} cu on cu.uid=c.uid WHERE n.status = 1 AND n.type = 'forum' and tn.tid=%d ORDER BY GREATEST(n.created, c.timestamp) DESC");
-  $result = db_query($sql, $league->forum_id);
+  if ( is_my_league($league) && $league->forum_id != 0 ) {
+	  $sql = db_rewrite_sql("SELECT n.nid, n.title, l.comment_count, l.last_comment_timestamp, u.name, c.cid, c.comment, c.subject comment_subject, cu.name comment_name, c.timestamp comment_timestamp FROM {node} n INNER JOIN {node_comment_statistics} l ON n.nid = l.nid inner join {users} u on u.uid=n.uid inner join {term_node} tn on tn.nid=n.nid left outer join {comments} c on c.nid=n.nid left outer join {users} cu on cu.uid=c.uid WHERE n.status = 1 AND n.type = 'forum' and tn.tid=%d ORDER BY GREATEST(n.created, c.timestamp) DESC");
+	  $result = db_query($sql, $league->forum_id);
 
-  $i = 1;
-  $content='';
-  while ($node = db_fetch_object($result)) {
-    if ( $i > 4 ) {
-      break;
-    }
-    $i++;
-    if ( $node->comment ) {
-      $content .= '<li>'. l($node->comment_subject .' - '. $node->comment_name .' <Re: '. $node->title .'>', 'node/'. $node->nid  )  .  ' ('. format_date($node->comment_timestamp, 'small') .') <a href="/comment/reply/'. $node->nid .'/'. $node->cid .'">-Reply</a></li>';
-    }
-    else {
-      $content .= '<li>'. l($node->title .' - '. $node->name, 'node/'. $node->nid  )  .' ('. format_date($node->last_comment_timestamp, 'small') .') <a href="/comment/reply/'. $node->nid .'/#comment-form">-Reply</a></li>';
-    }
-  }
+	  $i = 1;
+	  $content='';
+	  while ($node = db_fetch_object($result)) {
+	    if ( $i > 4 ) {
+	      break;
+	    }
+	    $i++;
+	    if ( $node->comment ) {
+	      $content .= '<li>'. l($node->comment_subject .' - '. $node->comment_name .' <Re: '. $node->title .'>', 'node/'. $node->nid  )  .  ' ('. format_date($node->comment_timestamp, 'small') .') <a href="/comment/reply/'. $node->nid .'/'. $node->cid .'">-Reply</a></li>';
+	    }
+	    else {
+	      $content .= '<li>'. l($node->title .' - '. $node->name, 'node/'. $node->nid  )  .' ('. format_date($node->last_comment_timestamp, 'small') .') <a href="/comment/reply/'. $node->nid .'/#comment-form">-Reply</a></li>';
+	    }
+	  }
 
-  if ( $content == '' ) {
-    $content = "<li>None</li>";
-  }
+	  if ( $content == '' ) {
+	    $content = "<li>None</li>";
+	  }
 
-  $output .= $content;
+	  $output .= $content;
+	}
   $output .= '</ul>';
 
   return theme('dash', 'Messages', $output);
