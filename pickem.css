@@ -1,5 +1,4 @@
-<<<<<<< local
-/* $Id: pickem.css 65 2008-04-15 22:16:56Z vandervo $ */
+/* $Id: $ */
 
 .dash {
   margin:0;
@@ -114,9 +113,6 @@ table.block_scores td.home-s {
  font-weight:bold; 
 }
 
-
-=======
-/* $Id: pickem.css,v 1.1.2.1 2008/09/18 21:57:44 jvandervort Exp $ */
 
 /*
   GENERAL
@@ -309,4 +305,4 @@ table.block_scores td.home-s {
 .pickem-weeks-games td.score {
 	padding-left: 1px;
 	text-align: left;
-}>>>>>>> other
+}
