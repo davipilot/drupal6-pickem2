@@ -1744,10 +1744,10 @@ function unserialize_gameset($gameset, $gameset_name) {
   $result = db_query('delete from {pickem_games}');  
   foreach ( $gs['games'] as $gid => $game ) {
 
-		// drupal bug #245335, can't insert nulls with db_query replacement
-  	$game->v_score = ($game->v_score === NULL) ? 'NULL' : (int) $game->v_score;
-  	$game->h_score = ($game->h_score === NULL) ? 'NULL' : (int) $game->h_score;
-  	
+    // drupal bug #245335, can't insert nulls with db_query replacement
+    $game->v_score = ($game->v_score === NULL) ? 'NULL' : (int) $game->v_score;
+    $game->h_score = ($game->h_score === NULL) ? 'NULL' : (int) $game->h_score;
+    
     $query = "insert into {pickem_games}(wid, gsid, gametime, h_id, h_spread, h_score, v_id, v_spread, v_score) values(%d, %d, '%s', %d, %d, %d, %d, %d, %d)";
     $result = db_query($query, $gs['weeks'][$game->wid]->wid, $gsid, date($game->gametime), $gs['teams'][$game->h_id]->tid, $game->h_spread, $game->h_score, $gs['teams'][$game->v_id]->tid, $game->v_spread, $game->v_score);
     if ( $result == FALSE ) {
