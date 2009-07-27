@@ -1475,11 +1475,17 @@ function theme_team_stats($league) {
       $teams[$game->v_id]->ties++;
       $teams[$game->h_id]->ties++;
     }
+    
     $teams[$game->h_id]->games_played++;
     $teams[$game->v_id]->games_played++;
 
-    $teams[$game->h_id]->win_percent = $teams[$game->h_id]->wins / ( $teams[$game->h_id]->wins + $teams[$game->h_id]->losses );
-    $teams[$game->v_id]->win_percent = $teams[$game->v_id]->wins / ( $teams[$game->v_id]->wins + $teams[$game->v_id]->losses );
+    if ( $teams[$game->h_id]->wins + $teams[$game->h_id]->losses > 0 ) {
+    	$teams[$game->h_id]->win_percent = $teams[$game->h_id]->wins / ( $teams[$game->h_id]->wins + $teams[$game->h_id]->losses );
+    }
+    
+    if ( $teams[$game->v_id]->wins + $teams[$game->v_id]->losses > 0 ) {
+    	$teams[$game->v_id]->win_percent = $teams[$game->v_id]->wins / ( $teams[$game->v_id]->wins + $teams[$game->v_id]->losses );
+    }
 
     $teams[$game->v_id]->pts_for += $game->v_score;
     $teams[$game->v_id]->pts_against += $game->h_score;
