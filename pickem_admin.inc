@@ -1500,11 +1500,11 @@ function admin_picks_week($league, $user_arg, $week) {
     $output .= '<tr>';
     $output .= '<td><input type="radio" name="gid_'. $gid .'" value="'. $game->v_id .'" '. $v_sel .'/>'. $teams[$game->v_id]->short_name .'</td>';
     if ($league->scoring_type == 1) {
-      $output .= '<td>'. $game['v_spread'] .'</td>';
+      $output .= '<td>'. $game->v_spread .'</td>';
     }
     $output .= '<td><input type="radio" name="gid_'. $gid .'" value="'. $game->h_id .'" '. $h_sel .'/>'. $teams[$game->h_id]->short_name .'</td>';
     if ($league->scoring_type == 1) {
-      $output .= '<td>'. $game['h_spread'] .'</td>';
+      $output .= '<td>'. $game->h_spread .'</td>';
     }
     if (isset ($picks[$gid][$user_arg->uid])) {
       $output .= '<td class="pick">'. $game->gametime .'</td></tr>';
