@@ -12,7 +12,7 @@ $tz = variable_get('pickem_time_zone', 'TZ=US/Eastern');
 // dump this conditional for drupal 7, date_default_timezone_set is php5
 if( function_exists('date_default_timezone_set') ) {
   putenv($tz);
-  date_default_timezone_set('123'. $tz);
+  date_default_timezone_set($tz);
 }
 else {
   putenv($tz);
