@@ -56,18 +56,18 @@ function pickem_settings(&$form_state=NULL) {
     '#default_value' => variable_get('pickem_default_email_reminders', 1)
   );
 
-  $timezones['TZ=US/Eastern'] = 'US/Eastern';
-  $timezones['TZ=America/New_York'] = 'America/New York - Eastern';
-  $timezones['TZ=America/Chicago'] = 'America/Chicago - Central';
-  $timezones['TZ=America/Denver'] = 'America/Denver - Mountain';
-  $timezones['TZ=America/Los_Angeles'] = 'US/America/Los Angeles - Pacific';
-  $timezones['TZ=Pacific/Honolulu'] = 'Pacific/Honolulu';
+  $timezones['US/Eastern'] = 'US/Eastern';
+  $timezones['America/New_York'] = 'America/New York - Eastern';
+  $timezones['America/Chicago'] = 'America/Chicago - Central';
+  $timezones['America/Denver'] = 'America/Denver - Mountain';
+  $timezones['America/Los_Angeles'] = 'US/America/Los Angeles - Pacific';
+  $timezones['Pacific/Honolulu'] = 'Pacific/Honolulu';
 
   $form['pickem_time_zone'] = array(
     '#title' => t('Pickem time zone'),
     '#description' => 'This MUST MATCH all of your game sets.<br/>NOTE: NFL schedules use EDT which changes mid-season.<br/>Current Server Time='. date("r"),
     '#type' => 'select',
-    '#default_value' => variable_get('pickem_time_zone', 'TZ=US/Eastern'),
+    '#default_value' => variable_get('pickem_time_zone', 'US/Eastern'),
     '#options' => $timezones
   );
 
