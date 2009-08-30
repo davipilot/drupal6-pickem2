@@ -661,6 +661,7 @@ function pickem_perm() {
  * Implementation of hook_cron().
  */
 function pickem_cron() {
+
   $row = db_fetch_object(db_query("SELECT pw.wid,pw.wk_firstgame, UNIX_TIMESTAMP(pw.wk_firstgame) - UNIX_TIMESTAMP(CURDATE()) as diff FROM {pickem_weeks} pw where wk_firstgame > CURDATE() order by wk_firstgame"));
   $wid = $row->wid;
   $days = ($row->diff) / 86400; #days
@@ -1341,35 +1342,37 @@ function theme_league_messages($league) {
     }
     if (module_exists("countdowntimer")) {
       $output .= '<li class="warning">'. get_countdown_timer($cur_w) .'</span></li>';
+    } else {
+      $output .= '<li class="warning">Week '. ($cur_w->wk_number) .' picks due by '. date('l, F j, Y \a\t g:i a',strtotime($cur_w->firstgame)) .' EST.</li>';
     }
   }
 
 
   if ( is_my_league($league) && $league->forum_id != 0 ) {
-	  $sql = db_rewrite_sql("SELECT n.nid, n.title, l.comment_count, l.last_comment_timestamp, u.name, c.cid, c.comment, c.subject comment_subject, cu.name comment_name, c.timestamp comment_timestamp FROM {node} n INNER JOIN {node_comment_statistics} l ON n.nid = l.nid inner join {users} u on u.uid=n.uid inner join {term_node} tn on tn.nid=n.nid left outer join {comments} c on c.nid=n.nid left outer join {users} cu on cu.uid=c.uid WHERE n.status = 1 AND n.type = 'forum' and tn.tid=%d ORDER BY GREATEST(n.created, c.timestamp) DESC");
-	  $result = db_query($sql, $league->forum_id);
+    $sql = db_rewrite_sql("SELECT n.nid, n.title, l.comment_count, l.last_comment_timestamp, u.name, c.cid, c.comment, c.subject comment_subject, cu.name comment_name, c.timestamp comment_timestamp FROM {node} n INNER JOIN {node_comment_statistics} l ON n.nid = l.nid inner join {users} u on u.uid=n.uid inner join {term_node} tn on tn.nid=n.nid left outer join {comments} c on c.nid=n.nid left outer join {users} cu on cu.uid=c.uid WHERE n.status = 1 AND n.type = 'forum' and tn.tid=%d ORDER BY GREATEST(n.created, c.timestamp) DESC");
+    $result = db_query($sql, $league->forum_id);
 
-	  $i = 1;
-	  $content='';
-	  while ($node = db_fetch_object($result)) {
-	    if ( $i > 4 ) {
-	      break;
-	    }
-	    $i++;
-	    if ( $node->comment ) {
-	      $content .= '<li>'. l($node->comment_subject .' - '. $node->comment_name .' <Re: '. $node->title .'>', 'node/'. $node->nid  )  .  ' ('. format_date($node->comment_timestamp, 'small') .') <a href="/comment/reply/'. $node->nid .'/'. $node->cid .'">-Reply</a></li>';
-	    }
-	    else {
-	      $content .= '<li>'. l($node->title .' - '. $node->name, 'node/'. $node->nid  )  .' ('. format_date($node->last_comment_timestamp, 'small') .') <a href="/comment/reply/'. $node->nid .'/#comment-form">-Reply</a></li>';
-	    }
-	  }
+    $i = 1;
+    $content='';
+    while ($node = db_fetch_object($result)) {
+      if ( $i > 4 ) {
+        break;
+      }
+      $i++;
+      if ( $node->comment ) {
+        $content .= '<li>'. l($node->comment_subject .' - '. $node->comment_name .' <Re: '. $node->title .'>', 'node/'. $node->nid  )  .  ' ('. format_date($node->comment_timestamp, 'small') .') <a href="/comment/reply/'. $node->nid .'/'. $node->cid .'">-Reply</a></li>';
+      }
+      else {
+        $content .= '<li>'. l($node->title .' - '. $node->name, 'node/'. $node->nid  )  .' ('. format_date($node->last_comment_timestamp, 'small') .') <a href="/comment/reply/'. $node->nid .'/#comment-form">-Reply</a></li>';
+      }
+    }
 
-	  if ( $content == '' ) {
-	    $content = "<li>None</li>";
-	  }
+    if ( $content == '' ) {
+      $content = "<li>None</li>";
+    }
 
-	  $output .= $content;
-	}
+    $output .= $content;
+  }
   $output .= '</ul>';
 
   return theme('dash', 'Messages', $output);
@@ -1475,16 +1478,16 @@ function theme_team_stats($league) {
       $teams[$game->v_id]->ties++;
       $teams[$game->h_id]->ties++;
     }
-    
+
     $teams[$game->h_id]->games_played++;
     $teams[$game->v_id]->games_played++;
 
     if ( $teams[$game->h_id]->wins + $teams[$game->h_id]->losses > 0 ) {
-    	$teams[$game->h_id]->win_percent = $teams[$game->h_id]->wins / ( $teams[$game->h_id]->wins + $teams[$game->h_id]->losses );
+      $teams[$game->h_id]->win_percent = $teams[$game->h_id]->wins / ( $teams[$game->h_id]->wins + $teams[$game->h_id]->losses );
     }
-    
+
     if ( $teams[$game->v_id]->wins + $teams[$game->v_id]->losses > 0 ) {
-    	$teams[$game->v_id]->win_percent = $teams[$game->v_id]->wins / ( $teams[$game->v_id]->wins + $teams[$game->v_id]->losses );
+      $teams[$game->v_id]->win_percent = $teams[$game->v_id]->wins / ( $teams[$game->v_id]->wins + $teams[$game->v_id]->losses );
     }
 
     $teams[$game->v_id]->pts_for += $game->v_score;
@@ -1777,13 +1780,14 @@ function chart3($league, $team_id) {
   print theme('page', $o);
 }
 
-function email_warning($user, $week_id, $firstgame, $missing_picks, $league) {
+function email_warning($user, $week_id, $firstgame, $missing_picks, $league_id) {
 
   $headers['Content-Type'] = 'text/plain; charset=UTF-8; format=flowed';
   //$headers['Content-Type'] = 'text/html; charset=UTF-8;';
 
   $subject = 'NFL Pickem: Week'. $week_id .' picks due!';
-  $body = "Picks Due Before: $firstgame (EST)\n\nJust a reminder, you're missing $missing_picks picks for week $week_id\n\nhttp://nfl.vandervortsweb.com/pickem/". $league->lid ."/picks/". $week_id;
+  $link = check_url(url("pickem/". $league_id ."/picks/". $week_id, array( 'absolute' => TRUE )));
+  $body = "Picks Due Before: $firstgame (EST)\n\nJust a reminder, you're missing $missing_picks picks for week $week_id\n\n$link";
 
   $from = variable_get('pickem_commisioner_email', '');
   $headers['From'] = $from;
