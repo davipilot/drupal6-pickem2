@@ -882,9 +882,6 @@ function page_grid($league) {
 function page_mypicks_week($league, $week) {
   global $user, $PICKEM_TIMEZONE;
   
-  drupal_set_message("HOHO $PICKEM_TIMEZONE");
-  
-  
   // param check: valid league which has this week
   if ( bad_league_week($league, $week) ) {
     return drupal_not_found();
