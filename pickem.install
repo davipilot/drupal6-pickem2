@@ -120,6 +120,20 @@ function pickem_schema() {
     'primary key' => array('tid')
   );
 
+  $schema['pickem_mail'] = array(
+    'fields' => array(
+      'id'            => array('type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE),
+      'process_name'  => array('type' => 'varchar', 'length' => 50, 'not null' => TRUE, 'default' => ''),
+      'process_point' => array('type' => 'varchar', 'length' => 50, 'not null' => TRUE, 'default' => ''),
+      'uid'           => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE),
+      'lid'           => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE),
+      'email'            => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
+      'sent'          => array('type' => 'datetime')
+    ),
+    'primary key' => array('id'),
+    'unique keys' => array('pickem_mail_unique_idx' => array('process_name', 'process_point', 'uid', 'lid'))
+  );
+
   return $schema;
 }
 
@@ -130,8 +144,11 @@ function pickem_schema() {
 
 
 
-
-
+/*
+ *
+ * SCHEMA UPDATES
+ *
+ */
 
 function pickem_update_6100() {
 
@@ -267,3 +284,23 @@ function pickem_update_6200() {
 
   return $ret;
 }
+
+function pickem_update_6201() {
+  $ret = array();
+  $gs_schema = array(
+    'fields' => array(
+      'id'            => array('type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE),
+      'process_name'  => array('type' => 'varchar', 'length' => 50, 'not null' => TRUE, 'default' => ''),
+      'process_point' => array('type' => 'varchar', 'length' => 50, 'not null' => TRUE, 'default' => ''),
+      'uid'           => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE),
+      'lid'           => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE),
+      'email'            => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
+      'sent'          => array('type' => 'datetime')
+    ),
+    'primary key' => array('id'),
+    'unique keys' => array('pickem_mail_unique_idx' => array('process_name', 'process_point', 'uid', 'lid'))
+  );
+  db_create_table($ret, 'pickem_mail', $gs_schema);
+  return $ret;
+}
+
