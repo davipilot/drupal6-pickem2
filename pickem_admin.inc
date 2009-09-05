@@ -1325,7 +1325,7 @@ function email_league_form_submit($form, &$form_state) {
   $message[] = wordwrap($form_state['values']['message']);
 
   // Format the subject line:
-  $subject = 'Nfl Pickem: '. $form_state['values']['subject'];
+  $subject = 'Sports Pickem: '. $form_state['values']['subject'];
 
   // Prepare the body:
   $body = implode("\n\n", $message);
