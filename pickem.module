@@ -1796,7 +1796,7 @@ function email_warning($user, $week_id, $firstgame, $missing_picks, $league_id) 
 
   $from = variable_get('pickem_commisioner_email', '');
   $headers['From'] = $from;
-  $headers['Bcc'] = $from;
+  //$headers['Bcc'] = $from;
 
   $to = $user->name .' <'. $user->mail .'>';
 
