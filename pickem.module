@@ -10,8 +10,8 @@ error_reporting(E_ALL | E_STRICT);
 
 require_once 'pickem.inc';
 
-/* 
- * GLOBALS 
+/*
+ * GLOBALS
  */
 global $PICKEM_TIMEZONE;
 $PICKEM_TIMEZONE = variable_get('pickem_time_zone', 'US/Eastern');
@@ -198,7 +198,7 @@ function pickem_menu() {
   );
 
   // dynamic logo -> access content
-  $items['pickem/logos.gif'] = array(
+  $items['pickem/random_logo.png'] = array(
     'title' => t('Team Logo'),
     'page callback' => 'stream_logo',
     'access arguments' => array('access content'),
@@ -881,7 +881,7 @@ function page_grid($league) {
 
 function page_mypicks_week($league, $week) {
   global $user, $PICKEM_TIMEZONE;
-  
+
   // param check: valid league which has this week
   if ( bad_league_week($league, $week) ) {
     return drupal_not_found();
@@ -893,7 +893,7 @@ function page_mypicks_week($league, $week) {
   $breadcrumb = drupal_get_breadcrumb();
   $breadcrumb[] = l($league->name, 'pickem/'. $league->lid);
   drupal_set_breadcrumb($breadcrumb);
-  
+
   // used to saving to multiple leagues that use the same pickset.
   $similar_leagues = get_my_leagues($league->gsid);
 
@@ -952,11 +952,11 @@ function page_mypicks_week($league, $week) {
 
     if ($week->week_past == 0) {
       $output .= '<tr>';
-      $output .= '<td><input type="radio" name="gid_'. $gid .'" value="'. $game->v_id .'" '. $v_sel .'/>'. $teams[$game->v_id]->short_name .'</td>';
+      $output .= '<td><input type="radio" name="gid_'. $gid .'" value="'. $game->v_id .'" '. $v_sel .'/> &nbsp;' . $teams[$game->v_id]->small_logo_img . $teams[$game->v_id]->short_name .'</td>';
       if ($league->scoring_type == 1) {
         $output .= '<td>'. $game->v_spread .'</td>';
       }
-      $output .= '<td><input type="radio" name="gid_'. $gid .'" value="'. $game->h_id .'" '. $h_sel .'/>'. $teams[$game->h_id]->short_name .'</td>';
+      $output .= '<td><input type="radio" name="gid_'. $gid .'" value="'. $game->h_id .'" '. $h_sel .'/> &nbsp;' . $teams[$game->h_id]->small_logo_img . $teams[$game->h_id]->short_name .'</td>';
       if ($league->scoring_type == 1) {
         $output .= '<td>'. $game->h_spread .'</td>';
       }
@@ -964,26 +964,26 @@ function page_mypicks_week($league, $week) {
     else {
       $output .= '<tr>';
       if ($picks[$gid][$user->uid]->winnerpick_id == $game->v_id) {
-        $output .= '<td><input name="checkbox1" type="checkbox" value="checkbox" onclick="return false" checked/>'. $teams[$game->v_id]->short_name .'</td>';
+        $output .= '<td><div class="picks-align picked">'.$teams[$game->v_id]->small_logo_img.'<b>'. $teams[$game->v_id]->short_name .' &radic;</b></div></td>';
         if ($league->scoring_type == 1) {
           $output .= '<td>'. $game->v_spread .'</td>';
         }
       }
       else {
-        $output .= '<td>'. $teams[$game->v_id]->short_name .'</td>';
+        $output .= '<td><div class="picks-align">'.$teams[$game->v_id]->small_logo_img. $teams[$game->v_id]->short_name .'</div></td>';
         if ($league->scoring_type == 1) {
           $output .= '<td>'. $game->v_spread .'</td>';
         }
       }
 
       if ($picks[$gid][$user->uid]->winnerpick_id == $game->h_id) {
-        $output .= '<td><input name="checkbox1" type="checkbox" value="checkbox" onclick="return false" checked/>'. $teams[$game->h_id]->short_name .'</td>';
+        $output .= '<td><div class="picks-align picked">'.$teams[$game->h_id]->small_logo_img.'<b>'. $teams[$game->h_id]->short_name .' &radic;</b></div></td>';
         if ($league->scoring_type == 1) {
           $output .= '<td>'. $game->h_spread .'</td>';
         }
       }
       else {
-        $output .= '<td>'. $teams[$game->h_id]->short_name .'</td>';
+        $output .= '<td><div class="picks-align">'.$teams[$game->h_id]->small_logo_img . $teams[$game->h_id]->short_name .'</div></td>';
         if ($league->scoring_type == 1) {
           $output .= '<td>'. $game->h_spread .'</td>';
         }
@@ -1553,13 +1553,13 @@ function sort_team_stats($a, $b) {
 
 
 function stream_logo() {
-  header("content-type: image/gif");
+  header("content-type: image/png");
 
-  $full_path = drupal_get_path('module', 'pickem') .'/nfl_logos';
+  $full_path = drupal_get_path('module', 'pickem') .'/logos';
   $files = array();
   if ( $dir = opendir($full_path) ) {
     while (false !== ($file = readdir($dir))) {
-      if (preg_match("/\.gif$/", "$file")) {
+      if (preg_match("/100\.png$/", "$file")) {
         $files[] = $file;
       }
 

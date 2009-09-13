@@ -380,6 +380,15 @@ function pickem_team_edit(&$form_state, $type, $gameset, $team) {
     '#maxlength' => 50,
     '#default_value' => $team->division
   );
+  $form['team']['logo_small'] = array(
+    '#title'  => t('Small Logo Filename'),
+    '#type' => 'textfield',
+    '#size' => 50,
+    '#maxlength' => 128,
+    '#default_value' => $team->logo_small
+  );
+
+
 
   $form['submit'] = array('#type' => 'submit', '#value' => t('Save'));
 
@@ -398,16 +407,16 @@ function pickem_team_edit_submit($form, &$form_state) {
   $team = $form_state['values'];
 
   if ( $team['tid'] == 0 ) {
-    $query = "insert into {pickem_teams} (gsid, tm_city, tm_abbrev, tm_name, tm_nick, conference, division) values(%d, '%s','%s','%s','%s','%s','%s')";
-    $result = db_query($query, $team['gsid'], $team['tm_city'], $team['tm_abbrev'], $team['tm_name'], $team['tm_nick'], $team['conference'], $team['division']);
+    $query = "insert into {pickem_teams} (gsid, tm_city, tm_abbrev, tm_name, tm_nick, conference, division, logo_small) values(%d, '%s','%s','%s','%s','%s','%s', '%s')";
+    $result = db_query($query, $team['gsid'], $team['tm_city'], $team['tm_abbrev'], $team['tm_name'], $team['tm_nick'], $team['conference'], $team['division'], $team['logo_small'] );
 
     $t_string = t('Added team %name.', array('%name' => $team['tm_name']));
     drupal_set_message($t_string);
     watchdog('pickem', $t_string, NULL, WATCHDOG_NOTICE);
   }
   else {
-    $query = "update {pickem_teams} set gsid=%d, tm_city='%s', tm_abbrev='%s', tm_name='%s', tm_nick='%s', conference='%s', division='%s' where tid=%d";
-    $result = db_query($query, $team['gsid'], $team['tm_city'], $team['tm_abbrev'], $team['tm_name'], $team['tm_nick'], $team['conference'], $team['division'], $team['tid']);
+    $query = "update {pickem_teams} set gsid=%d, tm_city='%s', tm_abbrev='%s', tm_name='%s', tm_nick='%s', conference='%s', division='%s', logo_small='%s' where tid=%d";
+    $result = db_query($query, $team['gsid'], $team['tm_city'], $team['tm_abbrev'], $team['tm_name'], $team['tm_nick'], $team['conference'], $team['division'], $team['logo_small'], $team['tid']);
 
     $t_string = t('Updated team %name.', array('%name' => $team['tm_name']));
     drupal_set_message($t_string);
@@ -1713,7 +1722,7 @@ function unserialize_gameset($gameset, $gameset_name) {
   }
 
   // TEAMS
-  $result = db_query('delete from {pickem_teams}');  
+  $result = db_query('delete from {pickem_teams}');
   foreach ( $gs['teams'] as $tid => $team ) {
     $query = "insert into {pickem_teams} (gsid, tm_city, tm_abbrev, tm_name, tm_nick, conference, division) values(%d, '%s','%s','%s','%s','%s','%s')";
     $result = db_query($query, $gsid, $team->tm_city, $team->tm_abbrev, $team->tm_name, $team->tm_nick, $team->conference, $team->division);
@@ -1741,13 +1750,13 @@ function unserialize_gameset($gameset, $gameset_name) {
   }
 
   // GAMES, use the new tid and new wid
-  $result = db_query('delete from {pickem_games}');  
+  $result = db_query('delete from {pickem_games}');
   foreach ( $gs['games'] as $gid => $game ) {
 
     // drupal bug #245335, can't insert nulls with db_query replacement
     $game->v_score = is_null($game->v_score) ? 'NULL' : (int) $game->v_score;
     $game->h_score = is_null($game->h_score) ? 'NULL' : (int) $game->h_score;
-    
+
     $query = "insert into {pickem_games}(wid, gsid, gametime, h_id, h_spread, h_score, v_id, v_spread, v_score) values(%d, %d, '%s', %d, %d, %s, %d, %d, %s)";
     $result = db_query($query, $gs['weeks'][$game->wid]->wid, $gsid, date($game->gametime), $gs['teams'][$game->h_id]->tid, $game->h_spread, $game->h_score, $gs['teams'][$game->v_id]->tid, $game->v_spread, $game->v_score);
     if ( $result == FALSE ) {

@@ -227,11 +227,19 @@ function get_teams($filter = array('team_id' => NULL, 'gameset_id' => NULL)) {
     $result = db_query($query, $filter['team_id']);
   }
   $teams = array();
+  $module_path = drupal_get_path('module', 'pickem');
   while ($row = db_fetch_object($result)) {
     $row->short_name = ($row->tm_abbrev <> '') ? $row->tm_abbrev : $row->tm_name;
     $row->long_name = $row->tm_city .' '. $row->tm_name;
     if ( $row->tm_abbrev <> '' ) {
       $row->long_name .=  ' ('. $row->tm_abbrev .')';
+    }
+    if ($row->logo_small != '') {
+      $row->small_logo_path = "/$module_path/logos/".$row->logo_small;
+      $row->small_logo_img = '<img src="' . $row->small_logo_path . '" />';
+    } else {
+      $row->small_logo_path = '';
+      $row->small_logo_img = '';
     }
     $teams[$row->tid] = $row;
   }

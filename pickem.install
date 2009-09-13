@@ -304,3 +304,8 @@ function pickem_update_6201() {
   return $ret;
 }
 
+function pickem_update_6202() {
+  $ret = array();
+  db_add_field($ret, 'pickem_teams',    'logo_small', array('type' => 'varchar', 'length' => 128, 'default' => ''));
+  return $ret;
+}
