@@ -1724,8 +1724,8 @@ function unserialize_gameset($gameset, $gameset_name) {
   // TEAMS
   $result = db_query('delete from {pickem_teams}');
   foreach ( $gs['teams'] as $tid => $team ) {
-    $query = "insert into {pickem_teams} (gsid, tm_city, tm_abbrev, tm_name, tm_nick, conference, division) values(%d, '%s','%s','%s','%s','%s','%s')";
-    $result = db_query($query, $gsid, $team->tm_city, $team->tm_abbrev, $team->tm_name, $team->tm_nick, $team->conference, $team->division);
+    $query = "insert into {pickem_teams} (gsid, tm_city, tm_abbrev, tm_name, tm_nick, conference, division, logo_small) values(%d, '%s','%s','%s','%s','%s','%s','%s')";
+    $result = db_query($query, $gsid, $team->tm_city, $team->tm_abbrev, $team->tm_name, $team->tm_nick, $team->conference, $team->division, $team->logo_small);
     if ( $result == FALSE ) {
       drupal_set_message("Insert teams failed", "error");
       $return = FALSE;
