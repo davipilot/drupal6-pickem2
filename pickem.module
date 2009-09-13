@@ -1290,6 +1290,10 @@ function theme_league_nav($league) {
       $o .= '<li>'. l('Talk and Taunting', 'forum/'. $league->forum_id) .'</li>';
     }
 
+    if ( user_access('administer pickem') && $cur_w->wk_number <> '' ) {
+      $o .= '<li>'. l('Update Week\'s Scores', 'admin/pickem/scores/'. $league->lid . '/edit/' . $cur_w->wid) .'</li>';
+    }
+
     $o .= '<li>Research<ul>';
     if ( $league->partial_league == 0 ) {
       $o .= '<li>'. l('Schedule Grid', 'pickem/'. $league->lid .'/grid') .'</li>';
