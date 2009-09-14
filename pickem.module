@@ -1636,7 +1636,7 @@ function chart1($league, $user=NULL) {
 
   // X axis:
   $x_labels = array();
-  $weeks = get_weeks(array('gameset_id' => $league->gsid, 'playoffs' => -1));
+  $weeks = get_weeks(array('gameset_id' => $league->gsid));
   foreach ($weeks as $wid => $week) {
     $x_labels[] = $week->wk_number;
   }
