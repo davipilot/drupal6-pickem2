@@ -507,11 +507,13 @@ function get_current_week($league, $nextweek = TRUE) {
   $row->days = ($row->diff) / 86400; // days: decimel number
   $row->firstgame = $row->wk_firstgame;
   $row->firstgame_dow = date("l", strtotime($row->wk_firstgame));
-
+	$tz_offset = date("O", strtotime($row->wk_firstgame));
+	$tz_offset = substr($tz_offset, 0, 3) . ':' . substr($tz_offset, 3);
+	
   $fg = preg_split('/ /', $row->wk_firstgame);
   $row->firstgame_date = $fg[0];
   $row->firstgame_time = $fg[1];
-  $row->firstgame_xml = $fg[0] .'T'. $fg[1] .'-05:00';
+  $row->firstgame_xml = $fg[0] .'T'. $fg[1] .$tz_offset;
 
   return $row;
 }
