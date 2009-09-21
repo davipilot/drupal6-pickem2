@@ -19,31 +19,6 @@
 }
 
 
-
-
-.pickem table.standings td {
-  text-align: right;
-  padding-right: 5px;
-  vertical-align: middle;
-  font-family: Courier new, monospace;
-  font-weight: bold;
-}
-.pickem table.standings td.totals {
-  font-weight:bold;
-  font-size: 1.4em;
-  padding:3px;
-  border-right-style: none;
-}
-.pickem table.standings td.gamesback {
-  font-weight:normal;
-  font-size: 0.9em;
-  border-left-style: none;
-  padding-left:10px;
-}
-
-
-
-
 table.block_scores {
   margin-left: 10px;
 }
@@ -179,14 +154,45 @@ table.block_scores td.home-s {
 .pickem table.standings td, .pickem table.standings th.week-numbers {
   text-align: right;
 }
-.pickem table.standings *.weekly-high {
+.pickem table.standings td {
+  text-align: right;
+  padding-right: 5px;
+  vertical-align: middle;
+}
+.pickem table.standings td.users {
+	font-size: 12px;
+	padding-left: 2px;
+	text-align:left;
+}
+.pickem table.standings td.totals {
+  padding:3px;
+  border-right-style: none;
+  font-weight:bold;
+  font-family: Courier new, monospace;
+  font-size: 14px;
+}
+.pickem table.standings td.gamesback {
+  border-left-style: none;
+  padding-left:10px;
+  font-weight:bold;
+  font-family: Courier new, monospace;
+  font-size: 14px;
+}
+.pickem table.standings td.weekly {
+ font-family: Courier new, monospace;
+ font-weight:bold;
+ font-size: 14px;
+}
+.pickem table.standings td.weekly-high {
   color: green;
   font-weight:bold;
 }
-.pickem table.standings *.weekly-low {
+.pickem table.standings td.weekly-low {
   color: red;
   font-weight:bold;
 }
+
+
 
 /*
   LEAGUE NAV TABLE

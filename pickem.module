@@ -1066,7 +1066,7 @@ function page_weeklypicks($league, $week) {
   $flip = array('even' => 'odd', 'odd' => 'even');
   $class = 'even';
 
-  $output = '<div class="pickem">Sorted by this week\'s scores<table class="pick-summary"><tr><th>&nbsp;</th>';
+  $output = '<div class="pickem">Sorted by this week\'s scores<table class="pick-summary"><tr><th>Weekly Rank</th><th>Points</th>';
   $gids = array();
   $teams = get_teams(array('gameset_id' => $league->gsid));
   $weeks = get_weeks(array('week_id' => $week->wid));
@@ -1088,12 +1088,12 @@ function page_weeklypicks($league, $week) {
   }
   $output .= '</tr>';
 
-  $totals = get_user_totals($league, $week_id); //sorted by overall score
+  $totals = get_user_totals($league, $week->wid); //sorted by weekly scores
   $picks = get_picks( array('league_id' => $league->lid, 'week_id' => $week->wid) );
 
   foreach ($totals as $uid => $user_totals) {
     $class=$flip[$class];
-    $output .= '<tr class="'. $class .'"><td class="users">'. l($user_totals['name'], 'user/'. $uid) .'</td>';
+    $output .= '<tr class="'. $class .'"><td class="users">'. $user_totals['ranking'] .'. '. l($user_totals['name'], 'user/'. $uid) .'</td><td>'. $user_totals['total'] .'</td>';
     foreach ($gids as $gid => $winnerid) {
       $p_team = $teams[$picks[$gid][$uid]->winnerpick_id]->short_name;
 
@@ -1146,7 +1146,7 @@ function page_standings($league) {
 
   $output = '<div class="pickem">Click on week numbers to see weekly pick summary.';
   $output .= '<div><fieldset class="collapsible"><legend><a href="#">Regular Season</a></legend>';
-  $output .= '<table class="standings"><tr><th>&nbsp;</th>';
+  $output .= '<table class="standings"><tr><th>Overall Rank</th>';
 
   $wk_summary = array();
   $output .= '<th colspan="2">TOT</th>';
@@ -1159,25 +1159,25 @@ function page_standings($league) {
   foreach ($totals as $uid => $u_object) {
     $class = $flip[$class];
     $output .= '<tr class="'. $class .'">';
-    $output .= '<th>'. $u_object['ranking'] .'.&nbsp;&nbsp;'. l($u_object['name'], 'user/'. $uid) .'</th>';
+    $output .= '<td class="users">'. $u_object['ranking'] .'.&nbsp;&nbsp;'. l($u_object['name'], 'user/'. $uid) .'</td>';
 
     if ($u_object['pts_back'] == 0) {
-      $output .= '<td>'. $u_object['total'] .'</td><td>&nbsp;</td>';
+      $output .= '<td class="totals">'. $u_object['total'] .'</td><td class="gamesback">&nbsp;</td>';
       $high = $u_object['total'];
     }
     else {
-      $output .= '<td>'. $u_object['total'] .'</td><td>+'. $u_object['pts_back'] .'</td>';
+      $output .= '<td class="totals">'. $u_object['total'] .'</td><td class="gamesback">+'. $u_object['pts_back'] .'</td>';
     }
 
     foreach ($weeks as $wid => $week) {
       if ($u_object['weeks'][$wid] == $week_totals[$wid]["min"]) {
-        $output .= '<td class="weekly-low">'. $u_object['weeks'][$wid] .'</td>';
+        $output .= '<td class="weekly weekly-low">'. $u_object['weeks'][$wid] .'</td>';
       }
       else if ($u_object['weeks'][$wid] == $week_totals[$wid]["max"]) {
-        $output .= '<td class="weekly-high">'. $u_object['weeks'][$wid] .'</td>';
+        $output .= '<td class="weekly weekly-high">'. $u_object['weeks'][$wid] .'</td>';
       }
       else {
-        $output .= '<td>'. $u_object['weeks'][$wid] .'</td>';
+        $output .= '<td class="weekly">'. $u_object['weeks'][$wid] .'</td>';
       }
     }
     $output .= "</tr>";
@@ -1189,7 +1189,7 @@ function page_standings($league) {
   $output .= '<div><fieldset class="collapsible"><legend><a href="#">Playoffs</a></legend>';
   $output .= '<table class="standings">';
 
-  $output .= '<tr><th>&nbsp;</th><th colspan="2">TOT</th>';
+  $output .= '<tr><th>Overall Rank</th><th colspan="2">TOT</th>';
   foreach ($playoff_weeks as $wid => $week) {
     $output .= '<th class="week-numbers">'. l('Week&nbsp;'. $week->wk_number .'<br/>'. $week->wk_name, 'pickem/'. $league->lid ."/weeklypicks/$wid", array('html' => TRUE)) .'</th>';
   }
@@ -1197,21 +1197,21 @@ function page_standings($league) {
   foreach ($totals as $uid => $u) {
     $class = $flip[$class];
     $output .= '<tr class="'. $class .'">';
-    $output .= '<th>'. $u['ranking'] .'.&nbsp;&nbsp;'. l($u['name'], 'user/'. $uid) .'</th>';
+    $output .= '<td class="users">'. $u['ranking'] .'.&nbsp;&nbsp;'. l($u['name'], 'user/'. $uid) .'</td>';
 
     if ($u['pts_back'] == 0) {
-      $output .= '<td>'. $u['total'] .'</td><td>&nbsp;</td>';
+      $output .= '<td class="totals">'. $u['total'] .'</td><td class="gamesback">&nbsp;</td>';
       $high = $u['total'];
     }
     else {
-      $output .= '<td>'. $u['total'] .'</td><td>+'. $u['pts_back'] .'</td>';
+      $output .= '<td class="totals">'. $u['total'] .'</td><td class="gamesback">+'. $u['pts_back'] .'</td>';
     }
     foreach ($playoff_weeks as $wid => $week) {
       if ($u['weeks'][$wid] == $week_totals[$wid]["min"]) {
-        $output .= '<td class="weekly-low">'. $u['weeks'][$wid] .'</td>';
+        $output .= '<td class="weekly weekly-low">'. $u['weeks'][$wid] .'</td>';
       }
       else if ($u['weeks'][$wid] == $week_totals[$wid]["max"]) {
-        $output .= '<td class="weekly-high">'. $u['weeks'][$wid] .'</td>';
+        $output .= '<td class="weekly weekly-high">'. $u['weeks'][$wid] .'</td>';
       }
       else {
         $output .= '<td>'. $u['weeks'][$wid] .'</td>';
