@@ -1066,8 +1066,7 @@ function page_weeklypicks($league, $week) {
   $flip = array('even' => 'odd', 'odd' => 'even');
   $class = 'even';
 
-
-  $output = '<div class="pickem">Sorted by this week\'s scores<table><tr><th>&nbsp;</th>';
+  $output = '<div class="pickem">Sorted by this week\'s scores<table class="pick-summary"><tr><th>&nbsp;</th>';
   $gids = array();
   $teams = get_teams(array('gameset_id' => $league->gsid));
   $weeks = get_weeks(array('week_id' => $week->wid));
