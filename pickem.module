@@ -615,6 +615,12 @@ function pickem_user($op, &$edit, &$account, $category = NULL) {
       }
       $edit['pickem_user_email_reminders'] = variable_get('pickem_default_email_reminders', 1);
     break;
+    case 'load':
+      // NOTE: this isn't run normally for the logged in user, just users loaded with user_load
+      if (! isset($account->pickem_user_email_reminders)) {
+        $account->pickem_user_email_reminders = 1;
+      }
+    break;
     case 'form':
       if ( $category == 'account') {
         $form['pickem'] = array('#type' => 'fieldset',
