@@ -1437,7 +1437,7 @@ function theme_this_weeks_games_block($league) {
   foreach ($games as $gid => $row) {
       $v_perc = ($picked[$row->v_id]['picked_perc'] <> '') ? '('. $picked[$row->v_id]['picked_perc'] .'%)' : '';
       $h_perc = ($picked[$row->h_id]['picked_perc'] <> '') ? '('. $picked[$row->h_id]['picked_perc'] .'%)' : '';
-      $content .= '<tr><td class="team">'. $teams[$row->v_id]->short_name .'&nbsp;'. $v_perc .'</td><td class="score">'. $row->v_score .'</td><td class="team">'. $teams[$row->h_id]->short_name .'&nbsp;'. $h_perc .'</td><td class="score">'. $row->h_score .'</td></tr>';
+      $content .= '<tr><td class="score">'. $row->v_score .'</td><td class="team">'. $teams[$row->v_id]->short_name .'&nbsp;'. $v_perc .'</td><td class="team">'. $teams[$row->h_id]->short_name .'&nbsp;'. $h_perc .'</td><td class="score">'. $row->h_score .'</td></tr>';
   }
   $content .= '</table>';
   return $content;
