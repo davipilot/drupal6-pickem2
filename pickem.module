@@ -686,7 +686,8 @@ function pickem_cron() {
           // add row to the pickem_email to prevent dups on next cron run
           db_query("INSERT INTO {pickem_mail} (process_name, process_point, uid, lid, email, sent) VALUES ('%s', '%s', %d, %d, '%s', now())", 'missing pick warning', floor($row->day_diff), $row->uid, $row->lid, $user->mail);
           // send email
-          email_warning($user, $week, $row->wk_firstgame, ($row->games - $row->picks) , $row->lid);
+          $nice_date = date('l, F j, Y \a\t g:i a',strtotime($row->wk_firstgame)) . '(' . $PICKEM_TIMEZONE.")";
+          email_warning($user, $week, $nice_date, ($row->games - $row->picks) , $row->lid);
         }
       }
     }
@@ -1802,7 +1803,8 @@ function email_warning($user, $week, $firstgame, $missing_picks, $league_id) {
 
   $subject = 'Sports Pickem: Week '. $week->wk_name .' picks due!';
   $link = check_url(url("pickem/". $league_id ."/picks/". $week->wid, array( 'absolute' => TRUE )));
-  $body = "Picks Due Before: $firstgame (EST)\n\nJust a reminder, you're missing $missing_picks picks for week ". $week->wk_name ."\n\n$link";
+  
+  $body = "Picks Due Before: $firstgame\n\nJust a reminder, you're missing $missing_picks picks for week ". $week->wk_name ."\n\n$link";
 
   $from = variable_get('pickem_commisioner_email', '');
   $headers['From'] = $from;
