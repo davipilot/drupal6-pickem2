@@ -1073,7 +1073,7 @@ function page_weeklypicks($league, $week) {
   $weeks = get_weeks(array('week_id' => $week->wid));
   $games = get_games(array('week_id' => $week->wid));
   foreach ($games as $gid => $g_data) {
-    $output .= '<th>'. $teams[$g_data->v_id]->tm_abbrev ."<br/>@". $teams[$g_data->h_id]->tm_abbrev .'</th>';
+    $output .= '<th>'. $teams[$g_data->v_id]->tm_abbrev ."<br/>@<br/>". $teams[$g_data->h_id]->tm_abbrev .'</th>';
     if ( $g_data->h_score == NULL ) {
       $gids[$gid] = 0;  // game not played
     }
