@@ -682,10 +682,11 @@ function pickem_cron() {
         // check to see if they have already been reminded
         $lookup = db_fetch_object(db_query("SELECT id from {pickem_mail} where process_name='%s' and process_point='%s' and uid=%d and lid=%d", 'missing pick warning', floor($row->day_diff), $row->uid, $row->lid));
         if ( !$lookup->id ) {
+        	$week = get_weeks(array('week_id' => $week_id));
           // add row to the pickem_email to prevent dups on next cron run
           db_query("INSERT INTO {pickem_mail} (process_name, process_point, uid, lid, email, sent) VALUES ('%s', '%s', %d, %d, '%s', now())", 'missing pick warning', floor($row->day_diff), $row->uid, $row->lid, $user->mail);
           // send email
-          email_warning($user, $row->wid, $row->wk_firstgame, ($row->games - $row->picks) , $row->lid);
+          email_warning($user, $week, $row->wk_firstgame, ($row->games - $row->picks) , $row->lid);
         }
       }
     }
@@ -1794,14 +1795,14 @@ function chart3($league, $team_id) {
   print theme('page', $o);
 }
 
-function email_warning($user, $week_id, $firstgame, $missing_picks, $league_id) {
+function email_warning($user, $week, $firstgame, $missing_picks, $league_id) {
 
   $headers['Content-Type'] = 'text/plain; charset=UTF-8; format=flowed';
   //$headers['Content-Type'] = 'text/html; charset=UTF-8;';
 
-  $subject = 'Sports Pickem: Week '. $week_id .' picks due!';
-  $link = check_url(url("pickem/". $league_id ."/picks/". $week_id, array( 'absolute' => TRUE )));
-  $body = "Picks Due Before: $firstgame (EST)\n\nJust a reminder, you're missing $missing_picks picks for week $week_id\n\n$link";
+  $subject = 'Sports Pickem: Week '. $week->wk_name .' picks due!';
+  $link = check_url(url("pickem/". $league_id ."/picks/". $week->wid, array( 'absolute' => TRUE )));
+  $body = "Picks Due Before: $firstgame (EST)\n\nJust a reminder, you're missing $missing_picks picks for week ". $week->wk_name ."\n\n$link";
 
   $from = variable_get('pickem_commisioner_email', '');
   $headers['From'] = $from;
@@ -1817,7 +1818,7 @@ function email_warning($user, $week_id, $firstgame, $missing_picks, $league_id) 
   // $module, $key, $to, $language, $params = array(), $from = NULL, $send = TRUE
   $message = drupal_mail('email_warning', 'notice', $to, language_default(), $params);
   if ($message['result'] != 1) {
-    watchdog('pickem', 'Error Sending '.  $user->name .": Week $week_id Warning");
+    watchdog('pickem', 'Error Sending '.  $user->name .": Week ". $week->wk_name ." Warning");
   }
 
 }
