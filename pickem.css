@@ -305,6 +305,9 @@ table.block_scores td.home-s {
   text-align: center;
   white-space: nowrap;
 }
+.pickem table.pick-summary th {
+	line-height: 10px;
+}
 .pickem table.pick-summary td.users {
 	border-style: none;
 	padding-left: 2px;
