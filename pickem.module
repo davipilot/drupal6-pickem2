@@ -670,7 +670,8 @@ function pickem_perm() {
  * Implementation of hook_cron().
  */
 function pickem_cron() {
-
+  global $PICKEM_TIMEZONE;
+  
   $query = 'select pw.wid, pw.wk_firstgame, (UNIX_TIMESTAMP(pw.wk_firstgame) - UNIX_TIMESTAMP(CURDATE())) / 86400 as day_diff, pu.uid, l.lid, count(pp.pid) as picks, count(g.gid) as games FROM {pickem_games} g INNER JOIN {pickem_weeks} pw ON pw.wid=g.wid inner join {pickem_leagues} l on l.gsid=pw.gsid inner join {pickem_users} pu on pu.lid=l.lid left outer join {pickem_picks} pp on pp.uid=pu.uid and pp.lid=l.lid and pp.gid=g.gid where wk_firstgame > CURDATE() group by pw.wid, pw.wk_firstgame, pu.uid, l.lid order by wk_firstgame';
   $result = db_query($query, $wid);
   while ($row = db_fetch_object($result)) {
