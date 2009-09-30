@@ -570,8 +570,8 @@ function get_team_totals($league, $sort_by='win_lose', $week_id=0) {
       'total_picks' => 0,
       'win_picks' => 0,
       'correct_picks' => 0,
-      'pickability' => 'NULL',
-      'pickability_w' => 'NULL',
+      'pickability' => NULL,
+      'pickability_w' => NULL,
       'wins' => 0,
       'abbrev' => $team->tm_abbrev,
       'times_picked' => 0,
@@ -639,17 +639,14 @@ function get_team_totals($league, $sort_by='win_lose', $week_id=0) {
   return $totals;
 }
 function sort_win_lose($a, $b) {
-  if ($a['pickability'] == NULL || $b['pickability'] == NULL) {
-    return 0;
-  }
-  elseif ($a['pickability'] > $b['pickability']) {
+  if ( $a['pickability'] > $b['pickability'] || is_null($b['pickability']) ) {
     return -1;
   }
-  elseif ($a['pickability'] < $b['pickability']) {
+  elseif ( $a['pickability'] < $b['pickability'] || is_null($a['pickability']) ) {
       return 1;
   }
   else {
-    if ($a['abbrev'] < $b['abbrev']) {
+    if ( $a['abbrev'] < $b['abbrev'] ) {
       return -1;
     }
     else if ($a['abbrev'] > $b['abbrev']) {
@@ -661,10 +658,10 @@ function sort_win_lose($a, $b) {
   }
 }
 function sort_to_win($a, $b) {
-  if ($a['pickability_w'] > $b['pickability_w']) {
+  if ( $a['pickability_w'] > $b['pickability_w'] || is_null($b['pickability_w']) ) {
     return -1;
   }
-  else if ($a['pickability_w'] < $b['pickability_w']) {
+  else if ($a['pickability_w'] < $b['pickability_w'] || is_null($a['pickability_w']) ) {
       return 1;
   }
   else {

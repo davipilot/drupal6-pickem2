@@ -1698,7 +1698,7 @@ function chart2($league, $sort_by='win_lose') {
   $x_labels = array();
   $a = array();
   foreach ($teams as $tid => $team_data) {
-    $a[] = $team_data['pickability'];
+    $a[] = is_null($team_data['pickability'])?'NULL':$team_data['pickability'];
     $x_labels[] = $team_data['abbrev'];
   }
   $g->set_data($a);
@@ -1706,7 +1706,7 @@ function chart2($league, $sort_by='win_lose') {
 
   $a = array();
   foreach ($teams as $tid => $team_data) {
-    $a[] = $team_data['pickability_w'];
+    $a[] = is_null($team_data['pickability_w'])?'NULL':$team_data['pickability_w'];
   }
   $g->set_data($a);
   $g->area_hollow( 2, 3, 25, '#800080', 'Correctly Picked To Win', 12);
