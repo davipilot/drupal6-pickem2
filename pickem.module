@@ -1515,10 +1515,29 @@ function theme_team_stats($league) {
 
   }
 
-  // sort
-  uasort($teams, "sort_team_stats");
-  // render team data
+  // setup sort
+  $header = array(
+    array('data' => t('Team'), 'field' => 'team'),
+    array('data' => t('W')),
+    array('data' => t('L')),
+    array('data' => t('T')),
+    array('data' => t('PCT'), 'field' => 'pct', 'sort' => 'desc'),
+    array('data' => t('PF')),
+    array('data' => t('PA')),
+    array('data' => t('HOME')),
+    array('data' => t('ROAD'))
+  );
+  
+  $ts = tablesort_get_order($header);
+  $ts['sort'] = tablesort_get_sort($header);
 
+  if ( $ts['name'] == 'PCT' ) {
+  	uasort($teams, "sort_team_stats_pct_". $ts['sort']);
+  } else if ( $ts['name'] == 'Team' ) {
+  	uasort($teams, "sort_team_stats_team_". $ts['sort']);
+  }
+
+  // render team data
   $rows = array();
   foreach ($teams as $tid => $team) {
 
@@ -1538,29 +1557,15 @@ function theme_team_stats($league) {
       array('data' => $teams[$tid]->pts_for, 'style' => 'width:20px;'),
       array('data' => $teams[$tid]->pts_against, 'style' => 'width:20px;'),
 
-      array('data' => $teams[$tid]->home_wins .'-'. $teams[$tid]->home_losses, 'style' => 'width:58px;'),
-      array('data' => $teams[$tid]->vis_wins .'-'. $teams[$tid]->vis_losses, 'style' => 'width:58px;'),
+      array('data' => $teams[$tid]->home_wins .'-'. $teams[$tid]->home_losses, 'style' => 'width:48px;'),
+      array('data' => $teams[$tid]->vis_wins .'-'. $teams[$tid]->vis_losses, 'style' => 'width:48px;'),
 
       );
   }
 
-  $header = array(t('Team'), t('W'), t('L'), t('T'), t('PCT'), t('PF'), t('PA'), t('HOME'), t('ROAD'));
-
   $o = theme('table', $header, $rows, array('style' => '100%;') );
 
   return $o;
-}
-
-function sort_team_stats($a, $b) {
-  if ($a->win_percent > $b->win_percent) {
-    return -1;
-  }
-  else if ($a->win_percent < $b->win_percent) {
-    return 1;
-  }
-  else {
-   return 0;
-  }
 }
 
 
@@ -1992,4 +1997,51 @@ function league_access($string, $account = NULL) {
     }
   }
   return FALSE;
+}
+
+// bunch of sort routines for team_stats
+// should really simplify this
+function sort_team_stats_pct_desc($a, $b) {
+  if ($a->win_percent > $b->win_percent) {
+    return -1;
+  }
+  else if ($a->win_percent < $b->win_percent) {
+    return 1;
+  }
+  else {
+   return 0;
+  }
+}
+function sort_team_stats_pct_asc($a, $b) {
+  if ($a->win_percent < $b->win_percent) {
+    return -1;
+  }
+  else if ($a->win_percent > $b->win_percent) {
+    return 1;
+  }
+  else {
+   return 0;
+  }
+}
+function sort_team_stats_team_desc($a, $b) {
+  if ($a->long_name > $b->long_name) {
+    return -1;
+  }
+  else if ($a->long_name < $b->long_name) {
+    return 1;
+  }
+  else {
+   return 0;
+  }
+}
+function sort_team_stats_team_asc($a, $b) {
+  if ($a->long_name < $b->long_name) {
+    return -1;
+  }
+  else if ($a->long_name > $b->long_name) {
+    return 1;
+  }
+  else {
+   return 0;
+  }
 }
