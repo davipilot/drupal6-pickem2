@@ -673,22 +673,21 @@ function pickem_cron() {
   global $PICKEM_TIMEZONE;
   
   $query = 'select pw.wid, pw.wk_firstgame, (UNIX_TIMESTAMP(pw.wk_firstgame) - UNIX_TIMESTAMP(CURDATE())) / 86400 as day_diff, pu.uid, l.lid, count(pp.pid) as picks, count(g.gid) as games FROM {pickem_games} g INNER JOIN {pickem_weeks} pw ON pw.wid=g.wid inner join {pickem_leagues} l on l.gsid=pw.gsid inner join {pickem_users} pu on pu.lid=l.lid left outer join {pickem_picks} pp on pp.uid=pu.uid and pp.lid=l.lid and pp.gid=g.gid where wk_firstgame > CURDATE() group by pw.wid, pw.wk_firstgame, pu.uid, l.lid order by wk_firstgame';
-  $result = db_query($query, $wid);
+  $result = db_query($query);
   while ($row = db_fetch_object($result)) {
     // send a 0, 1, or 2 day warning
-    if ($row->day_diff <= 2 && $row->day_diff >= 0 && $row->picks < $row->games) {
+    if ($row->day_diff <= 3 && $row->day_diff >= 0 && $row->picks < $row->games) {
       $user = user_load(array('uid' => $row->uid));
       // send reminder if the user has reminders turned on.
       if ( $user->pickem_user_email_reminders == 1 ) {
         // check to see if they have already been reminded
-        $lookup = db_fetch_object(db_query("SELECT id from {pickem_mail} where process_name='%s' and process_point='%s' and uid=%d and lid=%d", 'missing pick warning', floor($row->day_diff), $row->uid, $row->lid));
-        if ( !$lookup->id ) {
-        	$week = get_weeks(array('week_id' => $week_id));
+        $lookup = db_fetch_object(db_query("SELECT id from {pickem_mail} where process_name='%s' and process_point='%s' and uid=%d and lid=%d", 'missing pick warning', 'wid-' . $row->wid . ' days-' . floor($row->day_diff), $row->uid, $row->lid));
+        if ( !isset($lookup->id) ) {
           // add row to the pickem_email to prevent dups on next cron run
-          db_query("INSERT INTO {pickem_mail} (process_name, process_point, uid, lid, email, sent) VALUES ('%s', '%s', %d, %d, '%s', now())", 'missing pick warning', floor($row->day_diff), $row->uid, $row->lid, $user->mail);
+          db_query("INSERT INTO {pickem_mail} (process_name, process_point, uid, lid, email, sent) VALUES ('%s', '%s', %d, %d, '%s', now())", 'missing pick warning', 'wid-' . $row->wid . ' days-' . floor($row->day_diff), $row->uid, $row->lid, $user->mail);
           // send email
           $nice_date = date('l, F j, Y \a\t g:i a',strtotime($row->wk_firstgame)) . '(' . $PICKEM_TIMEZONE.")";
-          email_warning($user, $week, $nice_date, ($row->games - $row->picks) , $row->lid);
+          email_warning($user, $row->wid, $nice_date, ($row->games - $row->picks) , $row->lid);
         }
       }
     }
@@ -1802,10 +1801,12 @@ function chart3($league, $team_id) {
   print theme('page', $o);
 }
 
-function email_warning($user, $week, $firstgame, $missing_picks, $league_id) {
+function email_warning($user, $week_id, $firstgame, $missing_picks, $league_id) {
 
   $headers['Content-Type'] = 'text/plain; charset=UTF-8; format=flowed';
   //$headers['Content-Type'] = 'text/html; charset=UTF-8;';
+
+  $week = week_load($week_id);
 
   $subject = 'Sports Pickem: Week '. $week->wk_name .' picks due!';
   $link = check_url(url("pickem/". $league_id ."/picks/". $week->wid, array( 'absolute' => TRUE )));
