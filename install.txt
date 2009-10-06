@@ -4,7 +4,7 @@
 3. Add a Forum for league banter.
 4. Add a Standard Page/Story/Node or a Forum Post for an explanation of the rules of the league, and remember the node id of the post.
 5. Add a League (/admin/content/pickem/leagues) and choose the linked forum and the Rules node id from 5.
-6. Add users to the league (admin/content/pickem/league_users) 
+6. Add users to the league (admin/content/pickem/league_users)
 7. Enable Pickem Leagues block (admin/build/block)
 
 This user will then see the league menus under "My leagues".
