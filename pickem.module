@@ -1811,7 +1811,7 @@ function email_warning($user, $week_id, $firstgame, $missing_picks, $league_id) 
   $subject = 'Sports Pickem: Week '. $week->wk_name .' picks due!';
   $link = check_url(url("pickem/". $league_id ."/picks/". $week->wid, array( 'absolute' => TRUE )));
 
-  $body = "Picks Due Before: $firstgame\n\nJust a reminder, you're missing $missing_picks picks for week ". $week->wk_name ."\n\n$link";
+  $body = "Picks Due Before: $firstgame\n\nJust a reminder, you're missing $missing_picks picks(". $week->wk_name .")\n\n$link";
 
   $from = variable_get('pickem_commisioner_email', '');
   $headers['From'] = $from;
