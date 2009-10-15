@@ -267,7 +267,7 @@ function get_gamesets($filter = array('gameset_id' => NULL, 'gameset_name' => NU
   return $gamesets;
 }
 
-function get_games($filter=array('game_id' => NULL, 'week_id' => NULL, 'gameset_id' => NULL, 'team_id' => NULL, 'league_id' => NULL), $options=array('by_week' => 0) ) {
+function get_games($filter=array('game_id' => NULL, 'week_id' => NULL, 'gameset_id' => NULL, 'team_id' => NULL, 'league_id' => NULL), $options=array('by_week' => 0, 'order_by' => 'week_past, g.gametime, g.gid') ) {
 
   $sql_where_list = array();
   if ( !is_null($filter['game_id'] ) ) {
@@ -285,6 +285,11 @@ function get_games($filter=array('game_id' => NULL, 'week_id' => NULL, 'gameset_
   if ( !is_null($filter['team_id'] ) ) {
     $sql_where_list[] = '(g.v_id='. $filter['team_id'] .' or g.h_id='. $filter['team_id'] .')';
   }
+  $order_by = 'week_past, g.gametime, g.gid';
+  if ( !is_null($options['order_by']) ) {
+    $order_by = $options['order_by'];
+  }
+  
 
   $sql_where = '';
   if ( count($sql_where_list) > 0 ) {
@@ -295,10 +300,10 @@ function get_games($filter=array('game_id' => NULL, 'week_id' => NULL, 'gameset_
   $mysqltime = date("Y-m-d H:i:s");
 
   if ( is_null($filter['league_id'] ) ) {
-    $query = "SELECT g.*, case when '$mysqltime' > pw.wk_firstgame then 1 else 0 end as 'week_past', pw.wk_number FROM {pickem_games} g INNER JOIN {pickem_weeks} pw ON pw.wid=g.wid  ". $sql_where ." ORDER BY week_past, g.gametime, g.gid";
+    $query = "SELECT g.*, case when '$mysqltime' > pw.wk_firstgame then 1 else 0 end as 'week_past', pw.wk_firstgame, pw.wk_number FROM {pickem_games} g INNER JOIN {pickem_weeks} pw ON pw.wid=g.wid  ". $sql_where ." ORDER BY $order_by";
   }
   else {
-    $query = "SELECT g.*, case when '$mysqltime' > pw.wk_firstgame then 1 else 0 end as 'week_past', pw.wk_number FROM {pickem_games} g INNER JOIN {pickem_weeks} pw ON pw.wid=g.wid inner join {pickem_leagues} l on l.gsid=pw.gsid ". $sql_where ." ORDER BY week_past, g.gametime, g.gid";
+    $query = "SELECT g.*, case when '$mysqltime' > pw.wk_firstgame then 1 else 0 end as 'week_past', pw.wk_firstgame, pw.wk_number FROM {pickem_games} g INNER JOIN {pickem_weeks} pw ON pw.wid=g.wid inner join {pickem_leagues} l on l.gsid=pw.gsid ". $sql_where ." ORDER BY $order_by";
   }
 
   $result = db_query($query);
@@ -675,4 +680,84 @@ function sort_to_win($a, $b) {
       return 0;
     }
   }
+}
+
+
+function get_team_stats($league) {
+
+  // team_stats will contain rolling totals for each week.
+  $team_stats = array();
+
+  // default values to initialize team data (gets copied)
+  $team_def = array(
+    'team' => NULL,
+    'wins' => 0,
+    'losses' => 0,
+    'ties' => 0,
+    'games_played' => 0,
+    'pts_for' => 0,
+    'pts_against' => 0,
+    'win_percent' => NULL,
+
+    'opp_win_sum' => 0,
+    'scoring_sum' => 0,
+    'ord' => 0
+  );
+
+  // $team_stats[0] is where the current totals are stored
+  $teams = get_teams(array('gameset_id' => $league->gsid));
+  foreach ($teams as $tid => $t) {
+    // make sure both teams are initialized
+    if ( !isset($team_stats[0][$tid]) ) {
+      $team_stats[0][$tid] = $team_def;
+      $team_stats[0][$tid]['team'] = $t;
+    }
+  }
+
+  // loop through the games and get the data
+  $games = get_games(array('gameset_id' => $league->gsid), array('order_by' => 'pw.wk_firstgame, g.gametime, g.gid'));
+  foreach ($games as $gid => $game) {
+    // skip unplayed games
+    if ( ! isset($game->h_score) || ! isset($game->v_score) ) {
+      continue;
+    }
+    
+    // get the stats
+    if ( $game->h_score > $game->v_score ) {
+      $team_stats[0][$game->h_id]['wins']++;
+      $team_stats[0][$game->v_id]['losses']++;
+    }
+    elseif ( $game->h_score < $game->v_score ) {
+      $team_stats[0][$game->v_id]['wins']++;
+      $team_stats[0][$game->h_id]['losses']++;
+    }
+    elseif ( $game->h_score == $game->v_score ) {
+      $team_stats[0][$game->v_id]['ties']++;
+      $team_stats[0][$game->h_id]['ties']++;
+    }
+
+    $team_stats[0][$game->v_id]['games_played']++;
+    $team_stats[0][$game->h_id]['games_played']++;
+
+    $team_stats[0][$game->v_id]['pts_for'] += $game->v_score;
+    $team_stats[0][$game->v_id]['pts_against'] += $game->h_score;
+
+    $team_stats[0][$game->h_id]['pts_for'] += $game->h_score;
+    $team_stats[0][$game->h_id]['pts_against'] += $game->v_score;
+
+    // Win Percentage
+    if ( $team_stats[0][$game->h_id]['wins'] + $team_stats[0][$game->h_id]['losses'] > 0 ) {
+      $team_stats[0][$game->h_id]['win_percent'] = $team_stats[0][$game->h_id]['wins'] / ( $team_stats[0][$game->h_id]['wins'] + $team_stats[0][$game->h_id]['losses'] );
+    }
+    if ( $team_stats[0][$game->v_id]['wins'] + $team_stats[0][$game->v_id]['losses'] > 0 ) {
+      $team_stats[0][$game->v_id]['win_percent'] = $team_stats[0][$game->v_id]['wins'] / ( $team_stats[0][$game->v_id]['wins'] + $team_stats[0][$game->v_id]['losses'] );
+    }
+
+    // copy into weeks stats
+    $team_stats[$game->wid][$game->h_id] = $team_stats[0][$game->h_id];
+    $team_stats[$game->wid][$game->v_id] = $team_stats[0][$game->v_id];
+
+  }
+
+  return $team_stats;
 }
