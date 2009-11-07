@@ -89,10 +89,8 @@ function pickem_init() {
 */
 function pickem_menu() {
   global $user;
-  global $PICKEM_MY_LEAGUES;
 
   $items = array();
-
   $items['pickem'] = array(
     'title' => 'Pickem Leagues',
     'page callback' => 'league_router',
@@ -655,7 +653,7 @@ function pickem_user($op, &$edit, &$account, $category = NULL) {
           '#type' => 'checkbox',
           '#title' => t('Receive email reminders'),
           '#default_value' => !empty($edit['pickem_user_email_reminders']) ? $edit['pickem_user_email_reminders'] : FALSE,
-          '#description' => t('Enable email reminders to be sent to you if you have not picked the current weeks games.'),
+          '#description' => t('Enable email reminders to be sent to you if you have not picked the current week\'s games.'),
         );
         return $form;
       }
@@ -1243,8 +1241,12 @@ function league_router() {
   global $PICKEM_MY_LEAGUES;
   global $user;
 
+	// go to their default league and make sure that they are a member of that league.
   if ( isset($user->pickem_user_default_league) ) {
-    drupal_goto("pickem/" . $user->pickem_user_default_league);
+  	$l = league_load($user->pickem_user_default_league);
+  	if ( is_my_league($l) ) {
+    	drupal_goto("pickem/" . $user->pickem_user_default_league);
+    }
   }
 
   if ( count($PICKEM_MY_LEAGUES) >= 1 ) {
