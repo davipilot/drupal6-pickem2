@@ -969,11 +969,11 @@ function page_mypicks_week($league, $week) {
 
     if ($week->week_past == 0) {
       $output .= '<tr>';
-      $output .= '<td><input type="radio" name="gid_'. $gid .'" value="'. $game->v_id .'" '. $v_sel .'/> &nbsp;' . $teams[$game->v_id]->small_logo_img . $teams[$game->v_id]->short_name .'</td>';
+      $output .= '<td><input type="radio" id="gid_'. $gid .'_'. $game->v_id .'" name="gid_'. $gid .'" value="'. $game->v_id .'" '. $v_sel .'/> <label for="gid_'. $gid .'_'. $game->v_id .'">' . $teams[$game->v_id]->small_logo_img . $teams[$game->v_id]->short_name .'</label></td>';
       if ($league->scoring_type == 1) {
         $output .= '<td>'. $game->v_spread .'</td>';
       }
-      $output .= '<td><input type="radio" name="gid_'. $gid .'" value="'. $game->h_id .'" '. $h_sel .'/> &nbsp;' . $teams[$game->h_id]->small_logo_img . $teams[$game->h_id]->short_name .'</td>';
+      $output .= '<td><input type="radio" id="gid_'. $gid .'_'. $game->h_id .'" name="gid_'. $gid .'" value="'. $game->h_id .'" '. $h_sel .'/> <label for="gid_'. $gid .'_'. $game->h_id .'">' . $teams[$game->h_id]->small_logo_img . $teams[$game->h_id]->short_name .'</label></td>';
       if ($league->scoring_type == 1) {
         $output .= '<td>'. $game->h_spread .'</td>';
       }
@@ -1017,9 +1017,9 @@ function page_mypicks_week($league, $week) {
 
   if ($week->week_past == 0 ) {
     if ( count($similar_leagues) > 1 ) {
-      $output .= '<input type="checkbox" name="apply_to_all_my_leagues">Apply picks to all my leagues that use the same game set<br/><br/>';
+      $output .= '<p><input type="checkbox" name="apply_to_all_my_leagues"/>Apply picks to all my leagues that use the same game set<br/><br/>';
     }
-    $output .= '<input type="submit" value="Save Picks"/>';
+    $output .= '<input type="submit" value="Save Picks"/></p>';
   }
   $output .= '</form></div>';
 
