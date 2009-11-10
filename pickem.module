@@ -1481,7 +1481,7 @@ function theme_team_power($league) {
     }
 
     /*
-     * Opponents Win Percentage
+     * opponents overall win percentage, not weekly win percentage
      */
     $team_stats[0][$game->v_id]['opp_win_sum'] += $team_stats[0][$game->h_id]['win_percent'];
     $team_stats[0][$game->h_id]['opp_win_sum'] += $team_stats[0][$game->v_id]['win_percent'];
@@ -1503,8 +1503,14 @@ function theme_team_power($league) {
     /*
      * Power Ranking
      */
+    // overall visitor team power ranking
     $team_stats[0][$game->v_id]['power'] = $team_stats[0][$game->v_id]['win_percent'] + $team_stats[0][$game->v_id]['scoring_factor'];
+    // weekly visitor team power ranking
+    $team_stats[$game->wid][$game->v_id]['power'] = $team_stats[0][$game->v_id]['power'];
+    // overall home team power ranking
     $team_stats[0][$game->h_id]['power'] = $team_stats[0][$game->h_id]['win_percent'] + $team_stats[0][$game->h_id]['scoring_factor'];
+    // weekly home team power ranking
+    $team_stats[$game->wid][$game->h_id]['power'] = $team_stats[0][$game->h_id]['power'];
   }
 
 
@@ -1512,7 +1518,7 @@ function theme_team_power($league) {
   $header = array(
     array('data' => t('Team')),
     array('data' => t('WIN PCT')),
-    array('data' => t('OPP WIN PCT')),
+    array('data' => t('SCHEDULE')),
     array('data' => t('SCORING')),
     array('data' => t('vPOWER'))
   );
@@ -1531,16 +1537,11 @@ function theme_team_power($league) {
   // subtract smallest power from all powers to zero base
   // multiply all powers by a factor of 100 / highest power
   reset($team_stats[0]);
-  $last_power = 0;
   $ord = 1;  
   foreach ($team_stats[0] as $tid => $data) {
-    $team_stats[0][$tid]['ord'] = $ord++;
     $team_stats[0][$tid]['power'] = $team_stats[0][$tid]['power'] - $low;
-    $team_stats[0][$tid]['power'] = round($team_stats[0][$tid]['power'] * 100 / $high, 0);
-    if ($team_stats[0][$tid]['power'] == $last_power) {
-      $team_stats[0][$tid]['power'] = $team_stats[0][$tid]['power'] - 1;
-    }
-    $last_power = $team_stats[0][$tid]['power'];
+    $team_stats[0][$tid]['power'] = round($team_stats[0][$tid]['power'] * 100 / $high, 1);
+    $team_stats[0][$tid]['ord'] = $ord++;
   }
 
 
