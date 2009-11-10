@@ -66,6 +66,9 @@ $PICKEM_MY_LEAGUES = array();
     case 'admin/pickem/weeks':
       $output .= '<p>'. t('Weeks are numbered sequentially, starting at 1.  First Game Time is the field that locks users from changing their picks.  Make sure to fill that one out.<br/>Typical values for NFL would be 1, Week 1, WK1, 2008-11-12 12:00:00, 1') .'</p>';
       break;
+    case 'pickem/%/team_power':
+      $output .= '<p>'. t('vPower&trade; is a scoring system based on winning percentage, strength of schedule, and scoring percentage.  If a good team scores a lot of points against a bad team they get a smaller bonus.  The scale is normalized from 0(worst) to 100(best).') .'</p>';
+      break;
   }
   return $output;
 }
@@ -1325,7 +1328,7 @@ function theme_league_nav($league) {
       }
     }
     if ( $league->partial_league == 0 ) {
-      $o .= '<li>'. l('Team Win-Loss Stats', 'pickem/'. $league->lid .'/team_stats') .'</li>';
+      $o .= '<li>'. l('Team Win-Loss Stats', 'pickem/'. $league->lid .'/team_stats') .' / '. l('vPower', 'pickem/'. $league->lid .'/team_power') .'</li>';
     }
 
     $o .= '</ul></li></ul>';
@@ -1492,13 +1495,12 @@ function theme_team_power($league) {
     /* 
      * Scoring Factor
      */
-     $SCORING_FACTOR = 1.0;
     if ( ($game->v_score + $game->h_score) > 0 ) {
       $team_stats[0][$game->v_id]['scoring_sum'] += $team_stats[0][$game->h_id]['win_percent'] * ($game->v_score / ($game->v_score + $game->h_score));
       $team_stats[0][$game->h_id]['scoring_sum'] += $team_stats[0][$game->v_id]['win_percent'] * ($game->v_score / ($game->v_score + $game->h_score));
     }
-    $team_stats[0][$game->v_id]['scoring_factor'] = $SCORING_FACTOR * $team_stats[0][$game->v_id]['scoring_sum'] / $team_stats[0][$game->v_id]['games_played'];
-    $team_stats[0][$game->h_id]['scoring_factor'] = $SCORING_FACTOR * $team_stats[0][$game->h_id]['scoring_sum'] / $team_stats[0][$game->h_id]['games_played'];
+    $team_stats[0][$game->v_id]['scoring_factor'] = $team_stats[0][$game->v_id]['scoring_sum'] / $team_stats[0][$game->v_id]['games_played'];
+    $team_stats[0][$game->h_id]['scoring_factor'] = $team_stats[0][$game->h_id]['scoring_sum'] / $team_stats[0][$game->h_id]['games_played'];
 
     /*
      * Power Ranking
