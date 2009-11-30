@@ -1431,8 +1431,7 @@ function admin_picks($league, $user) {
   //global $debug;
   //$debug=1;
 
-  $games = get_games(array('league_id' => $league->lid));
-
+  $games = get_games(array('league_id' => $league->lid), array('order_by'=>'week_over,g.gametime, g.gid'));
   $output = '<div class="pickem">Click on week number to make picks.<table class="picks">';
 
   $last_week_id = 0;
@@ -1466,16 +1465,34 @@ function admin_picks_week($league, $user_arg, $week) {
   $breadcrumb[] = l($league->name, 'pickem/'. $league->lid);
   drupal_set_breadcrumb($breadcrumb);
 
+  // used to saving to multiple leagues that use the same pickset.
+  $similar_leagues = get_my_leagues($league->gsid, $user_arg->uid);
+
   //POSTING, save picks
-  if (count($_POST) > 0) {
-    foreach ($_POST as $gid => $pick) {
-      $gid = preg_split('/_/', $gid);
-      set_pick($gid[1], $user_arg->uid, $league->lid, $pick);
+  if ( isset($_POST['apply_to_all_my_leagues'] ) ) {
+    unset($_POST['apply_to_all_my_leagues']);
+    foreach ($similar_leagues as $l) {
+      foreach ($_POST as $gid => $pick) {
+        $gid = preg_split('/_/', $gid);
+        set_pick($gid[1], $user_arg->uid, $l->lid, $pick);
+      }
     }
-    $t_string = t('Picks saved for %user-name - %week-name.', array('%user-name' => $user_arg->name, '%week-name' => $week->wk_name));
+    $t_string = t('Picks: saved(all leagues) for %user-name - %week-name.', array('%user-name' => $user_arg->name, '%week-name' => $week->wk_name));
     drupal_set_message($t_string);
     watchdog('pickem', $t_string, NULL, WATCHDOG_NOTICE);
+
   }
+  else {
+	  if (count($_POST) > 0) {
+	    foreach ($_POST as $gid => $pick) {
+	      $gid = preg_split('/_/', $gid);
+	      set_pick($gid[1], $user_arg->uid, $league->lid, $pick);
+	    }
+	    $t_string = t('Picks: saved for %user-name - %week-name.', array('%user-name' => $user_arg->name, '%week-name' => $week->wk_name));
+	    drupal_set_message($t_string);
+	    watchdog('pickem', $t_string, NULL, WATCHDOG_NOTICE);
+	  }
+	}
 
   $teams = get_teams(array('gameset_id' => $league->gsid));
   $games = get_games(array('week_id' => $week->wid));
@@ -1507,14 +1524,15 @@ function admin_picks_week($league, $user_arg, $week) {
     }
 
     $output .= '<tr>';
-    $output .= '<td><input type="radio" name="gid_'. $gid .'" value="'. $game->v_id .'" '. $v_sel .'/>'. $teams[$game->v_id]->short_name .'</td>';
+    $output .= '<td><input type="radio" id="gid_'. $gid .'_'. $game->v_id .'" name="gid_'. $gid .'" value="'. $game->v_id .'" '. $v_sel .'/> <label for="gid_'. $gid .'_'. $game->v_id .'">' . $teams[$game->v_id]->small_logo_img . $teams[$game->v_id]->short_name .'</label></td>';
     if ($league->scoring_type == 1) {
       $output .= '<td>'. $game->v_spread .'</td>';
     }
-    $output .= '<td><input type="radio" name="gid_'. $gid .'" value="'. $game->h_id .'" '. $h_sel .'/>'. $teams[$game->h_id]->short_name .'</td>';
+    $output .= '<td><input type="radio" id="gid_'. $gid .'_'. $game->h_id .'" name="gid_'. $gid .'" value="'. $game->h_id .'" '. $h_sel .'/> <label for="gid_'. $gid .'_'. $game->h_id .'">' . $teams[$game->h_id]->small_logo_img . $teams[$game->h_id]->short_name .'</label></td>';
     if ($league->scoring_type == 1) {
       $output .= '<td>'. $game->h_spread .'</td>';
     }
+
     if (isset ($picks[$gid][$user_arg->uid])) {
       $output .= '<td class="pick">'. $game->gametime .'</td></tr>';
     }

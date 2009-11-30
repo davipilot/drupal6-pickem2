@@ -184,15 +184,21 @@ function get_leagues($league_id=0) {
 
   return $leagues;
 }
-function get_my_leagues($gameset_id=NULL) {
-  global $user;
+function get_my_leagues($gameset_id=NULL, $user_id=NULL) {
+  
+  // use the logged in user if no user_id is passed in.
+  if ( is_null($user_id) ) {
+	  global $user;
+  	$user_id = $user->uid;	
+  }
+  
   if ( is_null($gameset_id) ) {
     $query = "SELECT l.* from {pickem_leagues} l inner join {pickem_users} u on u.lid=l.lid where u.uid=%d";
-    $result = db_query($query, $user->uid);
+    $result = db_query($query, $user_id);
   }
   else {
     $query = "SELECT l.* from {pickem_leagues} l inner join {pickem_users} u on u.lid=l.lid where u.uid=%d and l.gsid=%d";
-    $result = db_query($query, $user->uid, $gameset_id);
+    $result = db_query($query, $user_id, $gameset_id);
   }
   $leagues = array();
   while ($row = db_fetch_object($result)) {
@@ -300,10 +306,10 @@ function get_games($filter=array('game_id' => NULL, 'week_id' => NULL, 'gameset_
   $mysqltime = date("Y-m-d H:i:s");
 
   if ( is_null($filter['league_id'] ) ) {
-    $query = "SELECT g.*, case when '$mysqltime' > pw.wk_firstgame then 1 else 0 end as 'week_past', pw.wk_firstgame, pw.wk_number FROM {pickem_games} g INNER JOIN {pickem_weeks} pw ON pw.wid=g.wid  ". $sql_where ." ORDER BY $order_by";
+    $query = "SELECT g.*, case when '$mysqltime' > pw.wk_firstgame then 1 else 0 end as 'week_past', case when '$mysqltime' > date_add(pw.wk_firstgame, INTERVAL 7 DAY) then 1 else 0 end as 'week_over', pw.wk_firstgame, pw.wk_number FROM {pickem_games} g INNER JOIN {pickem_weeks} pw ON pw.wid=g.wid  ". $sql_where ." ORDER BY $order_by";
   }
   else {
-    $query = "SELECT g.*, case when '$mysqltime' > pw.wk_firstgame then 1 else 0 end as 'week_past', pw.wk_firstgame, pw.wk_number FROM {pickem_games} g INNER JOIN {pickem_weeks} pw ON pw.wid=g.wid inner join {pickem_leagues} l on l.gsid=pw.gsid ". $sql_where ." ORDER BY $order_by";
+    $query = "SELECT g.*, case when '$mysqltime' > pw.wk_firstgame then 1 else 0 end as 'week_past', case when '$mysqltime' > date_add(pw.wk_firstgame, INTERVAL 7 DAY) then 1 else 0 end as 'week_over', pw.wk_firstgame, pw.wk_number FROM {pickem_games} g INNER JOIN {pickem_weeks} pw ON pw.wid=g.wid inner join {pickem_leagues} l on l.gsid=pw.gsid ". $sql_where ." ORDER BY $order_by";
   }
 
   $result = db_query($query);
