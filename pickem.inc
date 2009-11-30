@@ -185,13 +185,13 @@ function get_leagues($league_id=0) {
   return $leagues;
 }
 function get_my_leagues($gameset_id=NULL, $user_id=NULL) {
-  
+
   // use the logged in user if no user_id is passed in.
   if ( is_null($user_id) ) {
-	  global $user;
-  	$user_id = $user->uid;	
+    global $user;
+    $user_id = $user->uid;
   }
-  
+
   if ( is_null($gameset_id) ) {
     $query = "SELECT l.* from {pickem_leagues} l inner join {pickem_users} u on u.lid=l.lid where u.uid=%d";
     $result = db_query($query, $user_id);
@@ -224,7 +224,7 @@ function get_teams($filter = array('team_id' => NULL, 'gameset_id' => NULL)) {
     $query = "SELECT * from {pickem_teams} where gsid=%d order by tm_abbrev, tm_name";
     $result = db_query($query, $filter['gameset_id']);
   }
-  else if ( !is_null($filter['team_id']) ) {
+  elseif ( !is_null($filter['team_id']) ) {
     $query = "SELECT * from {pickem_teams} where tid=%d order by tm_abbrev, tm_name";
     $result = db_query($query, $filter['team_id']);
   }
@@ -241,9 +241,10 @@ function get_teams($filter = array('team_id' => NULL, 'gameset_id' => NULL)) {
       $row->long_name .=  ' ('. $row->tm_abbrev .')';
     }
     if ($row->logo_small != '') {
-      $row->small_logo_path = "/$module_path/logos/".$row->logo_small;
+      $row->small_logo_path = "/$module_path/logos/". $row->logo_small;
       $row->small_logo_img = '<img src="' . $row->small_logo_path . '" />';
-    } else {
+    } 
+    else {
       $row->small_logo_path = '';
       $row->small_logo_img = '';
     }
@@ -295,7 +296,7 @@ function get_games($filter=array('game_id' => NULL, 'week_id' => NULL, 'gameset_
   if ( !is_null($options['order_by']) ) {
     $order_by = $options['order_by'];
   }
-  
+
 
   $sql_where = '';
   if ( count($sql_where_list) > 0 ) {
@@ -422,26 +423,26 @@ function get_user_totals($league=NULL, $week_id=0) {
         $totals[$row->uid]['weeks'][$row->wid] += $row->wk_points;
         $totals[$row->uid]['total'] += $row->wk_points;
       }
-      else if ($row->v_score > $row->h_score && $row->winnerpick_id == $row->v_id) {
+      elseif ($row->v_score > $row->h_score && $row->winnerpick_id == $row->v_id) {
           $totals[$row->uid]['weeks'][$row->wid] += $row->wk_points;
           $totals[$row->uid]['total'] += $row->wk_points;
       }
-      else if ($row->v_score == $row->h_score && $row->h_score <> "") {
+      elseif ($row->v_score == $row->h_score && $row->h_score <> "") {
             $totals[$row->uid]['weeks'][$row->wid] += $row->wk_points;
             $totals[$row->uid]['total'] += $row->wk_points;
       }
     }
-    else if ( $league->scoring_type == 1 ) {
+    elseif ( $league->scoring_type == 1 ) {
       // use spread
       if ( ($row->h_score + $row->h_spread) > $row->v_score && $row->winnerpick_id == $row->h_id) {
         $totals[$row->uid]['weeks'][$row->wid] += $row->wk_points;
         $totals[$row->uid]['total'] += $row->wk_points;
       }
-      else if ( ($row->v_score + $row->v_spread) > $row->h_score && $row->winnerpick_id == $row->v_id) {
+      elseif ( ($row->v_score + $row->v_spread) > $row->h_score && $row->winnerpick_id == $row->v_id) {
         $totals[$row->uid]['weeks'][$row->wid] += $row->wk_points;
         $totals[$row->uid]['total'] += $row->wk_points;
       }
-      else if ( ($row->v_score + $row->v_spread) == $row->h_score && $row->h_score <> "") {
+      elseif ( ($row->v_score + $row->v_spread) == $row->h_score && $row->h_score <> "") {
         $totals[$row->uid]['weeks'][$row->wid] += $row->wk_points;
         $totals[$row->uid]['total'] += $row->wk_points;
       }
@@ -489,14 +490,14 @@ function sort_totals($a, $b) {
   if ($a['total'] > $b['total']) {
     return -1;
   }
-  else if ($a['total'] < $b['total']) {
+  elseif ($a['total'] < $b['total']) {
       return 1;
   }
   else {
     if ($a['name'] < $b['name']) {
       return -1;
     }
-    else if ($a['name'] > $b['name']) {
+    elseif ($a['name'] > $b['name']) {
         return 1;
     }
     else {
@@ -524,7 +525,7 @@ function get_current_week($league, $nextweek = TRUE) {
   $fg = preg_split('/ /', $row->wk_firstgame);
   $row->firstgame_date = $fg[0];
   $row->firstgame_time = $fg[1];
-  $row->firstgame_xml = $fg[0] .'T'. $fg[1] .$tz_offset;
+  $row->firstgame_xml = $fg[0] .'T'. $fg[1] . $tz_offset;
 
   return $row;
 }
@@ -610,14 +611,14 @@ function get_team_totals($league, $sort_by='win_lose', $week_id=0) {
       $totals[$row->h_id]['wins'] += 1;
     }
     // Visitor Win, Correct
-    else if ($row->v_score > $row->h_score && $row->winnerpick_id == $row->v_id) {
+    elseif ($row->v_score > $row->h_score && $row->winnerpick_id == $row->v_id) {
       $totals[$row->v_id]['correct_picks'] += 1;
       $totals[$row->v_id]['win_picks'] += 1;
       $totals[$row->h_id]['correct_picks'] += 1;
       $totals[$row->v_id]['wins'] += 1;
     }
     // Tie
-    else if ($row->v_score == $row->h_score && $row->h_score <> "") {
+    elseif ($row->v_score == $row->h_score && $row->h_score <> "") {
       $totals[$row->v_id]['correct_picks'] += 1;
       $totals[$row->h_id]['correct_picks'] += 1;
     }
@@ -660,7 +661,7 @@ function sort_win_lose($a, $b) {
     if ( $a['abbrev'] < $b['abbrev'] ) {
       return -1;
     }
-    else if ($a['abbrev'] > $b['abbrev']) {
+    elseif ($a['abbrev'] > $b['abbrev']) {
         return 1;
     }
     else {
@@ -672,14 +673,14 @@ function sort_to_win($a, $b) {
   if ( $a['pickability_w'] > $b['pickability_w'] || is_null($b['pickability_w']) ) {
     return -1;
   }
-  else if ($a['pickability_w'] < $b['pickability_w'] || is_null($a['pickability_w']) ) {
+  elseif ($a['pickability_w'] < $b['pickability_w'] || is_null($a['pickability_w']) ) {
       return 1;
   }
   else {
     if ($a['abbrev'] < $b['abbrev']) {
       return -1;
     }
-    else if ($a['abbrev'] > $b['abbrev']) {
+    elseif ($a['abbrev'] > $b['abbrev']) {
         return 1;
     }
     else {
@@ -727,7 +728,7 @@ function get_team_stats($league) {
     if ( ! isset($game->h_score) || ! isset($game->v_score) ) {
       continue;
     }
-    
+
     // get the stats
     if ( $game->h_score > $game->v_score ) {
       $team_stats[0][$game->h_id]['wins']++;

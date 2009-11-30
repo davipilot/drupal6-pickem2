@@ -1431,7 +1431,7 @@ function admin_picks($league, $user) {
   //global $debug;
   //$debug=1;
 
-  $games = get_games(array('league_id' => $league->lid), array('order_by'=>'week_over,g.gametime, g.gid'));
+  $games = get_games(array('league_id' => $league->lid), array('order_by' => 'week_over,g.gametime, g.gid'));
   $output = '<div class="pickem">Click on week number to make picks.<table class="picks">';
 
   $last_week_id = 0;
@@ -1483,16 +1483,16 @@ function admin_picks_week($league, $user_arg, $week) {
 
   }
   else {
-	  if (count($_POST) > 0) {
-	    foreach ($_POST as $gid => $pick) {
-	      $gid = preg_split('/_/', $gid);
-	      set_pick($gid[1], $user_arg->uid, $league->lid, $pick);
-	    }
-	    $t_string = t('Picks: saved for %user-name - %week-name.', array('%user-name' => $user_arg->name, '%week-name' => $week->wk_name));
-	    drupal_set_message($t_string);
-	    watchdog('pickem', $t_string, NULL, WATCHDOG_NOTICE);
-	  }
-	}
+    if (count($_POST) > 0) {
+      foreach ($_POST as $gid => $pick) {
+        $gid = preg_split('/_/', $gid);
+        set_pick($gid[1], $user_arg->uid, $league->lid, $pick);
+      }
+      $t_string = t('Picks: saved for %user-name - %week-name.', array('%user-name' => $user_arg->name, '%week-name' => $week->wk_name));
+      drupal_set_message($t_string);
+      watchdog('pickem', $t_string, NULL, WATCHDOG_NOTICE);
+    }
+  }
 
   $teams = get_teams(array('gameset_id' => $league->gsid));
   $games = get_games(array('week_id' => $week->wid));
@@ -1506,7 +1506,7 @@ function admin_picks_week($league, $user_arg, $week) {
   if ($league->scoring_type == 0) {
     $output .= "<tr><th>Visitor</th><th>Home</th><th>Game Time(EST)</th></tr>";
   }
-  else if ($league->scoring_type == 1) {
+  elseif ($league->scoring_type == 1) {
     $output .= "<tr><th>Visitor</th><th>VSpread</th><th>Home</th><th>HSpread</th><th>Game Time(EST)</th></tr>";
   }
 

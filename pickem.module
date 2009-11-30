@@ -13,19 +13,19 @@ require_once 'pickem.inc';
 /*
  * GLOBALS
  */
-global $PICKEM_TIMEZONE;
-$PICKEM_TIMEZONE = variable_get('pickem_time_zone', 'US/Eastern');
+global $_PICKEM_TIMEZONE;
+$_PICKEM_TIMEZONE = variable_get('pickem_time_zone', 'US/Eastern');
 // dump this conditional for drupal 7, date_default_timezone_set is php5
 if( function_exists('date_default_timezone_set') ) {
-  putenv('TZ=' . $PICKEM_TIMEZONE);
-  date_default_timezone_set($PICKEM_TIMEZONE);
+  putenv('TZ=' . $_PICKEM_TIMEZONE);
+  date_default_timezone_set($_PICKEM_TIMEZONE);
 }
 else {
-  putenv('TZ=' . $PICKEM_TIMEZONE);
+  putenv('TZ=' . $_PICKEM_TIMEZONE);
 }
 
-global $PICKEM_MY_LEAGUES;
-$PICKEM_MY_LEAGUES = array();
+global $_PICKEM_MY_LEAGUES;
+$_PICKEM_MY_LEAGUES = array();
 
 /**
  * Implementation of hook_help().
@@ -77,8 +77,8 @@ $PICKEM_MY_LEAGUES = array();
  * Implementation of hook_init().
 */
 function pickem_init() {
-  global $PICKEM_MY_LEAGUES;
-  $PICKEM_MY_LEAGUES = get_my_leagues();
+  global $_PICKEM_MY_LEAGUES;
+  $_PICKEM_MY_LEAGUES = get_my_leagues();
 
   $stylesheet = drupal_get_path('theme', $GLOBALS['theme_key'] .'/pickem.css');
   if (!file_exists($stylesheet)) {
@@ -679,7 +679,7 @@ function pickem_perm() {
  * Implementation of hook_cron().
  */
 function pickem_cron() {
-  global $PICKEM_TIMEZONE;
+  global $_PICKEM_TIMEZONE;
 
   $query = 'select pw.wid, pw.wk_firstgame, (UNIX_TIMESTAMP(pw.wk_firstgame) - UNIX_TIMESTAMP(CURDATE())) / 86400 as day_diff, pu.uid, l.lid, count(pp.pid) as picks, count(g.gid) as games FROM {pickem_games} g INNER JOIN {pickem_weeks} pw ON pw.wid=g.wid inner join {pickem_leagues} l on l.gsid=pw.gsid inner join {pickem_users} pu on pu.lid=l.lid left outer join {pickem_picks} pp on pp.uid=pu.uid and pp.lid=l.lid and pp.gid=g.gid where wk_firstgame > CURDATE() group by pw.wid, pw.wk_firstgame, pu.uid, l.lid order by wk_firstgame';
   $result = db_query($query);
@@ -695,7 +695,7 @@ function pickem_cron() {
           // add row to the pickem_email to prevent dups on next cron run
           db_query("INSERT INTO {pickem_mail} (process_name, process_point, uid, lid, email, sent) VALUES ('%s', '%s', %d, %d, '%s', now())", 'missing pick warning', 'wid-' . $row->wid . ' days-' . floor($row->day_diff), $row->uid, $row->lid, $user->mail);
           // send email
-          $nice_date = date('l, F j, Y \a\t g:i a',strtotime($row->wk_firstgame)) . '(' . $PICKEM_TIMEZONE.")";
+          $nice_date = date('l, F j, Y \a\t g:i a', strtotime($row->wk_firstgame)) .'('. $_PICKEM_TIMEZONE .")";
           email_warning($user, $row->wid, $nice_date, ($row->games - $row->picks) , $row->lid);
         }
       }
@@ -900,7 +900,7 @@ function page_grid($league) {
 }
 
 function page_mypicks_week($league, $week) {
-  global $user, $PICKEM_TIMEZONE;
+  global $user, $_PICKEM_TIMEZONE;
 
   // param check: valid league which has this week
   if ( bad_league_week($league, $week) ) {
@@ -953,10 +953,10 @@ function page_mypicks_week($league, $week) {
 
   $output = '<div class="pickem"><form action="" method="post"><table class="picks">';
   if ($league->scoring_type == 0) {
-    $output .= "<tr><th>Visitor</th><th>Home</th><th>Game Time($PICKEM_TIMEZONE)</th></tr>";
+    $output .= "<tr><th>Visitor</th><th>Home</th><th>Game Time($_PICKEM_TIMEZONE)</th></tr>";
   }
-  else if ($league->scoring_type == 1) {
-    $output .= "<tr><th>Visitor</th><th>VSpread</th><th>Home</th><th>HSpread</th><th>Game Time($PICKEM_TIMEZONE)</th></tr>";
+  elseif ($league->scoring_type == 1) {
+    $output .= "<tr><th>Visitor</th><th>VSpread</th><th>Home</th><th>HSpread</th><th>Game Time($_PICKEM_TIMEZONE)</th></tr>";
   }
 
   foreach ($games as $gid => $game) {
@@ -971,11 +971,11 @@ function page_mypicks_week($league, $week) {
 
     if ($week->week_past == 0) {
       $output .= '<tr>';
-      $output .= '<td><input type="radio" id="gid_'. $gid .'_'. $game->v_id .'" name="gid_'. $gid .'" value="'. $game->v_id .'" '. $v_sel .'/> <label for="gid_'. $gid .'_'. $game->v_id .'">' . $teams[$game->v_id]->small_logo_img . $teams[$game->v_id]->short_name .'</label></td>';
+      $output .= '<td><input type="radio" id="gid_'. $gid .'_'. $game->v_id .'" name="gid_'. $gid .'" value="'. $game->v_id .'" '. $v_sel .'/> <label for="gid_'. $gid .'_'. $game->v_id .'">'. $teams[$game->v_id]->small_logo_img . $teams[$game->v_id]->short_name .'</label></td>';
       if ($league->scoring_type == 1) {
         $output .= '<td>'. $game->v_spread .'</td>';
       }
-      $output .= '<td><input type="radio" id="gid_'. $gid .'_'. $game->h_id .'" name="gid_'. $gid .'" value="'. $game->h_id .'" '. $h_sel .'/> <label for="gid_'. $gid .'_'. $game->h_id .'">' . $teams[$game->h_id]->small_logo_img . $teams[$game->h_id]->short_name .'</label></td>';
+      $output .= '<td><input type="radio" id="gid_'. $gid .'_'. $game->h_id .'" name="gid_'. $gid .'" value="'. $game->h_id .'" '. $h_sel .'/> <label for="gid_'. $gid .'_'. $game->h_id .'">'. $teams[$game->h_id]->small_logo_img . $teams[$game->h_id]->short_name .'</label></td>';
       if ($league->scoring_type == 1) {
         $output .= '<td>'. $game->h_spread .'</td>';
       }
@@ -983,26 +983,26 @@ function page_mypicks_week($league, $week) {
     else {
       $output .= '<tr>';
       if ($picks[$gid][$user->uid]->winnerpick_id == $game->v_id) {
-        $output .= '<td><div class="picks-align picked">'.$teams[$game->v_id]->small_logo_img.'<b>'. $teams[$game->v_id]->short_name .' &radic;</b></div></td>';
+        $output .= '<td><div class="picks-align picked">'. $teams[$game->v_id]->small_logo_img .'<b>'. $teams[$game->v_id]->short_name .' &radic;</b></div></td>';
         if ($league->scoring_type == 1) {
           $output .= '<td>'. $game->v_spread .'</td>';
         }
       }
       else {
-        $output .= '<td><div class="picks-align">'.$teams[$game->v_id]->small_logo_img. $teams[$game->v_id]->short_name .'</div></td>';
+        $output .= '<td><div class="picks-align">'. $teams[$game->v_id]->small_logo_img . $teams[$game->v_id]->short_name .'</div></td>';
         if ($league->scoring_type == 1) {
           $output .= '<td>'. $game->v_spread .'</td>';
         }
       }
 
       if ($picks[$gid][$user->uid]->winnerpick_id == $game->h_id) {
-        $output .= '<td><div class="picks-align picked">'.$teams[$game->h_id]->small_logo_img.'<b>'. $teams[$game->h_id]->short_name .' &radic;</b></div></td>';
+        $output .= '<td><div class="picks-align picked">'. $teams[$game->h_id]->small_logo_img .'<b>'. $teams[$game->h_id]->short_name .' &radic;</b></div></td>';
         if ($league->scoring_type == 1) {
           $output .= '<td>'. $game->h_spread .'</td>';
         }
       }
       else {
-        $output .= '<td><div class="picks-align">'.$teams[$game->h_id]->small_logo_img . $teams[$game->h_id]->short_name .'</div></td>';
+        $output .= '<td><div class="picks-align">'. $teams[$game->h_id]->small_logo_img . $teams[$game->h_id]->short_name .'</div></td>';
         if ($league->scoring_type == 1) {
           $output .= '<td>'. $game->h_spread .'</td>';
         }
@@ -1030,7 +1030,7 @@ function page_mypicks_week($league, $week) {
 }
 
 function page_mypicks_all($league) {
-  global $PICKEM_MY_LEAGUES;
+  global $_PICKEM_MY_LEAGUES;
   global $user;
 
   drupal_set_title("My Picks - ". $user->name);
@@ -1186,7 +1186,7 @@ function page_standings($league) {
       if ($u_object['weeks'][$wid] == $week_totals[$wid]["min"]) {
         $output .= '<td class="weekly weekly-low">'. $u_object['weeks'][$wid] .'</td>';
       }
-      else if ($u_object['weeks'][$wid] == $week_totals[$wid]["max"]) {
+      elseif ($u_object['weeks'][$wid] == $week_totals[$wid]["max"]) {
         $output .= '<td class="weekly weekly-high">'. $u_object['weeks'][$wid] .'</td>';
       }
       else {
@@ -1223,7 +1223,7 @@ function page_standings($league) {
       if ($u['weeks'][$wid] == $week_totals[$wid]["min"]) {
         $output .= '<td class="weekly weekly-low">'. $u['weeks'][$wid] .'</td>';
       }
-      else if ($u['weeks'][$wid] == $week_totals[$wid]["max"]) {
+      elseif ($u['weeks'][$wid] == $week_totals[$wid]["max"]) {
         $output .= '<td class="weekly weekly-high">'. $u['weeks'][$wid] .'</td>';
       }
       else {
@@ -1240,19 +1240,19 @@ function page_standings($league) {
 
 
 function league_router() {
-  global $PICKEM_MY_LEAGUES;
+  global $_PICKEM_MY_LEAGUES;
   global $user;
 
-	// go to their default league and make sure that they are a member of that league.
+  // go to their default league and make sure that they are a member of that league.
   if ( isset($user->pickem_user_default_league) ) {
-  	$l = league_load($user->pickem_user_default_league);
-  	if ( is_my_league($l) ) {
-    	drupal_goto("pickem/" . $user->pickem_user_default_league);
+    $l = league_load($user->pickem_user_default_league);
+    if ( is_my_league($l) ) {
+      drupal_goto("pickem/" . $user->pickem_user_default_league);
     }
   }
 
-  if ( count($PICKEM_MY_LEAGUES) >= 1 ) {
-    drupal_goto("pickem/" . $PICKEM_MY_LEAGUES[0]->lid);
+  if ( count($_PICKEM_MY_LEAGUES) >= 1 ) {
+    drupal_goto("pickem/" . $_PICKEM_MY_LEAGUES[0]->lid);
   }
 
   drupal_set_title("Choose League to View");
@@ -1358,7 +1358,7 @@ function theme_my_league_summary($league) {
 
 function theme_league_messages($league) {
   global $user;
-  global $PICKEM_TIMEZONE;
+  global $_PICKEM_TIMEZONE;
 
   if ( is_my_league($league) && $league->forum_id != 0 ) {
     $post_link = '/node/add/forum/'. $league->forum_id;
@@ -1373,8 +1373,9 @@ function theme_league_messages($league) {
     }
     if (module_exists("countdowntimer")) {
       $output .= '<li class="warning">'. get_countdown_timer($cur_w) .'</span></li>';
-    } else {
-      $output .= '<li class="warning">Week '. ($cur_w->wk_number) .' picks due by '. date('l, F j, Y \a\t g:i a',strtotime($cur_w->firstgame)) . '(' . $PICKEM_TIMEZONE.").</li>";
+    } 
+    else {
+      $output .= '<li class="warning">Week '. ($cur_w->wk_number) .' picks due by '. date('l, F j, Y \a\t g:i a', strtotime($cur_w->firstgame)) .'('. $_PICKEM_TIMEZONE .").</li>";
     }
   }
 
@@ -1472,9 +1473,9 @@ function page_team_power($league) {
 }
 
 function theme_team_power($league) {
-  
+
   $team_stats = get_team_stats($league);
-  
+
   $games = get_games(array('gameset_id' => $league->gsid));
   foreach ($games as $gid => $game) {
     // skip unplayed games
@@ -1487,11 +1488,11 @@ function theme_team_power($league) {
      */
     $team_stats[0][$game->v_id]['opp_win_sum'] += $team_stats[0][$game->h_id]['win_percent'];
     $team_stats[0][$game->h_id]['opp_win_sum'] += $team_stats[0][$game->v_id]['win_percent'];
-    
+
     $team_stats[0][$game->v_id]['opp_win_percentage'] = $team_stats[0][$game->v_id]['opp_win_sum'] / $team_stats[0][$game->v_id]['games_played'];
     $team_stats[0][$game->h_id]['opp_win_percentage'] = $team_stats[0][$game->h_id]['opp_win_sum'] / $team_stats[0][$game->h_id]['games_played'];
 
-    /* 
+    /*
      * Scoring Factor
      */
     if ( ($game->v_score + $game->h_score) > 0 ) {
@@ -1534,11 +1535,11 @@ function theme_team_power($league) {
     $low = $data['power'];
   }
   $high = $high - $low;
-  
+
   // subtract smallest power from all powers to zero base
   // multiply all powers by a factor of 100 / highest power
   reset($team_stats[0]);
-  $ord = 1;  
+  $ord = 1;
   foreach ($team_stats[0] as $tid => $data) {
     $team_stats[0][$tid]['power'] = $team_stats[0][$tid]['power'] - $low;
     $team_stats[0][$tid]['power'] = round($team_stats[0][$tid]['power'] * 100 / $high, 1);
@@ -1663,7 +1664,8 @@ function theme_team_stats($league) {
 
   if ( $ts['name'] == 'PCT' ) {
     uasort($teams, "sort_team_stats_pct_". $ts['sort']);
-  } else if ( $ts['name'] == 'Team' ) {
+  } 
+  elseif ( $ts['name'] == 'Team' ) {
     uasort($teams, "sort_team_stats_team_". $ts['sort']);
   }
 
@@ -2137,7 +2139,7 @@ function sort_team_stats_pct_desc($a, $b) {
   if ($a->win_percent > $b->win_percent) {
     return -1;
   }
-  else if ($a->win_percent < $b->win_percent) {
+  elseif ($a->win_percent < $b->win_percent) {
     return 1;
   }
   else {
@@ -2148,7 +2150,7 @@ function sort_team_power($a, $b) {
   if ($a['power'] > $b['power']) {
     return -1;
   }
-  else if ($a['power'] < $b['power']) {
+  elseif ($a['power'] < $b['power']) {
     return 1;
   }
   else {
@@ -2159,7 +2161,7 @@ function sort_team_stats_pct_asc($a, $b) {
   if ($a->win_percent < $b->win_percent) {
     return -1;
   }
-  else if ($a->win_percent > $b->win_percent) {
+  elseif ($a->win_percent > $b->win_percent) {
     return 1;
   }
   else {
@@ -2170,7 +2172,7 @@ function sort_team_stats_team_desc($a, $b) {
   if ($a->long_name > $b->long_name) {
     return -1;
   }
-  else if ($a->long_name < $b->long_name) {
+  elseif ($a->long_name < $b->long_name) {
     return 1;
   }
   else {
@@ -2181,7 +2183,7 @@ function sort_team_stats_team_asc($a, $b) {
   if ($a->long_name < $b->long_name) {
     return -1;
   }
-  else if ($a->long_name > $b->long_name) {
+  elseif ($a->long_name > $b->long_name) {
     return 1;
   }
   else {
