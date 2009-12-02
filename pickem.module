@@ -67,7 +67,7 @@ $_PICKEM_MY_LEAGUES = array();
       $output .= '<p>'. t('Weeks are numbered sequentially, starting at 1.  First Game Time is the field that locks users from changing their picks.  Make sure to fill that one out.<br/>Typical values for NFL would be 1, Week 1, WK1, 2008-11-12 12:00:00, 1') .'</p>';
       break;
     case 'pickem/%/team_power':
-      $output .= '<p>'. t('vPower&trade; is a scoring system based on winning percentage, strength of schedule, and scoring percentage.  If a good team scores a lot of points against a bad team they get a smaller bonus.  The scale is normalized from 0(worst) to 100(best).') .'</p>';
+      $output .= '<p>'. t('vPower&trade; is a scoring system based on winning percentage, strength of schedule, scoring percentage, and win-streak.  If a good team scores a lot of points against a bad team they get a smaller bonus.  The scale is normalized from 0(worst) to 100(best).') .'</p>';
       break;
   }
   return $output;
