@@ -1374,7 +1374,7 @@ function theme_league_messages($league) {
     }
     if (module_exists("countdowntimer")) {
       $output .= '<li class="warning">'. get_countdown_timer($cur_w) .'</span></li>';
-    } 
+    }
     else {
       $output .= '<li class="warning">Week '. ($cur_w->wk_number) .' picks due by '. date('l, F j, Y \a\t g:i a', strtotime($cur_w->firstgame)) .'('. $_PICKEM_TIMEZONE .").</li>";
     }
@@ -1477,7 +1477,7 @@ function theme_team_power($league) {
 
   $team_stats = get_team_stats($league);
 
-  $games = get_games(array('gameset_id' => $league->gsid));
+  $games = get_games(array('gameset_id' => $league->gsid), array('order_by' => 'pw.wk_firstgame,g.gametime'));
   foreach ($games as $gid => $game) {
     // skip unplayed games
     if ( !isset($game->h_score) || !isset($game->v_score) ) {
@@ -1503,15 +1503,23 @@ function theme_team_power($league) {
     $team_stats[0][$game->v_id]['scoring_factor'] = $team_stats[0][$game->v_id]['scoring_sum'] / $team_stats[0][$game->v_id]['games_played'];
     $team_stats[0][$game->h_id]['scoring_factor'] = $team_stats[0][$game->h_id]['scoring_sum'] / $team_stats[0][$game->h_id]['games_played'];
 
+		/*
+		 * Streak Factor
+		 */
+		$streak_coef = 0.40;  // change the streak weighting
+    $team_stats[0][$game->v_id]['streak_factor'] = $streak_coef * $team_stats[0][$game->v_id]['streak'] / $team_stats[0][$game->v_id]['games_played'];
+    $team_stats[0][$game->h_id]['streak_factor'] = $streak_coef * $team_stats[0][$game->h_id]['streak'] / $team_stats[0][$game->h_id]['games_played'];
+		 
+
     /*
      * Power Ranking
      */
     // overall visitor team power ranking
-    $team_stats[0][$game->v_id]['power'] = $team_stats[0][$game->v_id]['win_percent'] + $team_stats[0][$game->v_id]['scoring_factor'];
+    $team_stats[0][$game->v_id]['power'] = $team_stats[0][$game->v_id]['win_percent'] + $team_stats[0][$game->v_id]['scoring_factor'] + $team_stats[0][$game->v_id]['streak_factor'];
     // weekly visitor team power ranking
     $team_stats[$game->wid][$game->v_id]['power'] = $team_stats[0][$game->v_id]['power'];
     // overall home team power ranking
-    $team_stats[0][$game->h_id]['power'] = $team_stats[0][$game->h_id]['win_percent'] + $team_stats[0][$game->h_id]['scoring_factor'];
+    $team_stats[0][$game->h_id]['power'] = $team_stats[0][$game->h_id]['win_percent'] + $team_stats[0][$game->h_id]['scoring_factor'] + $team_stats[0][$game->h_id]['streak_factor'];
     // weekly home team power ranking
     $team_stats[$game->wid][$game->h_id]['power'] = $team_stats[0][$game->h_id]['power'];
   }
@@ -1523,6 +1531,7 @@ function theme_team_power($league) {
     array('data' => t('WIN PCT')),
     array('data' => t('SCHEDULE')),
     array('data' => t('SCORING')),
+    array('data' => t('STREAK')),
     array('data' => t('vPOWER'))
   );
 
@@ -1562,9 +1571,10 @@ function theme_team_power($league) {
 
     $rows[] = array(
       array('data' => $team_link),
-      array('data' => sprintf("%.3F", $team_stats[0][$tid]['win_percent']),     'style' => 'width:85px;'),
-      array('data' => sprintf("%.3F", $team_stats[0][$tid]['opp_win_percentage']),     'style' => 'width:85px;'),
-      array('data' => sprintf("%.3F", $team_stats[0][$tid]['scoring_factor']), 'style' => 'width:85px;'),
+      array('data' => sprintf("%.3f", $team_stats[0][$tid]['win_percent'])),
+      array('data' => sprintf("%.3f", $team_stats[0][$tid]['opp_win_percentage'])),
+      array('data' => sprintf("%.3f", $team_stats[0][$tid]['scoring_factor'])),
+      array('data' => sprintf("%d", $team_stats[0][$tid]['streak']), 'style' => 'text-align:right; padding-right:20px;'),
 
       array('data' => $team_stats[0][$tid]['power'], 'style' => 'width:20px;')
       );
@@ -1665,7 +1675,7 @@ function theme_team_stats($league) {
 
   if ( $ts['name'] == 'PCT' ) {
     uasort($teams, "sort_team_stats_pct_". $ts['sort']);
-  } 
+  }
   elseif ( $ts['name'] == 'Team' ) {
     uasort($teams, "sort_team_stats_team_". $ts['sort']);
   }
@@ -1685,7 +1695,7 @@ function theme_team_stats($league) {
       array('data' => $teams[$tid]->wins, 'style' => 'width:20px;'),
       array('data' => $teams[$tid]->losses, 'style' => 'width:20px;'),
       array('data' => $teams[$tid]->ties, 'style' => 'width:20px;'),
-      array('data' => sprintf("%.3F", $teams[$tid]->win_percent), 'style' => 'width:55px;'),
+      array('data' => sprintf("%.3f", $teams[$tid]->win_percent), 'style' => 'width:55px;'),
 
       array('data' => $teams[$tid]->pts_for, 'style' => 'width:20px;'),
       array('data' => $teams[$tid]->pts_against, 'style' => 'width:20px;'),

@@ -243,7 +243,7 @@ function get_teams($filter = array('team_id' => NULL, 'gameset_id' => NULL)) {
     if ($row->logo_small != '') {
       $row->small_logo_path = "/$module_path/logos/". $row->logo_small;
       $row->small_logo_img = '<img src="' . $row->small_logo_path . '" />';
-    } 
+    }
     else {
       $row->small_logo_path = '';
       $row->small_logo_img = '';
@@ -701,6 +701,7 @@ function get_team_stats($league) {
     'wins' => 0,
     'losses' => 0,
     'ties' => 0,
+    'streak' => 0,
     'games_played' => 0,
     'pts_for' => 0,
     'pts_against' => 0,
@@ -729,18 +730,55 @@ function get_team_stats($league) {
       continue;
     }
 
-    // get the stats
+
+    /*
+     * get the stats
+     */
+
+    // home win
     if ( $game->h_score > $game->v_score ) {
       $team_stats[0][$game->h_id]['wins']++;
       $team_stats[0][$game->v_id]['losses']++;
+
+      // streak calc
+      if ( $team_stats[0][$game->h_id]['streak'] >= 0 ) {
+        $team_stats[0][$game->h_id]['streak']++;
+      } else {
+        $team_stats[0][$game->h_id]['streak'] = 1;
+      }
+      if ( $team_stats[0][$game->v_id]['streak'] <= 0 ) {
+        $team_stats[0][$game->v_id]['streak']--;
+      } else {
+        $team_stats[0][$game->v_id]['streak'] = -1;
+      }
+
     }
+
+    // visitor win
     elseif ( $game->h_score < $game->v_score ) {
       $team_stats[0][$game->v_id]['wins']++;
       $team_stats[0][$game->h_id]['losses']++;
+
+      // streak calc
+      if ( $team_stats[0][$game->v_id]['streak'] >= 0 ) {
+        $team_stats[0][$game->v_id]['streak']++;
+      } else {
+        $team_stats[0][$game->v_id]['streak'] = 1;
+      }
+      if ( $team_stats[0][$game->h_id]['streak'] <= 0 ) {
+        $team_stats[0][$game->h_id]['streak']--;
+      } else {
+        $team_stats[0][$game->h_id]['streak'] = -1;
+      }
+
     }
+
+    // tie
     elseif ( $game->h_score == $game->v_score ) {
       $team_stats[0][$game->v_id]['ties']++;
       $team_stats[0][$game->h_id]['ties']++;
+
+      // does not affect streak
     }
 
     $team_stats[0][$game->v_id]['games_played']++;
