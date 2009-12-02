@@ -1477,7 +1477,7 @@ function admin_picks_week($league, $user_arg, $week) {
         set_pick($gid[1], $user_arg->uid, $l->lid, $pick);
       }
     }
-    $t_string = t('Picks: saved(all leagues) for %user-name - %week-name.', array('%user-name' => $user_arg->name, '%week-name' => $week->wk_name));
+    $t_string = t('Picks saved (all leagues/%user-name/%week-name).', array('%user-name' => $user_arg->name, '%week-name' => $week->wk_name));
     drupal_set_message($t_string);
     watchdog('pickem', $t_string, NULL, WATCHDOG_NOTICE);
 
@@ -1488,7 +1488,7 @@ function admin_picks_week($league, $user_arg, $week) {
         $gid = preg_split('/_/', $gid);
         set_pick($gid[1], $user_arg->uid, $league->lid, $pick);
       }
-      $t_string = t('Picks: saved for %user-name - %week-name.', array('%user-name' => $user_arg->name, '%week-name' => $week->wk_name));
+      $t_string = t('Picks saved (%league-name/%user-name/%week-name).', array('%league-name' => $league->name, '%user-name' => $user_arg->name, '%week-name' => $week->wk_name));
       drupal_set_message($t_string);
       watchdog('pickem', $t_string, NULL, WATCHDOG_NOTICE);
     }

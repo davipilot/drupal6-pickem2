@@ -933,17 +933,18 @@ function page_mypicks_week($league, $week) {
           set_pick($gid[1], $user->uid, $l->lid, $pick);
         }
       }
-      drupal_set_message("Picks: saved for all leagues");
-      watchdog('pickem', 'Picks saved(all) for <i>'. $user->name .'</i>, week '. $week->wk_name .'.');
-
+      $t_string = t('Picks saved (all leagues/%user-name/%week-name).', array('%user-name' => $user->name, '%week-name' => $week->wk_name));
+      drupal_set_message($t_string);
+      watchdog('pickem', $t_string, NULL, WATCHDOG_NOTICE);
     }
     else {
       foreach ($_POST as $gid => $pick) {
         $gid = preg_split('/_/', $gid);
         set_pick($gid[1], $user->uid, $league->lid, $pick);
       }
-      drupal_set_message("Picks: saved");
-      watchdog('pickem', 'Picks saved for <i>'. $user->name .'</i>, week '. $week->wk_name .'.');
+      $t_string = t('Picks saved (%league-name/%user-name/%week-name).', array('%league-name' => $league->name, '%user-name' => $user->name, '%week-name' => $week->wk_name));
+      drupal_set_message($t_string);
+      watchdog('pickem', $t_string, NULL, WATCHDOG_NOTICE);
     }
   }
 
