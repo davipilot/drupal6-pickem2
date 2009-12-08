@@ -1506,7 +1506,7 @@ function theme_team_power($league) {
 		/*
 		 * Streak Factor
 		 */
-		$streak_coef = 0.40;  // change the streak weighting
+		$streak_coef = 0.25;  // change the streak weighting
     $team_stats[0][$game->v_id]['streak_factor'] = $streak_coef * $team_stats[0][$game->v_id]['streak'] / $team_stats[0][$game->v_id]['games_played'];
     $team_stats[0][$game->h_id]['streak_factor'] = $streak_coef * $team_stats[0][$game->h_id]['streak'] / $team_stats[0][$game->h_id]['games_played'];
 		 
