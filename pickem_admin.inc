@@ -1454,7 +1454,7 @@ function admin_picks($league, $user) {
 function admin_picks_week($league, $user_arg, $week) {
 
   // param check: valid league which has this week
-  if ( bad_league_week($league, $week) ) {
+  if ( !is_valid_week($league, $week) ) {
     return drupal_not_found();
   }
 

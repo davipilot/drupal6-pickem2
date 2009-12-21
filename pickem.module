@@ -902,8 +902,9 @@ function page_grid($league) {
 function page_mypicks_week($league, $week) {
   global $user, $_PICKEM_TIMEZONE;
 
-  // param check: valid league which has this week
-  if ( bad_league_week($league, $week) ) {
+  // param check: is this week valid for this league?
+  // param check: is current user a memeber of this league?
+  if ( !is_valid_week($league, $week) || !is_my_league($league) ) {
     return drupal_not_found();
   }
 
@@ -1033,6 +1034,11 @@ function page_mypicks_week($league, $week) {
 function page_mypicks_all($league) {
   global $_PICKEM_MY_LEAGUES;
   global $user;
+
+  // param check: is current user a memeber of this league?
+  if ( !is_my_league($league) ) {
+    return drupal_not_found();
+  }
 
   drupal_set_title("My Picks - ". $user->name);
 
@@ -1291,6 +1297,7 @@ function theme_league_nav($league) {
 
     $o = '';
     $o .=  '<ul>';
+
     if ( is_my_league($league) ) {
       $o .= '<li>'. l('My Picks', 'pickem/'. $league->lid .'/mypicks') .'</li>';
     }
@@ -1503,13 +1510,13 @@ function theme_team_power($league) {
     $team_stats[0][$game->v_id]['scoring_factor'] = $team_stats[0][$game->v_id]['scoring_sum'] / $team_stats[0][$game->v_id]['games_played'];
     $team_stats[0][$game->h_id]['scoring_factor'] = $team_stats[0][$game->h_id]['scoring_sum'] / $team_stats[0][$game->h_id]['games_played'];
 
-		/*
-		 * Streak Factor
-		 */
-		$streak_coef = 0.25;  // change the streak weighting
+    /*
+     * Streak Factor
+     */
+    $streak_coef = 0.25;  // change the streak weighting
     $team_stats[0][$game->v_id]['streak_factor'] = $streak_coef * $team_stats[0][$game->v_id]['streak'] / $team_stats[0][$game->v_id]['games_played'];
     $team_stats[0][$game->h_id]['streak_factor'] = $streak_coef * $team_stats[0][$game->h_id]['streak'] / $team_stats[0][$game->h_id]['games_played'];
-		 
+
 
     /*
      * Power Ranking

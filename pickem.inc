@@ -85,16 +85,16 @@ function gameset_load($gameset_id) {
   return $valid ? $gameset : FALSE;
 }
 
-
-function bad_league_week($league, $week) {
+// is this a valid week for this league
+function is_valid_week($league, $week) {
   $query = "SELECT lid, wid from {pickem_leagues} l inner join {pickem_weeks} w on w.gsid=l.gsid WHERE lid=%d and wid=%d";
   $result = db_query($query, $league->lid, $week->wid);
   $row = db_fetch_object($result);
   if ( isset($row->lid) ) {
-    return 0;
+    return 1;
   }
   else {
-    return 1;
+    return 0;
   }
 }
 
