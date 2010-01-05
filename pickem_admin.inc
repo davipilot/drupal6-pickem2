@@ -796,16 +796,28 @@ function pickem_game_edit_submit($form, &$form_state) {
   // since you are adding or editing games, clear the schedule grid cache
   cache_clear_all('pickem_grid_scores', 'cache', TRUE);
 
+  // add new game
   if ( $game['gid'] == 0 ) {
-    $query = "insert into {pickem_games}(wid, gametime, h_id, h_spread, v_id, v_spread, h_score, v_score) values(%d, '%s', %d, %d, %d, %d, %d, %d)";
+
+    // drupal bug #245335, can't insert nulls into a decimel field with db_query replacement
+    $game['v_score'] = $game['v_score'] == '' ? 'NULL' : (int) $game['v_score'];
+    $game['h_score'] = $game['h_score'] == '' ? 'NULL' : (int) $game['h_score'];
+
+    $query = "insert into {pickem_games}(wid, gametime, h_id, h_spread, v_id, v_spread, h_score, v_score) values(%d, '%s', %d, %d, %d, %d, %s, %s)";
     $result = db_query($query, $game['wid'], date($game['game_time']), $game['home_team'], $game['h_spread'], $game['visitor_team'], $game['v_spread'], $game['h_score'], $game['v_score']);
 
     $t_string = t('Added game id %game-id.', array('%game-id' => db_last_insert_id('pickem_games', 'gid')));
     drupal_set_message($t_string);
     watchdog('pickem', $t_string, NULL, WATCHDOG_NOTICE);
   }
+  // update existing game
   else {
-    $query = "update {pickem_games} set wid=%d, gametime='%s', h_id=%d, h_spread=%d, v_id=%d, v_spread=%d, h_score=%d, v_score=%d where gid=%d";
+
+    // drupal bug #245335, can't insert nulls into a decimel field with db_query replacement
+    $game['v_score'] = $game['v_score'] == '' ? 'NULL' : (int) $game['v_score'];
+    $game['h_score'] = $game['h_score'] == '' ? 'NULL' : (int) $game['h_score'];
+
+    $query = "update {pickem_games} set wid=%d, gametime='%s', h_id=%d, h_spread=%d, v_id=%d, v_spread=%d, h_score=%s, v_score=%s where gid=%d";
     $result = db_query($query, $game['wid'], date($game['game_time']), $game['home_team'], $game['h_spread'], $game['visitor_team'], $game['v_spread'], $game['h_score'], $game['v_score'], $game['gid']);
 
     $t_string = t('Updated game id %game-id.', array('%game-id' => $game['gid']));
