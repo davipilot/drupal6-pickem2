@@ -7,8 +7,15 @@
 */
 
 /**
- * Custom wildcard loaders for use in hook_menu()
-*/
+ * Fetch a league object.
+ * Also acts as a wildcard loader for hook_menu().
+ *
+ * @param $league_id
+ *   A numeric id of the league to load.
+ * @return
+ *   A fully-loaded $league object upon successful league load or FALSE if league
+ *   cannot be loaded.
+ */
 function league_load($league_id) {
   $valid = TRUE;
   $league = FALSE;
@@ -24,6 +31,17 @@ function league_load($league_id) {
   }
   return $valid ? $league : FALSE;
 }
+
+/**
+ * Fetch a team object.
+ * Also acts as a wildcard loader for hook_menu().
+ *
+ * @param $team_id
+ *   A numeric id of the team to load.
+ * @return
+ *   A fully-loaded $team object upon successful team load or FALSE if team
+ *   cannot be loaded.
+ */
 function team_load($team_id) {
   $valid = TRUE;
   $team = FALSE;
@@ -39,6 +57,17 @@ function team_load($team_id) {
   }
   return $valid ? $team : FALSE;
 }
+
+/**
+ * Fetch a game object.
+ * Also acts as a wildcard loader for hook_menu().
+ *
+ * @param $game_id
+ *   A numeric id of the game to load.
+ * @return
+ *   A fully-loaded $game object upon successful game load or FALSE if game
+ *   cannot be loaded.
+ */
 function game_load($game_id) {
   $valid = TRUE;
   $game = FALSE;
@@ -54,6 +83,17 @@ function game_load($game_id) {
   }
   return $valid ? $game : FALSE;
 }
+
+/**
+ * Fetch a week object.
+ * Also acts as a wildcard loader for hook_menu().
+ *
+ * @param $week_id
+ *   A numeric id of the week to load.
+ * @return
+ *   A fully-loaded $week object upon successful week load or FALSE if week
+ *   cannot be loaded.
+ */
 function week_load($week_id) {
   $valid = TRUE;
   $week = FALSE;
@@ -69,6 +109,17 @@ function week_load($week_id) {
   }
   return $valid ? $week : FALSE;
 }
+
+/**
+ * Fetch a gameset object.
+ * Also acts as a wildcard loader for hook_menu().
+ *
+ * @param $gameset_id
+ *   A numeric id of the gameset to load.
+ * @return
+ *   A fully-loaded $gameset object upon successful gameset load or FALSE if gameset
+ *   cannot be loaded.
+ */
 function gameset_load($gameset_id) {
   $valid = TRUE;
   $gameset = FALSE;
@@ -85,16 +136,25 @@ function gameset_load($gameset_id) {
   return $valid ? $gameset : FALSE;
 }
 
-// is this a valid week for this league
+/**
+ * Perform a check if the league has a particular week in its gameset.
+ *
+ * @param $league
+ *   A league object.
+ * @param $week
+ *   A week object.
+ * @return boolean
+ *   TRUE if league contains week, FALSE otherwise.
+ */
 function is_valid_week($league, $week) {
   $query = "SELECT lid, wid from {pickem_leagues} l inner join {pickem_weeks} w on w.gsid=l.gsid WHERE lid=%d and wid=%d";
   $result = db_query($query, $league->lid, $week->wid);
   $row = db_fetch_object($result);
   if ( isset($row->lid) ) {
-    return 1;
+    return TRUE;
   }
   else {
-    return 0;
+    return FALSE;
   }
 }
 
