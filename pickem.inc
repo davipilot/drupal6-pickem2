@@ -266,6 +266,15 @@ function get_my_leagues($gameset_id=NULL, $user_id=NULL) {
   }
   return $leagues;
 }
+
+/**
+ * Perform a check if the current user is a member of this particular league.
+ *
+ * @param $league
+ *   A league object.
+ * @return boolean
+ *   TRUE if current user is a league member, FALSE otherwise.
+ */
 function is_my_league($league) {
   global $user;
   $query = "SELECT l.* from {pickem_leagues} l inner join {pickem_users} pu on pu.lid=l.lid where pu.lid=%d and pu.uid=%d";
