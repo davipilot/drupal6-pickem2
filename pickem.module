@@ -753,10 +753,10 @@ function page_grid($league) {
   drupal_set_breadcrumb($breadcrumb);
 
   $output = '';
-
-  if ( ($cache = cache_get('pickem_grid_scores-'. $league->gsid)) && !empty($cache->data) ) {
+  $cache_key = 'pickem_page_grid_'. $league->gsid;
+  if ( ($cache = cache_get($cache_key)) && !empty($cache->data) ) {
     drupal_add_js('misc/tableheader.js');
-    $output = unserialize($cache->data);
+    $output = $cache->data;
   }
   else {
     $weeks = get_weeks(array('league_id' => $league->lid, 'playoffs' => 0));
@@ -868,7 +868,7 @@ function page_grid($league) {
     $output .= theme('table', $header, $rows, array('class' => 'grid'));
     $output .= '</div>';
 
-    cache_set('pickem_grid_scores-'. $league->gsid, serialize($output));
+    cache_set($cache_key, $output);
   }
 
   print theme('page', $output);
@@ -1456,7 +1456,7 @@ function theme_team_power($league) {
 
   $team_stats = get_team_stats($league);
 
-  $games = get_games(array('gameset_id' => $league->gsid), array('order_by' => 'pw.wk_firstgame,g.gametime'));
+  $games = get_games(array('gameset_id' => $league->gsid), array('order_by' => 'pw.wk_firstgame,g.gametime,g.gid'));
   foreach ($games as $gid => $game) {
     // skip unplayed games
     if ( !isset($game->h_score) || !isset($game->v_score) ) {

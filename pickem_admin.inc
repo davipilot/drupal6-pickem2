@@ -10,14 +10,6 @@
  * Menu callback which shows an overview page.
  */
 function pickem_overview_page() {
-
-  menu_cache_clear_all();
-  cache_clear_all();
-  menu_rebuild();
-
-  //serialize_teams();
-  //unserialize_teams();
-
   $items = pickem_menu();
   $content = '<dl class="admin-list">';
   foreach ( $items as $path => $menu ) {
@@ -36,9 +28,6 @@ function pickem_overview_page() {
 }
 
 function pickem_settings(&$form_state=NULL) {
-
-  //drupal_set_title("asdf");
-
   $form = array();
   $form['pickem_commisioner_email'] = array(
     '#type' => 'textfield',
@@ -618,7 +607,7 @@ function pickem_week_edit_submit($form, &$form_state) {
     watchdog('pickem', $t_string, NULL, WATCHDOG_NOTICE);
   }
 
-  cache_clear_all('pickem_grid_scores', 'cache', TRUE);
+  cache_clear_all('pickem_', 'cache', TRUE);
   $form_state['redirect'] = 'admin/pickem/weeks/'. $week['gsid'];
 }
 function pickem_week_delete_confirm(&$form_state, $gameset, $week) {
@@ -793,8 +782,8 @@ function pickem_game_edit_validate($form, &$form_state) {
 function pickem_game_edit_submit($form, &$form_state) {
   $game = $form_state['values'];
 
-  // since you are adding or editing games, clear the schedule grid cache
-  cache_clear_all('pickem_grid_scores', 'cache', TRUE);
+  // clear pickem_ caches, since you are usually updating scores here.
+  cache_clear_all('pickem_', 'cache', TRUE);
 
   // add new game
   if ( $game['gid'] == 0 ) {
@@ -1597,8 +1586,8 @@ function page_admin_scores($league, $week) {
       }
     }
 
-    // only clear the grid cache for this league
-    cache_clear_all('pickem_grid_scores-'. $league->lid, 'cache', TRUE);
+    // clear pickem_ caches, since you are updating scores here.
+    cache_clear_all('pickem_', 'cache', TRUE);
 
     drupal_set_message("Scores Saved");
   }
