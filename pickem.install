@@ -22,6 +22,12 @@ function pickem_install() {
 function pickem_uninstall() {
   // Remove table.
   drupal_uninstall_schema('pickem');
+
+  // Remove variables
+  db_query("DELETE FROM {variable} WHERE name like '%s%%'", 'pickem_');
+
+  // Clear related caches
+  cache_clear_all('pickem_', 'cache', TRUE);
 }
 
 
