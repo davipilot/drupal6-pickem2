@@ -121,7 +121,8 @@ function pickem_schema() {
       'tm_nick'    => array('type' => 'varchar', 'length' => 50, 'not null' => TRUE, 'default' => '', 'description' => t('The team nickname.  Not always a good thing.'), ),
       'tm_name'    => array('type' => 'varchar', 'length' => 50, 'not null' => TRUE, 'default' => '', 'description' => t('The full team name.'), ),
       'conference' => array('type' => 'varchar', 'length' => 50, 'not null' => TRUE, 'default' => '', 'description' => t('Team Conference.'), ),
-      'division'   => array('type' => 'varchar', 'length' => 50, 'not null' => TRUE, 'default' => '', 'description' => t('Team Division.'), )
+      'division'   => array('type' => 'varchar', 'length' => 50, 'not null' => TRUE, 'default' => '', 'description' => t('Team Division.'), ),
+      'logo_small' => array('type' => 'varchar', 'length' => 128, 'not null' => TRUE, 'default' => '', 'description' => t('Small team logo.'), )
     ),
     'primary key' => array('tid')
   );
