@@ -122,6 +122,7 @@ function theme_pickem_gamesets_list(&$form) {
       drupal_render($form['gamesets'][$key]['weeks_link']),
       drupal_render($form['gamesets'][$key]['export_link']),
 
+      drupal_render($form['gamesets'][$key]['delete_link'])
     );
   }
 
@@ -151,6 +152,9 @@ function pickem_gamesets_list(&$form_state=NULL) {
       ),
       'edit_link' => array(
         '#value' => l('edit game set', 'admin/pickem/gamesets/edit/'. $gsid)
+      ),
+      'delete_link' => array(
+        '#value' => l('delete game set', 'admin/pickem/gamesets/delete/'. $gsid)
       ),
       'export_link' => array(
         '#value' => l('export', 'admin/pickem/gamesets/export/'. $gsid)
@@ -1742,7 +1746,6 @@ function unserialize_gameset($gameset, $gameset_name) {
 
   // GAMESET
   $gsid = 0;
-  $result = db_query('delete from {pickem_gamesets}');
   $result = db_query("insert into {pickem_gamesets} (gs_name) values('%s')", $gameset_name);
   if ( $result != FALSE ) {
     $gsid = db_last_insert_id('pickem_gamesets', 'gsid');
@@ -1751,7 +1754,6 @@ function unserialize_gameset($gameset, $gameset_name) {
   }
 
   // TEAMS
-  $result = db_query('delete from {pickem_teams}');
   foreach ( $gs['teams'] as $tid => $team ) {
     $query = "insert into {pickem_teams} (gsid, tm_city, tm_abbrev, tm_name, tm_nick, conference, division, logo_small) values(%d, '%s','%s','%s','%s','%s','%s','%s')";
     $result = db_query($query, $gsid, $team->tm_city, $team->tm_abbrev, $team->tm_name, $team->tm_nick, $team->conference, $team->division, $team->logo_small);
@@ -1765,7 +1767,6 @@ function unserialize_gameset($gameset, $gameset_name) {
   }
 
   // WEEKS
-  $result = db_query('delete from {pickem_weeks}');
   foreach ( $gs['weeks'] as $wid => $week ) {
     $query = "insert into {pickem_weeks} (wk_number, gsid, wk_name, wk_abbrev, wk_firstgame, wk_points, playoffs) values(%d, %d, '%s', '%s', '%s', %d, %d)";
     $result = db_query($query, $week->wk_number, $gsid, $week->wk_name, $week->wk_abbrev, date($week->wk_firstgame), $week->wk_points, $week->playoffs);
@@ -1779,7 +1780,6 @@ function unserialize_gameset($gameset, $gameset_name) {
   }
 
   // GAMES, use the new tid and new wid
-  $result = db_query('delete from {pickem_games}');
   foreach ( $gs['games'] as $gid => $game ) {
 
     // drupal bug #245335, can't insert nulls with db_query replacement

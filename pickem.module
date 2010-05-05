@@ -1,5 +1,5 @@
 <?php
-// $Id: pickem.module,v 1.1.2.4 2008/09/22 18:20:32 jvandervort Exp $
+// $Id: $
 
 /**
  * @file
@@ -255,6 +255,15 @@ function pickem_menu() {
     'title' => 'List Game Sets',
     'weight' => -1,
     'type' => MENU_DEFAULT_LOCAL_TASK
+  );
+  $items['admin/pickem/gamesets/add'] = array(
+    'title' => 'Add Game Set',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('pickem_gameset_edit', 'add', NULL),
+    'access arguments' => array('administer pickem'),
+    'file' => 'pickem_admin.inc',
+    'weight' => 0,
+    'type' => MENU_LOCAL_TASK
   );
   $items['admin/pickem/gamesets/import'] = array(
     'title' => 'Import Game Set',
