@@ -89,6 +89,16 @@ function pickem_settings(&$form_state=NULL) {
     '#description' => t("Which league should users be signed up for?"),
   );
 
+  // Check to see if the jstimer is configured correctly.
+  if (module_exists("jstimer")) {
+  	if (!module_exists("jst_timer")) {
+  		drupal_set_message(l(t('Javascript Timer widget'), 'admin/build/modules') . t(' is not enabled for the pickem module.  Make sure "Widget: timer" is enabled under the Javascript timer package or the timer will not show properly.'), 'error');
+  	}
+    if (variable_get('jstimer_js_load_option', 0) != 1 ) {
+      drupal_set_message(l(t('Javascript Timer settings'), 'admin/settings/jstimer') . t(' are set incorrectly for the pickem module.  Make sure Javascript load options are set to EVERY PAGE or the timer will not show properly.'), 'error');
+    }
+  }
+
   return system_settings_form($form);
 }
 

@@ -1351,7 +1351,7 @@ function theme_league_messages($league) {
     if ( $cur_w->firstgame_dow <> "Sunday" ) {
       $output .= '<li class="warning">Warning: The first game is on <span style="text-decoration:underline;">'. strtoupper($cur_w->firstgame_dow) .'</span>.</li>';
     }
-    if (module_exists("countdowntimer")) {
+    if (module_exists("jstimer")) {
       $output .= '<li class="warning">'. get_countdown_timer($cur_w) .'</span></li>';
     }
     else {
@@ -1960,19 +1960,18 @@ function email_warning_mail($key, &$message, $params) {
 }
 
 /**
- * Requires the countdowntimer module.
+ * Requires the jstimer module.
  */
 function get_countdown_timer($current_week) {
-
-$o = <<<EOD
-Reminder: Week {$current_week->wk_number} picks due in
-<span class="countdowntimer">
-<span style="display:none" class="datetime">{$current_week->firstgame_xml}</span>
-<span style="display:none" class="format_txt">%days% days + %hours%:%mins%:%secs%(%dow%)</span>
-</span>
-EOD;
-
-return $o;
+  $o = '';
+  if (module_exists("jstimer")) {
+    $o .= "Reminder: Week {$current_week->wk_number} picks due in ";
+    $o .=  theme('jstimer', 'jst_timer', array(
+             'datetime' => $current_week->firstgame_xml,
+             'format_txt' => '%days% days + %hours%:%mins%:%secs%(%dow%)'
+           ));
+  }
+  return $o;
 }
 
 function pickem_block($op = 'list', $delta = 0, $edit = array()) {
