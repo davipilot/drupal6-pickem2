@@ -6,7 +6,9 @@
  * Enables the sports pickem module.
 */
 
-error_reporting(E_ALL | E_STRICT);
+define('PICKEM_TYPE_WIN_LOSS', 0);
+define('PICKEM_TYPE_SPREAD', 1);
+define('PICKEM_TYPE_SCORE_DIFF', 2);
 
 require_once 'pickem.inc';
 
@@ -33,6 +35,9 @@ $_PICKEM_MY_LEAGUES = array();
  function pickem_help($section = "") {
   $output = '';
   switch ($section) {
+    case 'pickem/%/mypicks':
+      $output .= t('Click on week number to make picks.');
+      break;
     case 'admin/pickem':
       $output .= '<p>'. t("Here is some general information regarding how this module is set up.") .'</p><ul>';
       $output .= '<li>'. t("A game set is a collection of teams, weeks, and games.") .'</li>';
@@ -193,17 +198,19 @@ function pickem_menu() {
   );
 
   $items['pickem/%league/mypicks'] = array(
-    'page callback' => 'page_mypicks_all',
+    'page callback' => 'mypicks_all_page',
     'page arguments' => array(1),
     'access arguments' => array('play pickem'),
     'type' => MENU_CALLBACK,
+    'file' => 'pickem.mypicks.pages.inc'
   );
 
   $items['pickem/%league/mypicks/%week'] = array(
-    'page callback' => 'page_mypicks_week',
+    'page callback' => 'mypicks_week_page',
     'page arguments' => array(1, 3),
     'access arguments' => array('play pickem'),
     'type' => MENU_CALLBACK,
+    'file' => 'pickem.mypicks.pages.inc'
   );
 
   // dynamic logo -> access content
@@ -695,6 +702,14 @@ function pickem_cron() {
  */
 function pickem_theme() {
   return array(
+    'mypicks_all' => array(
+      'file' => 'pickem.mypicks.pages.inc',
+      'arguments' => array('league' => NULL),
+    ),
+    'mypicks_week_form' => array(
+      'file' => 'pickem.mypicks.pages.inc',
+      'arguments' => array('form' => NULL),
+    ),
     'pickem_scores_list' => array(
       'file' => 'pickem_admin.inc',
       'arguments' => array('form' => NULL),
@@ -883,179 +898,6 @@ function page_grid($league) {
   print theme('page', $output);
 }
 
-function page_mypicks_week($league, $week) {
-  global $user, $_PICKEM_TIMEZONE;
-
-  // param check: is this week valid for this league?
-  // param check: is current user a memeber of this league?
-  if ( !is_valid_week($league, $week) || !is_my_league($league) ) {
-    return drupal_not_found();
-  }
-
-  drupal_set_title($week->wk_name .' Picks - '. $user->name);
-
-  // setup breadcrumbs
-  $breadcrumb = drupal_get_breadcrumb();
-  $breadcrumb[] = l($league->name, 'pickem/'. $league->lid);
-  drupal_set_breadcrumb($breadcrumb);
-
-  // used to saving to multiple leagues that use the same pickset.
-  $similar_leagues = get_my_leagues($league->gsid);
-
-  //POSTING, save picks
-  if (count($_POST) > 0) {
-    if ($week->week_past == 1) {
-      drupal_set_title($week->wk_name .' picks are locked.');
-      print theme('page', "You cannot change your picks now.");
-      return;
-    }
-
-    if ( isset($_POST['apply_to_all_my_leagues'] ) ) {
-      unset($_POST['apply_to_all_my_leagues']);
-      foreach ($similar_leagues as $l) {
-        foreach ($_POST as $gid => $pick) {
-          $gid = preg_split('/_/', $gid);
-          set_pick($gid[1], $user->uid, $l->lid, $pick);
-        }
-      }
-      $t_string = t('Picks saved (all leagues/%user-name/%week-name).', array('%user-name' => $user->name, '%week-name' => $week->wk_name));
-      drupal_set_message($t_string);
-      watchdog('pickem', $t_string, NULL, WATCHDOG_NOTICE);
-    }
-    else {
-      foreach ($_POST as $gid => $pick) {
-        $gid = preg_split('/_/', $gid);
-        set_pick($gid[1], $user->uid, $league->lid, $pick);
-      }
-      $t_string = t('Picks saved (%league-name/%user-name/%week-name).', array('%league-name' => $league->name, '%user-name' => $user->name, '%week-name' => $week->wk_name));
-      drupal_set_message($t_string);
-      watchdog('pickem', $t_string, NULL, WATCHDOG_NOTICE);
-    }
-  }
-
-  $teams = get_teams(array('gameset_id' => $league->gsid));
-  $games = get_games(array('week_id' => $week->wid));
-  $picks = get_picks(array('league_id' => $league->lid, 'user_id' => $user->uid, 'week_id' => $week->wid));
-
-  $output = '<div class="pickem"><form action="" method="post"><table class="picks">';
-  if ($league->scoring_type == 0) {
-    $output .= "<tr><th>Visitor</th><th>Home</th><th>Game Time($_PICKEM_TIMEZONE)</th></tr>";
-  }
-  elseif ($league->scoring_type == 1) {
-    $output .= "<tr><th>Visitor</th><th>VSpread</th><th>Home</th><th>HSpread</th><th>Game Time($_PICKEM_TIMEZONE)</th></tr>";
-  }
-
-  foreach ($games as $gid => $game) {
-    $v_sel = '';
-    $h_sel = '';
-    if ($picks[$gid][$user->uid]->winnerpick_id == $game->v_id) {
-      $v_sel = "checked";
-    }
-    elseif ($picks[$gid][$user->uid]->winnerpick_id == $game->h_id) {
-      $h_sel = "checked";
-    }
-
-    if ($week->week_past == 0) {
-      $output .= '<tr>';
-      $output .= '<td><input type="radio" id="gid_'. $gid .'_'. $game->v_id .'" name="gid_'. $gid .'" value="'. $game->v_id .'" '. $v_sel .'/> <label for="gid_'. $gid .'_'. $game->v_id .'">'. $teams[$game->v_id]->small_logo_img . $teams[$game->v_id]->short_name .'</label></td>';
-      if ($league->scoring_type == 1) {
-        $output .= '<td>'. $game->v_spread .'</td>';
-      }
-      $output .= '<td><input type="radio" id="gid_'. $gid .'_'. $game->h_id .'" name="gid_'. $gid .'" value="'. $game->h_id .'" '. $h_sel .'/> <label for="gid_'. $gid .'_'. $game->h_id .'">'. $teams[$game->h_id]->small_logo_img . $teams[$game->h_id]->short_name .'</label></td>';
-      if ($league->scoring_type == 1) {
-        $output .= '<td>'. $game->h_spread .'</td>';
-      }
-    }
-    else {
-      $output .= '<tr>';
-      if ($picks[$gid][$user->uid]->winnerpick_id == $game->v_id) {
-        $output .= '<td><div class="picks-align picked">'. $teams[$game->v_id]->small_logo_img .'<b>'. $teams[$game->v_id]->short_name .' &radic;</b></div></td>';
-        if ($league->scoring_type == 1) {
-          $output .= '<td>'. $game->v_spread .'</td>';
-        }
-      }
-      else {
-        $output .= '<td><div class="picks-align">'. $teams[$game->v_id]->small_logo_img . $teams[$game->v_id]->short_name .'</div></td>';
-        if ($league->scoring_type == 1) {
-          $output .= '<td>'. $game->v_spread .'</td>';
-        }
-      }
-
-      if ($picks[$gid][$user->uid]->winnerpick_id == $game->h_id) {
-        $output .= '<td><div class="picks-align picked">'. $teams[$game->h_id]->small_logo_img .'<b>'. $teams[$game->h_id]->short_name .' &radic;</b></div></td>';
-        if ($league->scoring_type == 1) {
-          $output .= '<td>'. $game->h_spread .'</td>';
-        }
-      }
-      else {
-        $output .= '<td><div class="picks-align">'. $teams[$game->h_id]->small_logo_img . $teams[$game->h_id]->short_name .'</div></td>';
-        if ($league->scoring_type == 1) {
-          $output .= '<td>'. $game->h_spread .'</td>';
-        }
-      }
-    }
-    if (isset ($picks[$gid][$user->uid])) {
-      $output .= '<td class="pick">'. $game->gametime .'</td></tr>';
-    }
-    else {
-      $output .= '<td class="nopick">'. $game->gametime .'</td></tr>';
-    }
-  }
-  $output .= '</table>';
-
-  if ($week->week_past == 0 ) {
-    if ( count($similar_leagues) > 1 ) {
-      $output .= '<p><input type="checkbox" name="apply_to_all_my_leagues"/>Apply picks to all my leagues that use the same game set<br/><br/>';
-    }
-    $output .= '<input type="submit" value="Save Picks"/></p>';
-  }
-  $output .= '</form></div>';
-
-
-  print theme('page', $output);
-}
-
-function page_mypicks_all($league) {
-  global $_PICKEM_MY_LEAGUES;
-  global $user;
-
-  // param check: is current user a memeber of this league?
-  if ( !is_my_league($league) ) {
-    return drupal_not_found();
-  }
-
-  drupal_set_title("My Picks - ". $user->name);
-
-  $breadcrumb = drupal_get_breadcrumb();
-  $breadcrumb[] = l($league->name, 'pickem/'. $league->lid);
-  drupal_set_breadcrumb($breadcrumb);
-
-  $flip = array('even' => 'odd', 'odd' => 'even');
-  $class = 'even';
-
-  $teams = get_teams(array('gameset_id' => $league->gsid));
-
-  $games = get_games(array('league_id' => $league->lid));
-
-  $output = '<div class="pickem">Click on week number to make picks.<table class="picks">';
-
-  $last_week_id = 0;
-  foreach ($games as $gid => $game) {
-    if ( $game->wid <> $last_week_id ) {
-      $class = $flip[$class];
-      $output .= '<tr class="'. $class .'"><th>'. l($game->wk_number, "pickem/$league->lid/mypicks/" . $game->wid) .'</th><td>';
-    }
-    $last_week_id = $game->wid;
-    $output .= '<div class="picks-float">';
-    $output .= $teams[$game->v_id]->short_name .'<br/>@'. $teams[$game->h_id]->short_name;
-    $output .= "</div>";
-  }
-  $output .= "</td></tr>";
-
-  $output .= "</table></div>";
-
-  print theme('page', $output);
-}
 
 function page_weeklypicks($league, $week) {
   global $user;
@@ -1096,30 +938,39 @@ function page_weeklypicks($league, $week) {
     $class=$flip[$class];
     $output .= '<tr class="'. $class .'"><td class="users">'. $user_totals['ranking'] .'. '. l($user_totals['name'], 'user/'. $uid) .'</td><td>'. $user_totals['total'] .'</td>';
     foreach ($gids as $gid => $winnerid) {
-      $p_team = $teams[$picks[$gid][$uid]->winnerpick_id]->short_name;
 
-      if (isset ($picks[$gid][$uid]->winnerpick_id) && $picks[$gid][$uid]->winnerpick_id == $winnerid && $winnerid != 0) {
-        $output .= '<td class="win">'. $p_team .'</td>';
-      }
-      elseif (isset ($picks[$gid][$uid]->winnerpick_id) && $winnerid == -1) {
-        $output .= '<td class="tie">'. $p_team .'</td>';
-      }
-      elseif (isset ($picks[$gid][$uid]->winnerpick_id) && $picks[$gid][$uid]->winnerpick_id != $winnerid && $winnerid != 0) {
-        $output .= '<td class="loss">'. $p_team .'</td>';
-      }
-      else {
-        if ($week->week_past == 1 || $uid == $user->uid) {
-          $output .= '<td>'. $p_team .'</td>';
+      if ($league->scoring_type == PICKEM_TYPE_WIN_LOSS || $league->scoring_type == PICKEM_TYPE_SPREAD) {
+        $p_team = $teams[$picks[$gid][$uid]->winnerpick_id]->short_name;
+
+        if (isset ($picks[$gid][$uid]->winnerpick_id) && $picks[$gid][$uid]->winnerpick_id == $winnerid && $winnerid != 0) {
+          $output .= '<td class="win">'. $p_team .'</td>';
+        }
+        elseif (isset ($picks[$gid][$uid]->winnerpick_id) && $winnerid == -1) {
+          $output .= '<td class="tie">'. $p_team .'</td>';
+        }
+        elseif (isset ($picks[$gid][$uid]->winnerpick_id) && $picks[$gid][$uid]->winnerpick_id != $winnerid && $winnerid != 0) {
+          $output .= '<td class="loss">'. $p_team .'</td>';
         }
         else {
-          if (isset ($picks[$gid][$uid]->winnerpick_id)) {
-            $output .= '<td>X</td>';
+          if ($week->week_past == 1 || $uid == $user->uid) {
+            $output .= '<td>'. $p_team .'</td>';
           }
           else {
-            $output .= '<td>&nbsp;</td>';
+            if (isset ($picks[$gid][$uid]->winnerpick_id)) {
+              $output .= '<td>X</td>';
+            }
+            else {
+              $output .= '<td>&nbsp;</td>';
+            }
           }
         }
       }
+      else if ($league->scoring_type == PICKEM_TYPE_SCORE_DIFF) {
+        $output .= '<td>'. $user_totals['weeks'][$week->wid]['games'][$gid] .'</td>';
+      }
+
+
+
     }
     $output .= '</tr>';
   }

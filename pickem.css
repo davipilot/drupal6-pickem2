@@ -117,33 +117,30 @@ table.block_scores td.home-s {
 
 
 /*
- PICKS TABLE
+ MY PICKS TABLE
 */
-.pickem table.picks td {
+table.pickem-picks td {
   vertical-align:top;
   padding-top:3px;
 }
-.pickem table.picks .picks-float {
+table.pickem-picks td.week {
+  vertical-align:middle;
+  text-align: right;
+}
+table.pickem-picks .picks-float {
   float:left;
   margin:5px 0 0 3px;
   width:60px;
   border-left: 1px solid black;
 }
-.pickem table.picks .pick_win {
- color:green;
- font-weight:bold;
-}
-.pickem table.picks .pick_loss {
- color:red;
- font-weight:bold;
-}
-.pickem table.picks .picks-align {
+table.pickem-picks .picks-align {
   width:100px;
 }
-.pickem table.picks .picked {
+table.pickem-picks .picked {
  border: thin solid black;
  padding: 1px;
 }
+
 
 /*
  STANDINGS TABLE
@@ -334,4 +331,18 @@ table.block_scores td.home-s {
 .pickem table.pick-summary td.bye {
   background: #D3D3D3;
   border-left: 3px solid black;
+}
+
+
+/* mypicks week */
+.pickem-team-radios div {
+  float:left;
+  width: 200px;
+}
+.pickem-team-score-diff div {
+  float:left;
+  width: 200px;
+}
+.pickem-team-score-diff label {
+  display: inline;
 }
