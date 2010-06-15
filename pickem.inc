@@ -710,14 +710,14 @@ function get_totals_by_week($league) {
       $tot = 0;
       $count = 0;
       foreach ($totals as $uid => $u) {
-        if ( isset($u['weeks'][$wid]) ) {
-          if ($u['weeks'][$wid] > $max) {
-            $max = $u['weeks'][$wid];
+        if ( isset($u['weeks'][$wid]['total']) ) {
+          if ($u['weeks'][$wid]['total'] > $max) {
+            $max = $u['weeks'][$wid]['total'];
           }
-          if ( $u['weeks'][$wid] < $min ) {
-            $min = $u['weeks'][$wid];
+          if ( $u['weeks'][$wid]['total'] < $min ) {
+            $min = $u['weeks'][$wid]['total'];
           }
-          $tot += $u['weeks'][$wid];
+          $tot += $u['weeks'][$wid]['total'];
           $count += 1;
         }
       }

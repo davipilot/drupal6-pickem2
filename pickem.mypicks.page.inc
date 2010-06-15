@@ -108,6 +108,13 @@ function mypicks_week_form(&$form_state=NULL, $league, $week) {
         '#attributes' => array('class' => 'pickem-team-radios'),
         '#options' => $options
       );
+      
+      // Disabled the radio boxes if the week has past.
+      if ( $week->week_past == 1 ) {
+      	$form['games'][$gid]['pick']['#attributes']['readonly'] = 'readonly';
+      	$form['games'][$gid]['pick']['#attributes']['disabled'] = 'disabled';
+      }
+      
     }
     elseif ($league->scoring_type == PICKEM_TYPE_SCORE_DIFF) {
       $form['games'][$gid]['pick_v_score'] = array(
@@ -124,6 +131,16 @@ function mypicks_week_form(&$form_state=NULL, $league, $week) {
         '#field_suffix' => $teams[$game->h_id]->small_logo_img . $teams[$game->h_id]->short_name,
         '#suffix' => '</div>'
       );
+      
+      // Disabled the input boxes if the week has past.
+      if ( $week->week_past == 1 ) {
+      	$form['games'][$gid]['pick_v_score']['#attributes']['readonly'] = 'readonly';
+      	$form['games'][$gid]['pick_v_score']['#attributes']['disabled'] = 'disabled';
+      	$form['games'][$gid]['pick_h_score']['#attributes']['readonly'] = 'readonly';
+      	$form['games'][$gid]['pick_h_score']['#attributes']['disabled'] = 'disabled';
+      }
+      
+      
     }
     $form['games'][$gid]['gametime'] = array(
       '#value' => $game->gametime
@@ -137,15 +154,14 @@ function mypicks_week_form(&$form_state=NULL, $league, $week) {
       $my_list[] = $l->name;
     }
   }
-  if ( count($my_list) > 1 ) {
-    $form['apply_to_all_my_leagues'] = array(
-      '#type' => 'checkbox',
-      '#title' => t('Apply picks to all my leagues that use the same game set and scoring system.'),
-      '#description' => implode(', ',$my_list),
-      '#default_value' => 0
-    );
-  }
 
+  $form['apply_to_all_my_leagues'] = array(
+    '#type' => 'checkbox',
+    '#access' => ($week->week_past == 0 && count($my_list) > 1),
+    '#title' => t('Apply picks to all my leagues that use the same game set and scoring system.'),
+    '#description' => implode(', ',$my_list),
+    '#default_value' => 0
+  );
 
   $form['submit'] = array(
     '#type' => 'submit',
