@@ -224,7 +224,7 @@ function pickem_menu() {
 
 
 
-  // admin menus, 'file' => 'pickem_admin.inc',
+  // admin menus, 'file' => 'pickem.admin.inc',
   $items['admin/pickem'] = array(
     'title' => 'Pickem',
     'description' => t('Run your own pickem leagues.'),
@@ -232,7 +232,7 @@ function pickem_menu() {
     'access arguments' => array('administer pickem'),
     'type' => MENU_NORMAL_ITEM,
     'weight' => -10,
-    'file' => 'pickem_admin.inc'
+    'file' => 'pickem.admin.inc'
   );
 
   // Global Settings
@@ -244,7 +244,7 @@ function pickem_menu() {
     'access arguments' => array('administer pickem'),
     'type' => MENU_NORMAL_ITEM,
     'weight' => -10,
-    'file' => 'pickem_admin.inc'
+    'file' => 'pickem.admin.inc'
   );
 
 
@@ -255,7 +255,7 @@ function pickem_menu() {
     'page callback' => 'drupal_get_form',
     'page arguments' => array('pickem_gamesets_list'),
     'access arguments' => array('administer pickem'),
-    'file' => 'pickem_admin.inc',
+    'file' => 'pickem.admin.inc',
     'weight' => -2,
     'type' => MENU_NORMAL_ITEM
   );
@@ -269,7 +269,7 @@ function pickem_menu() {
     'page callback' => 'drupal_get_form',
     'page arguments' => array('pickem_gameset_edit', 'add', NULL),
     'access arguments' => array('administer pickem'),
-    'file' => 'pickem_admin.inc',
+    'file' => 'pickem.admin.inc',
     'weight' => 0,
     'type' => MENU_LOCAL_TASK
   );
@@ -279,7 +279,7 @@ function pickem_menu() {
     'page callback' => 'page_admin_data_import',
     'access arguments' => array('administer pickem'),
     'weight' => 1,
-    'file' => 'pickem_admin.inc',
+    'file' => 'pickem.admin.inc',
     'type' => MENU_LOCAL_TASK
   );
   $items['admin/pickem/gamesets/edit/%gameset'] = array(
@@ -287,7 +287,7 @@ function pickem_menu() {
     'page callback' => 'drupal_get_form',
     'page arguments' => array('pickem_gameset_edit', 'edit', 4),
     'access arguments' => array('administer pickem'),
-    'file' => 'pickem_admin.inc',
+    'file' => 'pickem.admin.inc',
     'type' => MENU_CALLBACK
   );
   $items['admin/pickem/gamesets/export/%gameset'] = array(
@@ -295,7 +295,7 @@ function pickem_menu() {
     'page callback' => 'export_gameset',
     'page arguments' => array(4),
     'access arguments' => array('administer pickem'),
-    'file' => 'pickem_admin.inc',
+    'file' => 'pickem.admin.inc',
     'type' => MENU_CALLBACK
   );
   $items['admin/pickem/gamesets/delete/%gameset'] = array(
@@ -303,7 +303,7 @@ function pickem_menu() {
     'page callback' => 'drupal_get_form',
     'page arguments' => array('pickem_gameset_delete_confirm', 4),
     'access arguments' => array('administer pickem'),
-    'file' => 'pickem_admin.inc',
+    'file' => 'pickem.admin.inc',
     'type' => MENU_CALLBACK
   );
 
@@ -315,7 +315,7 @@ function pickem_menu() {
     'page arguments' => array('pickem_teams_list', 3),
     'access arguments' => array('administer pickem'),
     'weight' => -1,
-    'file' => 'pickem_admin.inc',
+    'file' => 'pickem.admin.inc',
     'type' => MENU_NORMAL_ITEM,
   );
   $items['admin/pickem/teams/%gameset/list'] = array(
@@ -328,7 +328,7 @@ function pickem_menu() {
     'page callback' => 'drupal_get_form',
     'page arguments' => array('pickem_team_edit', 'add', 3, NULL),
     'access arguments' => array('administer pickem'),
-    'file' => 'pickem_admin.inc',
+    'file' => 'pickem.admin.inc',
     'weight' => 0,
     'type' => MENU_LOCAL_TASK,
   );
@@ -337,7 +337,7 @@ function pickem_menu() {
     'page callback' => 'drupal_get_form',
     'page arguments' => array('pickem_team_edit', 'edit', 3, 5),
     'access arguments' => array('administer pickem'),
-    'file' => 'pickem_admin.inc',
+    'file' => 'pickem.admin.inc',
     'type' => MENU_CALLBACK,
   );
   $items['admin/pickem/teams/%gameset/delete/%team'] = array(
@@ -345,7 +345,7 @@ function pickem_menu() {
     'page callback' => 'drupal_get_form',
     'page arguments' => array('pickem_team_delete_confirm', 3, 5),
     'access arguments' => array('administer pickem'),
-    'file' => 'pickem_admin.inc',
+    'file' => 'pickem.admin.inc',
     'type' => MENU_CALLBACK,
   );
 
@@ -359,7 +359,7 @@ function pickem_menu() {
     'page arguments' => array('pickem_weeks_list', 3),
     'access arguments' => array('administer pickem'),
     'weight' => 1,
-    'file' => 'pickem_admin.inc',
+    'file' => 'pickem.admin.inc',
     'type' => MENU_NORMAL_ITEM,
   );
   $items['admin/pickem/weeks/%gameset/list'] = array(
@@ -372,7 +372,7 @@ function pickem_menu() {
     'page callback' => 'drupal_get_form',
     'page arguments' => array('pickem_week_edit', 'add', 3, NULL),
     'access arguments' => array('administer pickem'),
-    'file' => 'pickem_admin.inc',
+    'file' => 'pickem.admin.inc',
     'weight' => 0,
     'type' => MENU_LOCAL_TASK,
   );
@@ -381,7 +381,7 @@ function pickem_menu() {
     'page callback' => 'drupal_get_form',
     'page arguments' => array('pickem_week_edit', 'edit', 3, 5),
     'access arguments' => array('administer pickem'),
-    'file' => 'pickem_admin.inc',
+    'file' => 'pickem.admin.inc',
     'type' => MENU_CALLBACK,
   );
   $items['admin/pickem/weeks/%gameset/delete/%week'] = array(
@@ -389,7 +389,7 @@ function pickem_menu() {
     'page callback' => 'drupal_get_form',
     'page arguments' => array('pickem_week_delete_confirm', 3, 5),
     'access arguments' => array('administer pickem'),
-    'file' => 'pickem_admin.inc',
+    'file' => 'pickem.admin.inc',
     'type' => MENU_CALLBACK,
   );
 
@@ -402,7 +402,7 @@ function pickem_menu() {
     'page arguments' => array('pickem_games_list', 3),
     'access arguments' => array('administer pickem'),
     'weight' => -1,
-    'file' => 'pickem_admin.inc',
+    'file' => 'pickem.admin.inc',
     'type' => MENU_NORMAL_ITEM,
   );
   $items['admin/pickem/games/%week/list'] = array(
@@ -415,7 +415,7 @@ function pickem_menu() {
     'page callback' => 'drupal_get_form',
     'page arguments' => array('pickem_game_edit', 'add', 3, NULL),
     'access arguments' => array('administer pickem'),
-    'file' => 'pickem_admin.inc',
+    'file' => 'pickem.admin.inc',
     'weight' => 0,
     'type' => MENU_LOCAL_TASK,
   );
@@ -424,7 +424,7 @@ function pickem_menu() {
     'page callback' => 'drupal_get_form',
     'page arguments' => array('pickem_game_edit', 'edit', 3, 5),
     'access arguments' => array('administer pickem'),
-    'file' => 'pickem_admin.inc',
+    'file' => 'pickem.admin.inc',
     'type' => MENU_CALLBACK,
   );
   $items['admin/pickem/games/%week/delete/%game'] = array(
@@ -432,7 +432,7 @@ function pickem_menu() {
     'page callback' => 'drupal_get_form',
     'page arguments' => array('pickem_game_delete_confirm', 3, 5),
     'access arguments' => array('administer pickem'),
-    'file' => 'pickem_admin.inc',
+    'file' => 'pickem.admin.inc',
     'type' => MENU_CALLBACK,
   );
 
@@ -444,7 +444,7 @@ function pickem_menu() {
     'page callback' => 'drupal_get_form',
     'page arguments' => array('pickem_leagues_list'),
     'access arguments' => array('administer pickem'),
-    'file' => 'pickem_admin.inc',
+    'file' => 'pickem.admin.inc',
     'weight' => -2,
     'type' => MENU_NORMAL_ITEM,
   );
@@ -458,7 +458,7 @@ function pickem_menu() {
     'page callback' => 'drupal_get_form',
     'page arguments' => array('pickem_league_edit', 'add', NULL),
     'access arguments' => array('administer pickem'),
-    'file' => 'pickem_admin.inc',
+    'file' => 'pickem.admin.inc',
     'weight' => 0,
     'type' => MENU_LOCAL_TASK,
   );
@@ -467,7 +467,7 @@ function pickem_menu() {
     'page callback' => 'drupal_get_form',
     'page arguments' => array('pickem_league_edit', 'edit', 4),
     'access arguments' => array('administer pickem'),
-    'file' => 'pickem_admin.inc',
+    'file' => 'pickem.admin.inc',
     'type' => MENU_CALLBACK,
   );
   $items['admin/pickem/leagues/delete/%league'] = array(
@@ -475,7 +475,7 @@ function pickem_menu() {
     'page callback' => 'drupal_get_form',
     'page arguments' => array('pickem_league_delete_confirm', 4),
     'access arguments' => array('administer pickem'),
-    'file' => 'pickem_admin.inc',
+    'file' => 'pickem.admin.inc',
     'type' => MENU_CALLBACK,
   );
 
@@ -486,7 +486,7 @@ function pickem_menu() {
     'page callback' => 'drupal_get_form',
     'page arguments' => array('pickem_users_list', 3),
     'access arguments' => array('administer pickem'),
-    'file' => 'pickem_admin.inc',
+    'file' => 'pickem.admin.inc',
     'type' => MENU_NORMAL_ITEM,
   );
   $items['admin/pickem/users/%league/list'] = array(
@@ -499,7 +499,7 @@ function pickem_menu() {
     'page callback' => 'drupal_get_form',
     'page arguments' => array('pickem_users_add', 3),
     'access arguments' => array('administer pickem'),
-    'file' => 'pickem_admin.inc',
+    'file' => 'pickem.admin.inc',
     'weight' => 0,
     'type' => MENU_LOCAL_TASK,
   );
@@ -508,7 +508,7 @@ function pickem_menu() {
     'page callback' => 'drupal_get_form',
     'page arguments' => array('pickem_users_remove_confirm', 3, 5),
     'access arguments' => array('administer pickem'),
-    'file' => 'pickem_admin.inc',
+    'file' => 'pickem.admin.inc',
     'type' => MENU_CALLBACK,
   );
 
@@ -521,7 +521,7 @@ function pickem_menu() {
     'page arguments' => array('pickem_scores_list', 3),
     'access arguments' => array('administer pickem'),
     'weight' => -1,
-    'file' => 'pickem_admin.inc',
+    'file' => 'pickem.admin.inc',
     'type' => MENU_NORMAL_ITEM,
   );
   $items['admin/pickem/scores/%league/list'] = array(
@@ -536,7 +536,7 @@ function pickem_menu() {
     'page arguments' => array(3, 5),
     'access arguments' => array('administer pickem'),
     'weight' => 1,
-    'file' => 'pickem_admin.inc',
+    'file' => 'pickem.admin.inc',
     'type' => MENU_NORMAL_ITEM,
   );
 
@@ -546,7 +546,7 @@ function pickem_menu() {
     'page callback' => 'page_admin_email_league',
     'access arguments' => array('administer pickem'),
     'weight' => 8,
-    'file' => 'pickem_admin.inc',
+    'file' => 'pickem.admin.inc',
     'type' => MENU_NORMAL_ITEM,
   );
 
@@ -721,31 +721,31 @@ function pickem_theme() {
     ),
 
     'pickem_scores_list' => array(
-      'file' => 'pickem_admin.inc',
+      'file' => 'pickem.admin.inc',
       'arguments' => array('form' => NULL),
     ),
     'pickem_gamesets_list' => array(
-      'file' => 'pickem_admin.inc',
+      'file' => 'pickem.admin.inc',
       'arguments' => array('form' => NULL),
     ),
     'pickem_leagues_list' => array(
-      'file' => 'pickem_admin.inc',
+      'file' => 'pickem.admin.inc',
       'arguments' => array('form' => NULL),
     ),
     'pickem_teams_list' => array(
-      'file' => 'pickem_admin.inc',
+      'file' => 'pickem.admin.inc',
       'arguments' => array('form' => NULL),
     ),
     'pickem_weeks_list' => array(
-      'file' => 'pickem_admin.inc',
+      'file' => 'pickem.admin.inc',
       'arguments' => array('form' => NULL),
     ),
     'pickem_games_list' => array(
-      'file' => 'pickem_admin.inc',
+      'file' => 'pickem.admin.inc',
       'arguments' => array('form' => NULL),
     ),
     'pickem_users_list' => array(
-      'file' => 'pickem_admin.inc',
+      'file' => 'pickem.admin.inc',
       'arguments' => array('form' => NULL),
     ),
     'league_nav' => array(
