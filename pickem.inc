@@ -722,11 +722,6 @@ function get_totals_by_week($league) {
         }
       }
 
-      if ( $max == $min ) {
-        $max = '';
-        $min = '';
-      }
-
       $wk_summary[$wid] = array(
         "name" => $week->wk_number,
         "max" => $max,

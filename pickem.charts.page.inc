@@ -28,7 +28,9 @@ function chart_hi_low_page($league, $account = NULL) {
 
   $weeks = get_totals_by_week($league);
 
+  // League AVG line.
   $b = array();
+  $y_max = 0;
   foreach ($weeks as $w) {
     if ( $w['count'] == '' ) {
       $b[] = 'null';
@@ -36,10 +38,16 @@ function chart_hi_low_page($league, $account = NULL) {
     else {
       $b[] = $w['total'] / $w['count'];
     }
+    if ( $w['max'] > $y_max ) {
+    	$y_max = $w['max'];
+    }
   }
+  $y_max = ceil($y_max/5)*5; 
+  
   $g->set_data($b);
   $g->line_dot( 2, 4, '#008000', 'League AVG', 12 );
 
+  // User line, if needed.
   if ( $account !== NULL ) {
     $ut = get_user_totals($league);
     $c = array();
@@ -55,7 +63,8 @@ function chart_hi_low_page($league, $account = NULL) {
     $g->line_hollow( 2, 5, '#000080', $ut[$account->uid]['name'], 12 );
   }
 
-   $a = array();
+  // Candle box for min-max.
+  $a = array();
   foreach ($weeks as $w) {
     if ( $w['max'] == '' ) {
       $a[] = new candle('null', 'null', 'null', 'null');
@@ -76,8 +85,10 @@ function chart_hi_low_page($league, $account = NULL) {
   $g->set_x_labels( $x_labels );
   $g->set_x_legend( 'Week', 12);
 
-  $g->set_y_max( 16 );
-  $g->y_label_steps( 8 );
+	if ( isset($y_max) ) {
+  	$g->set_y_max($y_max);
+  }
+  $g->y_label_steps( 5 );
   $g->set_y_legend( 'Points', 12);
 
   $g->set_bg_colour('0xDFFFDF');
