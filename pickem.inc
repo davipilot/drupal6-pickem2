@@ -267,8 +267,31 @@ function get_my_leagues($gameset_id=NULL, $user_id=NULL) {
   return $leagues;
 }
 
+
 /**
- * Perform a check if the current user is a member of this particular league.
+ * Perform a check if a user is a member of a particular league.
+ *
+ * @param $league
+ *   A league object.
+ * @param $account
+ *   A user object.
+ * @return boolean
+ *   TRUE if current user is a league member, FALSE otherwise.
+ */
+function is_league_member($league, $account) {
+  $query = "SELECT l.* from {pickem_leagues} l inner join {pickem_users} pu on pu.lid=l.lid where pu.lid=%d and pu.uid=%d";
+  $row = db_fetch_object(db_query($query, $league->lid, $account->uid));
+  if ( $row ) {
+    return TRUE;
+  }
+  else {
+    return FALSE;
+  }
+}
+
+
+/**
+ * Perform a check if the current user is a member of a particular league.
  *
  * @param $league
  *   A league object.
@@ -277,14 +300,7 @@ function get_my_leagues($gameset_id=NULL, $user_id=NULL) {
  */
 function is_my_league($league) {
   global $user;
-  $query = "SELECT l.* from {pickem_leagues} l inner join {pickem_users} pu on pu.lid=l.lid where pu.lid=%d and pu.uid=%d";
-  $row = db_fetch_object(db_query($query, $league->lid, $user->uid));
-  if ( $row ) {
-    return TRUE;
-  }
-  else {
-    return FALSE;
-  }
+  return is_league_member($league, $user);
 }
 
 

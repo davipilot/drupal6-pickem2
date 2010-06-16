@@ -39,11 +39,11 @@ function chart_hi_low_page($league, $account = NULL) {
       $b[] = $w['total'] / $w['count'];
     }
     if ( $w['max'] > $y_max ) {
-    	$y_max = $w['max'];
+      $y_max = $w['max'];
     }
   }
-  $y_max = ceil($y_max/5)*5; 
-  
+  $y_max = ceil($y_max/5)*5;
+
   $g->set_data($b);
   $g->line_dot( 2, 4, '#008000', 'League AVG', 12 );
 
@@ -85,8 +85,8 @@ function chart_hi_low_page($league, $account = NULL) {
   $g->set_x_labels( $x_labels );
   $g->set_x_legend( 'Week', 12);
 
-	if ( isset($y_max) ) {
-  	$g->set_y_max($y_max);
+  if ( isset($y_max) ) {
+    $g->set_y_max($y_max);
   }
   $g->y_label_steps( 5 );
   $g->set_y_legend( 'Points', 12);

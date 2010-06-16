@@ -59,10 +59,10 @@ function theme_standings($league) {
     }
 
     foreach ($weeks as $wid => $week) {
-      if ($u_object['weeks'][$wid]['total'] == $week_totals[$wid]["min"]) {
+      if ($u_object['weeks'][$wid]['total'] == $week_totals[$wid]["min"] && $week_totals[$wid]["min"] != $week_totals[$wid]["max"]) {
         $output .= '<td class="weekly weekly-low">'. $u_object['weeks'][$wid]['total'] .'</td>';
       }
-      elseif ($u_object['weeks'][$wid]['total'] == $week_totals[$wid]["max"]) {
+      elseif ($u_object['weeks'][$wid]['total'] == $week_totals[$wid]["max"] && $week_totals[$wid]["min"] != $week_totals[$wid]["max"]) {
         $output .= '<td class="weekly weekly-high">'. $u_object['weeks'][$wid]['total'] .'</td>';
       }
       else {
@@ -96,10 +96,10 @@ function theme_standings($league) {
       $output .= '<td class="totals">'. $u['total'] .'</td><td class="gamesback">+'. $u['pts_back'] .'</td>';
     }
     foreach ($playoff_weeks as $wid => $week) {
-      if ($u['weeks'][$wid]['total'] == $week_totals[$wid]["min"]) {
+      if ($u['weeks'][$wid]['total'] == $week_totals[$wid]["min"] && $week_totals[$wid]["min"] != $week_totals[$wid]["max"]) {
         $output .= '<td class="weekly weekly-low">'. $u['weeks'][$wid]['total'] .'</td>';
       }
-      elseif ($u['weeks'][$wid]['total'] == $week_totals[$wid]["max"]) {
+      elseif ($u['weeks'][$wid]['total'] == $week_totals[$wid]["max"] && $week_totals[$wid]["min"] != $week_totals[$wid]["max"]) {
         $output .= '<td class="weekly weekly-high">'. $u['weeks'][$wid]['total'] .'</td>';
       }
       else {
