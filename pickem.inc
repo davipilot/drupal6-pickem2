@@ -609,10 +609,10 @@ $reset=TRUE;
             $totals[$uid]['best_week_id'] = $wid;
             $totals[$uid]['worst_week_id'] = $wid;
           }
-          if ( $week_item['total'] > $totals[$uid]['weeks'][$totals[$uid]['best_week_id']] ) {
+          if ( $week_item['total'] > $totals[$uid]['weeks'][$totals[$uid]['best_week_id']]['total'] ) {
             $totals[$uid]['best_week_id'] = $wid;
           }
-          if ( $week_item['total'] < $totals[$uid]['weeks'][$totals[$uid]['worst_week_id']] ) {
+          if ( $week_item['total'] < $totals[$uid]['weeks'][$totals[$uid]['worst_week_id']]['total'] ) {
             $totals[$uid]['worst_week_id'] = $wid;
           }
         }
