@@ -96,6 +96,9 @@ function pickem_schema() {
       'uid'           => array('type' => 'int',    'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
       'gid'           => array('type' => 'int',    'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
       'winnerpick_id' => array('type' => 'int',    'unsigned' => TRUE),
+      'pick_h_score'       => array('type' => 'int',    'unsigned' => TRUE),
+      'pick_v_score'       => array('type' => 'int',    'unsigned' => TRUE),
+      'confidence'    => array('type' => 'int',    'unsigned' => TRUE),
       'picktime'      => array('type' => 'datetime')
     ),
     'primary key' => array('pid'),
@@ -301,7 +304,7 @@ function pickem_update_6201() {
       'process_point' => array('type' => 'varchar', 'length' => 50, 'not null' => TRUE, 'default' => ''),
       'uid'           => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE),
       'lid'           => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE),
-      'email'            => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
+      'email'         => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
       'sent'          => array('type' => 'datetime')
     ),
     'primary key' => array('id'),
@@ -313,6 +316,14 @@ function pickem_update_6201() {
 
 function pickem_update_6202() {
   $ret = array();
-  db_add_field($ret, 'pickem_teams',    'logo_small', array('type' => 'varchar', 'length' => 128, 'default' => ''));
+  db_add_field($ret, 'pickem_teams', 'logo_small', array('type' => 'varchar', 'length' => 128, 'default' => ''));
+  return $ret;
+}
+
+function pickem_update_6203() {
+  $ret = array();
+  db_add_field($ret, 'pickem_picks', 'pick_h_score', array('type' => 'int', 'unsigned' => TRUE));
+  db_add_field($ret, 'pickem_picks', 'pick_v_score', array('type' => 'int', 'unsigned' => TRUE));
+  db_add_field($ret, 'pickem_picks', 'confidence', array('type' => 'int', 'unsigned' => TRUE));
   return $ret;
 }
