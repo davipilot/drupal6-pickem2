@@ -6,6 +6,7 @@
  * includes all pickem admin functions.
 */
 
+
 /**
  * Menu callback which shows an overview page.
  */
@@ -26,6 +27,7 @@ function pickem_overview_page() {
   $content .= "</dl>";
   print theme('page', $content);
 }
+
 
 function pickem_settings(&$form_state=NULL) {
   $form = array();
@@ -91,9 +93,9 @@ function pickem_settings(&$form_state=NULL) {
 
   // Check to see if the jstimer is configured correctly.
   if (module_exists("jstimer")) {
-  	if (!module_exists("jst_timer")) {
-  		drupal_set_message(l(t('Javascript Timer widget'), 'admin/build/modules') . t(' is not enabled for the pickem module.  Make sure "Widget: timer" is enabled under the Javascript timer package or the timer will not show properly.'), 'error');
-  	}
+    if (!module_exists("jst_timer")) {
+      drupal_set_message(l(t('Javascript Timer widget'), 'admin/build/modules') . t(' is not enabled for the pickem module.  Make sure "Widget: timer" is enabled under the Javascript timer package or the timer will not show properly.'), 'error');
+    }
     if (variable_get('jstimer_js_load_option', 0) != 1 ) {
       drupal_set_message(l(t('Javascript Timer settings'), 'admin/settings/jstimer') . t(' are set incorrectly for the pickem module.  Make sure Javascript load options are set to EVERY PAGE or the timer will not show properly.'), 'error');
     }
@@ -130,6 +132,8 @@ function theme_pickem_gamesets_list(&$form) {
 
   return $output;
 }
+
+
 function pickem_gamesets_list(&$form_state=NULL) {
   //drupal_set_message("admin_leagues_form");
 
@@ -199,6 +203,8 @@ function pickem_gameset_edit(&$form_state, $type, $gameset) {
 
   return $form;
 }
+
+
 /**
  * Validate form values for a league being added or edited.
  */
@@ -209,6 +215,8 @@ function pickem_gameset_edit_validate($form, &$form_state) {
     form_set_error('gs_name', t('You must at least choose a name.'));
   }
 }
+
+
 /**
  * Submit form values for a league being added or edited.
  */
@@ -234,12 +242,16 @@ function pickem_gameset_edit_submit($form, &$form_state) {
 
   $form_state['redirect'] = 'admin/pickem/gamesets';
 }
+
+
 function pickem_gameset_delete_confirm(&$form_state, $gameset) {
   $form['#gameset'] = $gameset;
   $caption = '';
   $caption .= '<p>'. t('This action cannot be undone.  All related teams, weeks, and games will be deleted.') .'</p>';
   return confirm_form($form, t('Are you sure you want to delete the game set %name?', array('%name' => $gameset->gs_name)), 'admin/pickem/gamesets', $caption, t('Delete'));
 }
+
+
 function pickem_gameset_delete_confirm_submit($form, &$form_state) {
   $gameset = $form['#gameset'];
   db_query("DELETE FROM {pickem_gamesets} WHERE gsid = %d", $gameset->gsid);
@@ -279,6 +291,8 @@ function theme_pickem_teams_list(&$form) {
 
   return $output;
 }
+
+
 function pickem_teams_list($form_state=NULL, $gameset) {
 
   $breadcrumb = drupal_get_breadcrumb();
@@ -310,6 +324,8 @@ function pickem_teams_list($form_state=NULL, $gameset) {
 
   return $form;
 }
+
+
 function pickem_team_edit(&$form_state, $type, $gameset, $team) {
 
   if ( is_null($team) ) {
@@ -397,6 +413,8 @@ function pickem_team_edit(&$form_state, $type, $gameset, $team) {
 
   return $form;
 }
+
+
 /**
  * Validate form values for a menu link being added or edited.
  */
@@ -406,6 +424,8 @@ function pickem_team_edit_validate($form, &$form_state) {
   //  form_set_error('tm_name', t("Sorry for you.", array('@tm_name' => $team['tm_name'])));
   //}
 }
+
+
 function pickem_team_edit_submit($form, &$form_state) {
   $team = $form_state['values'];
 
@@ -428,6 +448,8 @@ function pickem_team_edit_submit($form, &$form_state) {
 
   $form_state['redirect'] = 'admin/pickem/teams/'. $team['gsid'];
 }
+
+
 /**
  * Build a confirm form for deletion of a team.
  */
@@ -437,6 +459,8 @@ function pickem_team_delete_confirm(&$form_state, $gameset, $team) {
   $caption .= '<p>'. t('This action cannot be undone.') .'</p>';
   return confirm_form($form, t('Are you sure you want to delete the team %name from %gameset?', array('%name' => $team->tm_city .' '. $team->tm_name, '%gameset' => $gameset->gs_name)), 'admin/pickem/teams', $caption, t('Delete'));
 }
+
+
 /**
  * Delete the team.
  */
@@ -478,6 +502,8 @@ function theme_pickem_weeks_list(&$form) {
 
   return $output;
 }
+
+
 function pickem_weeks_list($form_state=NULL, $gameset) {
 
   $breadcrumb = drupal_get_breadcrumb();
@@ -520,6 +546,8 @@ function pickem_weeks_list($form_state=NULL, $gameset) {
   );
   return $form;
 }
+
+
 /**
  * Menu callback; Build the pickem single team editing form.
  */
@@ -598,9 +626,13 @@ function pickem_week_edit(&$form_state, $type, $gameset, $week) {
 
   return $form;
 }
+
+
 function pickem_week_edit_validate($form, &$form_state) {
   $week = &$form_state['values'];
 }
+
+
 function pickem_week_edit_submit($form, &$form_state) {
   $week = $form_state['values'];
 
@@ -624,12 +656,16 @@ function pickem_week_edit_submit($form, &$form_state) {
   cache_clear_all('pickem_', 'cache', TRUE);
   $form_state['redirect'] = 'admin/pickem/weeks/'. $week['gsid'];
 }
+
+
 function pickem_week_delete_confirm(&$form_state, $gameset, $week) {
   $form['#week'] = $week;
   $caption = '';
   $caption .= '<p>'. t('This action cannot be undone.') .'</p>';
   return confirm_form($form, t('Are you sure you want to delete the week %name?', array('%name' => $week->wk_name)), 'admin/pickem/weeks', $caption, t('Delete'));
 }
+
+
 function pickem_week_delete_confirm_submit($form, &$form_state) {
   $week = $form['#week'];
   db_query("DELETE FROM {pickem_weeks} WHERE wid = %d", $week->wid);
@@ -640,6 +676,7 @@ function pickem_week_delete_confirm_submit($form, &$form_state) {
 
   $form_state['redirect'] = 'admin/pickem/weeks';
 }
+
 
 /*
   Admin Games
@@ -660,6 +697,8 @@ function theme_pickem_games_list(&$form) {
   $output = theme('table', $header, $rows);
   return $output;
 }
+
+
 function pickem_games_list(&$form_state=NULL, $week) {
 
   $gameset = gameset_load($week->gsid);
@@ -696,6 +735,8 @@ function pickem_games_list(&$form_state=NULL, $week) {
 
   return $form;
 }
+
+
 function pickem_game_edit(&$form_state, $type, $week, $game) {
   if ( is_null($game) ) {
     // this should match the table field names
@@ -783,6 +824,8 @@ function pickem_game_edit(&$form_state, $type, $week, $game) {
 
   return $form;
 }
+
+
 /**
  * Validate form values for a game being added or edited.
  */
@@ -793,6 +836,8 @@ function pickem_game_edit_validate($form, &$form_state) {
     form_set_error('h_spread', t('The spread fields must be equal and opposite (ie 3 and -3).'));
   }
 }
+
+
 function pickem_game_edit_submit($form, &$form_state) {
   $game = $form_state['values'];
 
@@ -830,6 +875,8 @@ function pickem_game_edit_submit($form, &$form_state) {
   //drupal_goto('admin/pickem/games', 'page='. ($game['wid'] - 1));
   $form_state['redirect'] = array('admin/pickem/games/'. $game['wid']);
 }
+
+
 /**
  * Build a confirm form for deletion of a game.
  */
@@ -842,6 +889,8 @@ function pickem_game_delete_confirm(&$form_state, $week, $game) {
 
   return confirm_form($form, t('Are you sure you want to delete this game?'), 'admin/pickem/games/'. $week->wid, $caption, t('Delete'));
 }
+
+
 /**
  * Delete the game.
  */
@@ -884,6 +933,8 @@ function theme_pickem_leagues_list(&$form) {
 
   return $output;
 }
+
+
 function pickem_leagues_list(&$form_state=NULL) {
   //drupal_set_message("admin_leagues_form");
 
@@ -996,6 +1047,8 @@ function pickem_league_edit(&$form_state, $type, $league) {
 
   return $form;
 }
+
+
 function pickem_league_edit_validate($form, &$form_state) {
   $league = &$form_state['values'];
   // not used since it is required, keep this for a while.
@@ -1003,6 +1056,8 @@ function pickem_league_edit_validate($form, &$form_state) {
     form_set_error('name', t('You must at least choose a name.'));
   }
 }
+
+
 function pickem_league_edit_submit($form, &$form_state) {
   $league = $form_state['values'];
 
@@ -1025,12 +1080,16 @@ function pickem_league_edit_submit($form, &$form_state) {
 
   $form_state['redirect'] = 'admin/pickem/leagues';
 }
+
+
 function pickem_league_delete_confirm(&$form_state, $league) {
   $form['#league'] = $league;
   $caption = '';
   $caption .= '<p>'. t('This action cannot be undone.') .'</p>';
   return confirm_form($form, t('Are you sure you want to delete the team %name?', array('%name' => $league->name)), 'admin/pickem/leagues', $caption, t('Delete'));
 }
+
+
 function pickem_league_delete_confirm_submit($form, &$form_state) {
   $league = $form['#league'];
   db_query("DELETE FROM {pickem_leagues} WHERE lid = %d", $league->lid);
@@ -1076,6 +1135,8 @@ function theme_pickem_users_list(&$form) {
 
   return $output;
 }
+
+
 function pickem_users_list($form_state=NULL, $league) {
   $form = array(
     '#theme' => 'pickem_users_list',
@@ -1094,6 +1155,8 @@ function pickem_users_list($form_state=NULL, $league) {
   }
   return $form;
 }
+
+
 function pickem_users_add(&$form_state, $league) {
   $form = user_select_form($form_state, $league, 'Add User', 1);
   $form['#league'] = $league;
@@ -1101,12 +1164,16 @@ function pickem_users_add(&$form_state, $league) {
   unset($form['op']);  // may change this later
   return $form;
 }
+
+
 function pickem_users_add_validate($form, &$form_state) {
   //$user = &$form_state['values'];
   //if ($team['tm_name'] == 'lions') {
   //  form_set_error('tm_name', t("Sorry for you.", array('@tm_name' => $team['tm_name'])));
   //}
 }
+
+
 function pickem_users_add_submit($form, &$form_state) {
   $league = $form['#league'];
   $user_id = $form_state['values']['user_select'];
@@ -1120,6 +1187,8 @@ function pickem_users_add_submit($form, &$form_state) {
 
   $form_state['redirect'] = 'admin/pickem/users/'. $league->lid;
 }
+
+
 function pickem_users_remove_confirm(&$form_state, $league, $user) {
   $form['#user'] = $user;
   $form['#league'] = $league;
@@ -1127,6 +1196,8 @@ function pickem_users_remove_confirm(&$form_state, $league, $user) {
   $caption .= '<p>'. t('This action cannot be undone.') .'</p>';
   return confirm_form($form, t('Are you sure you want to remove "%name" from league "%league_name"?', array('%name' => $user->name, '%league_name' => $league->name)), 'admin/pickem/users/'. $league->lid, $caption, t('Delete'));
 }
+
+
 function pickem_users_remove_confirm_submit($form, &$form_state) {
   $user = $form['#user'];
   $league = $form['#league'];
@@ -1230,6 +1301,8 @@ function league_select_form($form_state=NULL) {
   );
   return $form;
 }
+
+
 function user_select_form($form_state=NULL, $league=NULL, $title='Select User To Modify', $not_in_league=0) {
 
   $users = get_users($league, $not_in_league);
@@ -1254,13 +1327,11 @@ function user_select_form($form_state=NULL, $league=NULL, $title='Select User To
 }
 
 
-
 function page_admin_email_league() {
   $output = drupal_get_form('email_league_form');
 
   return $output;
 }
-
 
 
 function email_league_form() {
@@ -1323,7 +1394,6 @@ function email_league_form() {
 }
 
 
-
 /**
  * Validate the site-wide contact page form submission.
  */
@@ -1333,7 +1403,6 @@ function email_league_form_validate($form, &$form_state) {
   //  form_set_error('league_id', t('You must select at least one league.'));
   //}
 }
-
 
 
 function email_league_form_submit($form, &$form_state) {
@@ -1430,6 +1499,7 @@ function admin_picks_router($league=NULL, $user=NULL, $week=NULL) {
 
 }
 
+
 function admin_picks($league, $user) {
 
   drupal_set_title("Administer Picks - ". $user->name);
@@ -1466,6 +1536,8 @@ function admin_picks($league, $user) {
 
   print theme('page', $output);
 }
+
+
 function admin_picks_week($league, $user_arg, $week) {
 
   // param check: valid league which has this week
@@ -1567,8 +1639,6 @@ function admin_picks_week($league, $user_arg, $week) {
 }
 
 
-
-
 /*
   Path:     admin/pickem/scores
 */
@@ -1624,6 +1694,7 @@ function page_admin_scores($league, $week) {
   print theme('page', $output);
 }
 
+
 function league_forums() {
   $options = array();
   $options[0] = 'No Forum Selected';
@@ -1638,6 +1709,7 @@ function league_forums() {
   return $options;
 }
 
+
 function gameset_options() {
   $options = array();
   $gamesets = get_gamesets();
@@ -1650,8 +1722,6 @@ function gameset_options() {
 }
 
 
-
-
 /*
   Import Functions
 */
@@ -1659,6 +1729,8 @@ function page_admin_data_import() {
   drupal_set_title('Pickem Import Data');
   return drupal_get_form('admin_import_form');
 }
+
+
 function admin_import_form($form_state=NULL) {
 
   $dirpath = drupal_get_path('module', 'pickem') ."/data/";
@@ -1714,6 +1786,7 @@ function admin_import_form($form_state=NULL) {
 
   return $form;
 }
+
 
 function admin_import_form_submit($form, &$form_state) {
   $return = TRUE;
