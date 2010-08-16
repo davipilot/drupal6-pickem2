@@ -106,7 +106,7 @@ function pickem_settings(&$form_state=NULL) {
 /**
  * Admin Gamesets
  */
-function theme_pickem_gamesets_list(&$form) {
+function theme_pickem_gamesets_list($form) {
 
   $header = array(
     t('Game Set'),
@@ -258,7 +258,7 @@ function pickem_gameset_delete_confirm_submit($form, &$form_state) {
 /**
  * Admin Teams
  */
-function theme_pickem_teams_list(&$form) {
+function theme_pickem_teams_list($form) {
   $header = array(
     t('Team'),
     t('Conference'),
@@ -455,7 +455,7 @@ function pickem_team_delete_confirm_submit($form, &$form_state) {
 /**
  * Weeks
  */
-function theme_pickem_weeks_list(&$form) {
+function theme_pickem_weeks_list($form) {
 
   $header = array(
     t('Week'),
@@ -644,7 +644,7 @@ function pickem_week_delete_confirm_submit($form, &$form_state) {
 /*
   Admin Games
 */
-function theme_pickem_games_list(&$form) {
+function theme_pickem_games_list($form) {
   $header = array(
     t('Matchup'),
     array('data' => t('Operations'), 'colspan' => '3')
@@ -860,7 +860,7 @@ function pickem_game_delete_confirm_submit($form, &$form_state) {
 /**
  * Admin Leagues
  */
-function theme_pickem_leagues_list(&$form) {
+function theme_pickem_leagues_list($form) {
 
   $header = array(
     t('League'),
@@ -1062,7 +1062,7 @@ function pickem_league_delete_confirm_submit($form, &$form_state) {
 
 
 
-function theme_pickem_users_list(&$form) {
+function theme_pickem_users_list($form) {
   $header = array(
     t('User'),
     array('data' => t('Operations'), 'colspan' => '3')
@@ -1144,7 +1144,7 @@ function pickem_users_remove_confirm_submit($form, &$form_state) {
 }
 
 
-function theme_pickem_scores_list(&$form) {
+function theme_pickem_scores_list($form) {
   $rows = array();
   foreach (element_children($form['scores']) as $key) {
     $rows[] = array(

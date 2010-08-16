@@ -175,7 +175,7 @@ function mypicks_week_form(&$form_state=NULL, $league, $week) {
 }
 
 
-function theme_mypicks_week_form(&$form) {
+function theme_mypicks_week_form($form) {
   global $_PICKEM_TIMEZONE;
 
   $league = $form['#parameters'][2];

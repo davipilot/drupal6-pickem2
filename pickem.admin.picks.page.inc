@@ -179,7 +179,7 @@ function admin_picks_week_form(&$form_state=NULL, $league, $week, $account) {
 }
 
 
-function theme_admin_picks_week_form(&$form) {
+function theme_admin_picks_week_form($form) {
   global $_PICKEM_TIMEZONE;
 
   $league = $form['#parameters'][2];
