@@ -711,7 +711,7 @@ function pickem_game_edit(&$form_state, $type, $week, $game) {
     $game->v_score = '';
   }
 
-  $teams = get_teams();
+  $teams = get_games(array('week_id' => $week->wid));
   $team_list = array();
   $team_list[0] = "";
   foreach ($teams as $t_id => $team_data) {
