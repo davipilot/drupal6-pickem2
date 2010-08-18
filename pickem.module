@@ -1532,7 +1532,12 @@ function theme_team_power($league) {
   $ord = 1;
   foreach ($team_stats[0] as $tid => $data) {
     $team_stats[0][$tid]['power'] = $team_stats[0][$tid]['power'] - $low;
-    $team_stats[0][$tid]['power'] = round($team_stats[0][$tid]['power'] * 100 / $high, 1);
+
+    // Adjusting won't work if you have a divide by zero error!
+    if ( $high != 0 ) {
+      $team_stats[0][$tid]['power'] = round($team_stats[0][$tid]['power'] * 100 / $high, 1);
+    }
+
     $team_stats[0][$tid]['ord'] = $ord++;
   }
 
