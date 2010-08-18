@@ -622,7 +622,7 @@ function pickem_user($op, &$edit, &$account, $category = NULL) {
           '#collapsible' => TRUE,
         );
 
-        $leagues = get_my_leagues();
+        $leagues = get_my_leagues(NULL, $account->uid);
         $options = array();
         foreach ($leagues as $l) {
           $options[$l->lid] = $l->name;
