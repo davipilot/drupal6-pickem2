@@ -267,8 +267,31 @@ function get_my_leagues($gameset_id=NULL, $user_id=NULL) {
   return $leagues;
 }
 
+
 /**
- * Perform a check if the current user is a member of this particular league.
+ * Perform a check if a user is a member of a particular league.
+ *
+ * @param $league
+ *   A league object.
+ * @param $account
+ *   A user object.
+ * @return boolean
+ *   TRUE if current user is a league member, FALSE otherwise.
+ */
+function is_league_member($league, $account) {
+  $query = "SELECT l.* from {pickem_leagues} l inner join {pickem_users} pu on pu.lid=l.lid where pu.lid=%d and pu.uid=%d";
+  $row = db_fetch_object(db_query($query, $league->lid, $account->uid));
+  if ( $row ) {
+    return TRUE;
+  }
+  else {
+    return FALSE;
+  }
+}
+
+
+/**
+ * Perform a check if the current user is a member of a particular league.
  *
  * @param $league
  *   A league object.
@@ -277,14 +300,7 @@ function get_my_leagues($gameset_id=NULL, $user_id=NULL) {
  */
 function is_my_league($league) {
   global $user;
-  $query = "SELECT l.* from {pickem_leagues} l inner join {pickem_users} pu on pu.lid=l.lid where pu.lid=%d and pu.uid=%d";
-  $row = db_fetch_object(db_query($query, $league->lid, $user->uid));
-  if ( $row ) {
-    return TRUE;
-  }
-  else {
-    return FALSE;
-  }
+  return is_league_member($league, $user);
 }
 
 
@@ -411,7 +427,7 @@ function get_picks($filter = array('league_id' => NULL, 'user_id' => NULL, 'week
     $sql_where = ' WHERE '. implode(' and ', $sql_where_list);
   }
 
-  $query = 'SELECT g.gid, g.wid, g.h_score, g.v_score, g.v_id, g.h_id, p.uid, p.winnerpick_id, g.gametime,w.wk_points from {pickem_users} u inner join {pickem_picks} p on u.lid=p.lid and u.uid=p.uid inner join {pickem_games} g on p.gid = g.gid  inner join {pickem_weeks} w on w.wid=g.wid inner join {pickem_leagues} l on l.gsid=w.gsid and l.lid=u.lid '. $sql_where .' ORDER BY g.wid, g.gametime, g.gid';
+  $query = 'SELECT g.gid, g.wid, g.h_score, g.v_score, g.v_id, g.h_id, p.uid, p.winnerpick_id, p.pick_v_score, p.pick_h_score, p.pick_v_score, p.pick_h_score, g.gametime, w.wk_points from {pickem_users} u inner join {pickem_picks} p on u.lid=p.lid and u.uid=p.uid inner join {pickem_games} g on p.gid = g.gid  inner join {pickem_weeks} w on w.wid=g.wid inner join {pickem_leagues} l on l.gsid=w.gsid and l.lid=u.lid '. $sql_where .' ORDER BY g.wid, g.gametime, g.gid';
   $result = db_query($query);
 
   $picks = array();
@@ -421,10 +437,11 @@ function get_picks($filter = array('league_id' => NULL, 'user_id' => NULL, 'week
 
   return $picks;
 }
-function set_pick($game_id, $user_id, $league_id, $winnerpick_id) {
+function set_pick($user_id, $league, $pick) {
 
+  // Figure out if we need to insert or update.
   $query = 'select count(*) as pickcount from {pickem_picks} where gid=%d and uid=%d and lid=%d';
-  $result = db_query($query, $game_id, $user_id, $league_id);
+  $result = db_query($query, $pick['gid'], $user_id, $league->lid);
   if ($row = db_fetch_object($result)) {
     if ($row->pickcount > 0) {
       $type = "update";
@@ -434,22 +451,41 @@ function set_pick($game_id, $user_id, $league_id, $winnerpick_id) {
     }
   }
 
-  if ($type == "insert") {
-    $query = "insert into {pickem_picks} (gid,uid,lid,winnerpick_id,picktime) values (%d,%d,%d,%d,'%s')";
-    $result = db_query($query, $game_id, $user_id, $league_id, $winnerpick_id, date('Y-m-d H:i:s', time()));
-    if ( $result == FALSE ) {
-      drupal_set_message('set_pick failed', 'error');
-      watchdog('pickem', 'set_pick failed');
+  // Do the insert/update for each league type.
+  if ($league->scoring_type == PICKEM_TYPE_WIN_LOSS || $league->scoring_type == PICKEM_TYPE_SPREAD) {
+    if ($type == "insert") {
+      drupal_set_message("insert");
+      $query = "insert into {pickem_picks} (gid,uid,lid,winnerpick_id,picktime) values (%d,%d,%d,%d,'%s')";
+      $result = db_query($query, $pick['gid'], $user_id, $league->lid, $pick['pick'], date('Y-m-d H:i:s', time()));
+      if ( $result == FALSE ) {
+        drupal_set_message('pickem', 'set_pick insert failed', 'error');
+      }
+    }
+    elseif ($type == "update") {
+      $query = "update {pickem_picks} set winnerpick_id=%d,picktime='%s' where gid=%d and uid=%d and lid=%d";
+      $result = db_query($query, $pick['pick'], date('Y-m-d H:i:s', time()), $pick['gid'], $user_id, $league->lid);
+      if ( $result == FALSE ) {
+        drupal_set_message('pickem', 'set_pick update failed', 'error');
+      }
     }
   }
-  elseif ($type == "update") {
-    $query = "update {pickem_picks} set winnerpick_id=%d,picktime='%s' where gid=%d and uid=%d and lid=%d";
-    $result = db_query($query, $winnerpick_id, date('Y-m-d H:i:s', time()), $game_id, $user_id, $league_id);
-    if ( $result == FALSE ) {
-      drupal_set_message('set_pick failed', 'error');
-      watchdog('pickem', 'set_pick failed');
+  else if ($league->scoring_type == PICKEM_TYPE_SCORE_DIFF) {
+    if ($type == "insert") {
+      $query = "insert into {pickem_picks} (gid,uid,lid,pick_v_score,pick_h_score,picktime) values (%d,%d,%d,%d,%d,'%s')";
+      $result = db_query($query, $pick['gid'], $user_id, $league->lid, $pick['pick_v_score'], $pick['pick_h_score'], date('Y-m-d H:i:s', time()));
+      if ( $result == FALSE ) {
+        drupal_set_message('pickem', 'set_pick insert failed', 'error');
+      }
+    }
+    elseif ($type == "update") {
+      $query = "update {pickem_picks} set pick_v_score=%d, pick_h_score=%d, picktime='%s' where gid=%d and uid=%d and lid=%d";
+      $result = db_query($query, $pick['pick_v_score'], $pick['pick_h_score'], date('Y-m-d H:i:s', time()), $pick['gid'], $user_id, $league->lid);
+      if ( $result == FALSE ) {
+        drupal_set_message('pickem', 'set_pick update failed', 'error');
+      }
     }
   }
+
 }
 
 /**
@@ -469,7 +505,7 @@ function set_pick($game_id, $user_id, $league_id, $winnerpick_id) {
 function get_user_totals($league=NULL, $week_id=0, $reset = FALSE) {
   static $cache_totals;
   $cache_key = 'pickem_get_user_totals_'. $league->lid .'_'. $week_id;
-
+$reset=TRUE;
   if (!isset($cache_totals[$cache_key]) || $reset) {
     if (!$reset && ($cache = cache_get($cache_key)) && !empty($cache->data)) {
       $totals = $cache->data;
@@ -491,12 +527,12 @@ function get_user_totals($league=NULL, $week_id=0, $reset = FALSE) {
       if ($week_id == 0) {
         // all games
         $mysqltime = date("Y-m-d H:i:s");
-        $query = "select g.gid, g.wid, g.h_score, g.v_score, g.v_id, g.v_spread, g.h_id, g.h_spread, p.uid, p.winnerpick_id, g.gametime,w.wk_points from {pickem_users} u inner join {pickem_picks} p on u.lid=p.lid and u.uid=p.uid inner join {pickem_games} g on p.gid = g.gid  inner join {pickem_weeks} w on w.wid=g.wid where p.lid=%d and w.wk_firstgame < '". $mysqltime ."' order by g.wid, g.gametime, g.gid";
+        $query = "select g.gid, g.wid, g.h_score, g.v_score, g.v_id, g.v_spread, g.h_id, g.h_spread, p.uid, p.winnerpick_id, p.pick_v_score, p.pick_h_score, g.gametime,w.wk_points from {pickem_users} u inner join {pickem_picks} p on u.lid=p.lid and u.uid=p.uid inner join {pickem_games} g on p.gid = g.gid  inner join {pickem_weeks} w on w.wid=g.wid where p.lid=%d and w.wk_firstgame < '". $mysqltime ."' order by g.wid, g.gametime, g.gid";
         $result = db_query($query, $league->lid);
       }
       else {
         // all games for a certain week
-        $query = "select g.gid, g.wid, g.h_score, g.v_score, g.v_id, g.v_spread, g.h_id, g.h_spread, p.uid, p.winnerpick_id, g.gametime,w.wk_points from {pickem_users} u inner join {pickem_picks} p on u.lid=p.lid and u.uid=p.uid inner join {pickem_games} g on p.gid = g.gid  inner join {pickem_weeks} w on w.wid=g.wid where p.lid=%d and w.wid=%d order by g.wid, g.gametime, g.gid";
+        $query = "select g.gid, g.wid, g.h_score, g.v_score, g.v_id, g.v_spread, g.h_id, g.h_spread, p.uid, p.winnerpick_id, p.pick_v_score, p.pick_h_score, g.gametime,w.wk_points from {pickem_users} u inner join {pickem_picks} p on u.lid=p.lid and u.uid=p.uid inner join {pickem_games} g on p.gid = g.gid  inner join {pickem_weeks} w on w.wid=g.wid where p.lid=%d and w.wid=%d order by g.wid, g.gametime, g.gid";
         $result = db_query($query, $league->lid, $week_id);
       }
 
@@ -504,52 +540,95 @@ function get_user_totals($league=NULL, $week_id=0, $reset = FALSE) {
         //print_r($row);
 
         if (!isset ($totals[$row->uid]['weeks'][$row->wid])) {
-          $totals[$row->uid]['weeks'][$row->wid] = 0;
+          $totals[$row->uid]['weeks'][$row->wid]['total'] = 0;
         }
 
-        if ( $league->scoring_type == 0 ) {
-          // straight win-loss
+        // pick the winner.
+        if ( $league->scoring_type == PICKEM_TYPE_WIN_LOSS ) {
+
           if ($row->h_score > $row->v_score && $row->winnerpick_id == $row->h_id) {
-            $totals[$row->uid]['weeks'][$row->wid] += $row->wk_points;
+            $totals[$row->uid]['weeks'][$row->wid]['games'][$row->gid] = $row->wk_points;
+            $totals[$row->uid]['weeks'][$row->wid]['total'] += $row->wk_points;
             $totals[$row->uid]['total'] += $row->wk_points;
           }
           elseif ($row->v_score > $row->h_score && $row->winnerpick_id == $row->v_id) {
-              $totals[$row->uid]['weeks'][$row->wid] += $row->wk_points;
-              $totals[$row->uid]['total'] += $row->wk_points;
+            $totals[$row->uid]['weeks'][$row->wid]['games'][$row->gid] = $row->wk_points;
+            $totals[$row->uid]['weeks'][$row->wid]['total'] += $row->wk_points;
+            $totals[$row->uid]['total'] += $row->wk_points;
           }
           elseif ($row->v_score == $row->h_score && $row->h_score <> "") {
-                $totals[$row->uid]['weeks'][$row->wid] += $row->wk_points;
-                $totals[$row->uid]['total'] += $row->wk_points;
+            $totals[$row->uid]['weeks'][$row->wid]['games'][$row->gid] = $row->wk_points;
+            $totals[$row->uid]['weeks'][$row->wid]['total'] += $row->wk_points;
+            $totals[$row->uid]['total'] += $row->wk_points;
           }
         }
-        elseif ( $league->scoring_type == 1 ) {
-          // use spread
+
+        // pick the winner with spread.
+        elseif ( $league->scoring_type == PICKEM_TYPE_SPREAD ) {
+          // home win
           if ( ($row->h_score + $row->h_spread) > $row->v_score && $row->winnerpick_id == $row->h_id) {
-            $totals[$row->uid]['weeks'][$row->wid] += $row->wk_points;
+            $totals[$row->uid]['weeks'][$row->wid]['games'][$row->gid] = $row->wk_points;
+            $totals[$row->uid]['weeks'][$row->wid]['total'] += $row->wk_points;
             $totals[$row->uid]['total'] += $row->wk_points;
           }
+          // visitor win
           elseif ( ($row->v_score + $row->v_spread) > $row->h_score && $row->winnerpick_id == $row->v_id) {
-            $totals[$row->uid]['weeks'][$row->wid] += $row->wk_points;
+            $totals[$row->uid]['weeks'][$row->wid]['games'][$row->gid] = $row->wk_points;
+            $totals[$row->uid]['weeks'][$row->wid]['total'] += $row->wk_points;
             $totals[$row->uid]['total'] += $row->wk_points;
           }
+          // tie.
           elseif ( ($row->v_score + $row->v_spread) == $row->h_score && $row->h_score <> "") {
-            $totals[$row->uid]['weeks'][$row->wid] += $row->wk_points;
+            $totals[$row->uid]['weeks'][$row->wid]['games'][$row->gid] = $row->wk_points;
+            $totals[$row->uid]['weeks'][$row->wid]['total'] += $row->wk_points;
             $totals[$row->uid]['total'] += $row->wk_points;
           }
         }
+
+        // Scoring differential: 3 for winner, 4 for score diff and 6 for both
+        elseif ( $league->scoring_type == PICKEM_TYPE_SCORE_DIFF ) {
+          // picked the correct winner or picked the tie.
+          if ($row->h_score > $row->v_score && $row->pick_h_score > $row->pick_v_score ||
+              $row->v_score > $row->h_score && $row->pick_v_score > $row->pick_h_score ||
+              $row->v_score == $row->h_score && $row->pick_v_score == $row->pick_h_score) {
+            $totals[$row->uid]['weeks'][$row->wid]['games'][$row->gid] = 3;
+            $totals[$row->uid]['weeks'][$row->wid]['total'] += 3;
+            $totals[$row->uid]['total'] += 3;
+          }
+
+          // picked the correct goal differential
+          if ($row->h_score - $row->v_score == $row->pick_h_score - $row->pick_v_score) {
+            $totals[$row->uid]['weeks'][$row->wid]['games'][$row->gid] += 1;
+            $totals[$row->uid]['weeks'][$row->wid]['total'] += 1;
+            $totals[$row->uid]['total'] += 1;
+          }
+
+          // exact match score
+          if ($row->h_score == $row->pick_h_score && $row->v_score == $row->pick_v_score) {
+            $totals[$row->uid]['weeks'][$row->wid]['games'][$row->gid] += 2;
+            $totals[$row->uid]['weeks'][$row->wid]['total'] += 2;
+            $totals[$row->uid]['total'] += 2;
+          }
+
+          if (! isset($totals[$row->uid]['weeks'][$row->wid]['games'][$row->gid])) {
+            $totals[$row->uid]['weeks'][$row->wid]['games'][$row->gid] = 0;
+          }
+
+        }
+
       }
 
       // best and worst weeks
       foreach ($totals as $uid => $u_object) {
-        foreach ($u_object['weeks'] as $wid => $score) {
+        foreach ($u_object['weeks'] as $wid => $week_item) {
           if ( $totals[$uid]['best_week_id'] == -1 ) {
             $totals[$uid]['best_week_id'] = $wid;
             $totals[$uid]['worst_week_id'] = $wid;
           }
-          if ( $score > $totals[$uid]['weeks'][$totals[$uid]['best_week_id']] ) {
+          if ( $week_item['total'] > $totals[$uid]['weeks'][$totals[$uid]['best_week_id']]['total'] ) {
             $totals[$uid]['best_week_id'] = $wid;
           }
-          if ( $score < $totals[$uid]['weeks'][$totals[$uid]['worst_week_id']] ) {
+          if ( $week_item['total'] < $totals[$uid]['weeks'][$totals[$uid]['worst_week_id']]['total'] ) {
             $totals[$uid]['worst_week_id'] = $wid;
           }
         }
@@ -647,21 +726,16 @@ function get_totals_by_week($league) {
       $tot = 0;
       $count = 0;
       foreach ($totals as $uid => $u) {
-        if ( isset($u['weeks'][$wid]) ) {
-          if ($u['weeks'][$wid] > $max) {
-            $max = $u['weeks'][$wid];
+        if ( isset($u['weeks'][$wid]['total']) ) {
+          if ($u['weeks'][$wid]['total'] > $max) {
+            $max = $u['weeks'][$wid]['total'];
           }
-          if ( $u['weeks'][$wid] < $min ) {
-            $min = $u['weeks'][$wid];
+          if ( $u['weeks'][$wid]['total'] < $min ) {
+            $min = $u['weeks'][$wid]['total'];
           }
-          $tot += $u['weeks'][$wid];
+          $tot += $u['weeks'][$wid]['total'];
           $count += 1;
         }
-      }
-
-      if ( $max == $min ) {
-        $max = '';
-        $min = '';
       }
 
       $wk_summary[$wid] = array(

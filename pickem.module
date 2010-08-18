@@ -6,7 +6,9 @@
  * Enables the sports pickem module.
 */
 
-error_reporting(E_ALL | E_STRICT);
+define('PICKEM_TYPE_WIN_LOSS', 0);
+define('PICKEM_TYPE_SPREAD', 1);
+define('PICKEM_TYPE_SCORE_DIFF', 2);
 
 require_once 'pickem.inc';
 
@@ -33,6 +35,9 @@ $_PICKEM_MY_LEAGUES = array();
  function pickem_help($section = "") {
   $output = '';
   switch ($section) {
+    case 'pickem/%/mypicks':
+      $output .= t('Click on week number to make picks.');
+      break;
     case 'admin/pickem':
       $output .= '<p>'. t("Here is some general information regarding how this module is set up.") .'</p><ul>';
       $output .= '<li>'. t("A game set is a collection of teams, weeks, and games.") .'</li>';
@@ -103,17 +108,19 @@ function pickem_menu() {
   );
 
   $items['pickem/%league'] = array(
-    'page callback' => 'page_league',
+    'page callback' => 'league_page',
     'page arguments' => array(1),
     'access arguments' => array('access pickem'),
     'type' => MENU_CALLBACK,
+    'file' => 'pickem.league.page.inc'
   );
 
   $items['pickem/%league/standings'] = array(
-    'page callback' => 'page_standings',
+    'page callback' => 'standings_page',
     'page arguments' => array(1),
     'access arguments' => array('access pickem'),
     'type' => MENU_CALLBACK,
+    'file' => 'pickem.standings.page.inc'
   );
 
   $items['pickem/%league/weeklypicks/%week'] = array(
@@ -134,51 +141,51 @@ function pickem_menu() {
 
 
   if (module_exists("open_flash_chart_api")) {
-    // arg1 is league id
     $items['pickem/%league/chart1'] = array(
       'title' => t('Weekly High/Low Chart'),
-      'page callback' => 'chart1',
+      'page callback' => 'chart_hi_low_page',
       'page arguments' => array(1),
       'access arguments' => array('access pickem'),
       'type' => MENU_CALLBACK,
+      'file' => 'pickem.charts.page.inc'
     );
-    // arg1 is league id
     $items['pickem/%league/chart1/%user'] = array(
       'title' => t('Weekly High/Low Chart'),
-      'page callback' => 'chart1',
+      'page callback' => 'chart_hi_low_page',
       'page arguments' => array(1, 3),
       'access arguments' => array('access pickem'),
       'type' => MENU_CALLBACK,
+      'file' => 'pickem.charts.page.inc'
     );
-
     $items['pickem/%league/chart2'] = array(
       'title' => t('Team Pickability'),
-      'page callback' => 'chart2',
+      'page callback' => 'chart_team_pickability_page',
       'page arguments' => array(1),
       'access arguments' => array('access pickem'),
       'type' => MENU_CALLBACK,
+      'file' => 'pickem.charts.page.inc'
     );
     $items['pickem/%league/chart2/%'] = array(
       'title' => t('Team Pickability'),
-      'page callback' => 'chart2',
+      'page callback' => 'chart_team_pickability_page',
       'page arguments' => array(1, 3),
       'access arguments' => array('access pickem'),
       'type' => MENU_CALLBACK,
+      'file' => 'pickem.charts.page.inc'
     );
-
     $items['pickem/%league/chart3/%'] = array(
       'title' => t('Team Points'),
-      'page callback' => 'chart3',
+      'page callback' => 'chart_team_scoring_page',
       'page arguments' => array(1, 3),
       'access arguments' => array('access pickem'),
       'type' => MENU_CALLBACK,
+      'file' => 'pickem.charts.page.inc'
     );
-
   }
 
   $items['pickem/%league/team_stats'] = array(
     'title' => t('Team Stats'),
-    'page callback' => 'page_team_stats',
+    'page callback' => 'team_stats_page',
     'page arguments' => array(1),
     'access arguments' => array('access pickem'),
     'type' => MENU_CALLBACK,
@@ -186,24 +193,26 @@ function pickem_menu() {
 
   $items['pickem/%league/team_power'] = array(
     'title' => t('Team vPower Rankings'),
-    'page callback' => 'page_team_power',
+    'page callback' => 'team_power_page',
     'page arguments' => array(1),
     'access arguments' => array('access pickem'),
     'type' => MENU_CALLBACK,
   );
 
   $items['pickem/%league/mypicks'] = array(
-    'page callback' => 'page_mypicks_all',
+    'page callback' => 'mypicks_all_page',
     'page arguments' => array(1),
     'access arguments' => array('play pickem'),
     'type' => MENU_CALLBACK,
+    'file' => 'pickem.mypicks.page.inc'
   );
 
   $items['pickem/%league/mypicks/%week'] = array(
-    'page callback' => 'page_mypicks_week',
+    'page callback' => 'mypicks_week_page',
     'page arguments' => array(1, 3),
     'access arguments' => array('play pickem'),
     'type' => MENU_CALLBACK,
+    'file' => 'pickem.mypicks.page.inc'
   );
 
   // dynamic logo -> access content
@@ -532,52 +541,6 @@ function pickem_menu() {
     'type' => MENU_NORMAL_ITEM,
   );
 
-
-
-
-
-
-
-  // PICKS
-  $items['admin/pickem/picks'] = array(
-    'title' => 'Picks',
-    'description' => t('Fix user\'s picks.  Will you update a user\'s picks after the cutoff?'),
-    'page callback' => 'admin_picks_router',
-    'access arguments' => array('administer pickem'),
-    'weight' => 1,
-    'file' => 'pickem.admin.inc',
-    'type' => MENU_NORMAL_ITEM,
-  );
-
-  $items['admin/pickem/picks/%league'] = array(
-    'title' => 'Picks',
-    'page callback' => 'admin_picks_router',
-    'page arguments' => array(3),
-    'access arguments' => array('administer pickem'),
-    'weight' => 1,
-    'file' => 'pickem.admin.inc',
-    'type' => MENU_NORMAL_ITEM,
-  );
-  $items['admin/pickem/picks/%league/%user'] = array(
-    'title' => 'Picks',
-    'page callback' => 'admin_picks',
-    'page arguments' => array(3, 4),
-    'access arguments' => array('administer pickem'),
-    'weight' => 1,
-    'file' => 'pickem.admin.inc',
-    'type' => MENU_NORMAL_ITEM,
-  );
-  $items['admin/pickem/picks/%league/%user/%week'] = array(
-    'title' => 'Picks',
-    'page callback' => 'admin_picks_week',
-    'page arguments' => array(3, 4, 5),
-    'access arguments' => array('administer pickem'),
-    'weight' => 1,
-    'file' => 'pickem.admin.inc',
-    'type' => MENU_NORMAL_ITEM,
-  );
-
-
   $items['admin/pickem/email_league'] = array(
     'title' => 'Send Email',
     'description' => t('Send mass emails to all pickem user\'s or just league members.'),
@@ -587,6 +550,46 @@ function pickem_menu() {
     'file' => 'pickem.admin.inc',
     'type' => MENU_NORMAL_ITEM,
   );
+
+  // Admin picks
+  $items['admin/pickem/picks'] = array(
+    'title' => 'Picks',
+    'description' => t('Fix user\'s picks.  Will you update a user\'s picks after the cutoff?'),
+    'page callback' => 'admin_picks_router',
+    'access arguments' => array('administer pickem'),
+    'weight' => 1,
+    'type' => MENU_NORMAL_ITEM,
+    'file' => 'pickem.admin.picks.page.inc'
+  );
+  $items['admin/pickem/picks/%league'] = array(
+    'title' => 'Picks',
+    'page callback' => 'admin_picks_router',
+    'page arguments' => array(3),
+    'access arguments' => array('administer pickem'),
+    'weight' => 1,
+    'type' => MENU_NORMAL_ITEM,
+    'file' => 'pickem.admin.picks.page.inc'
+  );
+  $items['admin/pickem/picks/%league/%user'] = array(
+    'title' => 'Picks',
+    'page callback' => 'admin_picks_all_page',
+    'page arguments' => array(3, 4),
+    'access arguments' => array('administer pickem'),
+    'weight' => 1,
+    'type' => MENU_NORMAL_ITEM,
+    'file' => 'pickem.admin.picks.page.inc'
+  );
+  $items['admin/pickem/picks/%league/%user/%week'] = array(
+    'title' => 'Picks',
+    'page callback' => 'admin_picks_week_page',
+    'page arguments' => array(3, 5, 4),
+    'access arguments' => array('administer pickem'),
+    'weight' => 1,
+    'type' => MENU_NORMAL_ITEM,
+    'file' => 'pickem.admin.picks.page.inc'
+  );
+
+
 
 
   return $items;
@@ -695,6 +698,52 @@ function pickem_cron() {
  */
 function pickem_theme() {
   return array(
+
+    'league_page' => array(
+      'file' => 'pickem.league.page.inc',
+      'arguments' => array('league' => NULL),
+    ),
+    'dash' => array(
+      'file' => 'pickem.league.page.inc',
+      'arguments' => array('title' => NULL, 'content' => NULL, 'region' => 'main', 'link' => NULL, ),
+    ),
+    'league_messages' => array(
+      'file' => 'pickem.league.page.inc',
+      'arguments' => array('league' => NULL),
+    ),
+    'league_nav' => array(
+      'file' => 'pickem.league.page.inc',
+      'arguments' => array('league' => NULL),
+    ),
+    'my_league_summary' => array(
+      'file' => 'pickem.league.page.inc',
+      'arguments' => array('league' => NULL),
+    ),
+
+
+    'standings' => array(
+      'file' => 'pickem.standings.page.inc',
+      'arguments' => array('league' => NULL),
+    ),
+
+    'mypicks_all' => array(
+      'file' => 'pickem.mypicks.page.inc',
+      'arguments' => array('league' => NULL),
+    ),
+    'mypicks_week_form' => array(
+      'file' => 'pickem.mypicks.page.inc',
+      'arguments' => array('form' => NULL),
+    ),
+
+    'admin_picks_all_page' => array(
+      'file' => 'pickem.admin.picks.page.inc',
+      'arguments' => array('league' => NULL, 'account' => NULL),
+    ),
+    'admin_picks_week_form' => array(
+      'file' => 'pickem.admin.picks.page.inc',
+      'arguments' => array('form' => NULL),
+    ),
+
     'pickem_scores_list' => array(
       'file' => 'pickem.admin.inc',
       'arguments' => array('form' => NULL),
@@ -723,23 +772,11 @@ function pickem_theme() {
       'file' => 'pickem.admin.inc',
       'arguments' => array('form' => NULL),
     ),
-    'league_nav' => array(
-      'arguments' => array('league' => NULL),
-    ),
-    'my_league_summary' => array(
-      'arguments' => array('league' => NULL),
-    ),
-    'league_messages' => array(
-      'arguments' => array('league' => NULL),
-    ),
     'leaderboard_block' => array(
       'arguments' => array('league' => NULL),
     ),
     'this_weeks_games_block' => array(
       'arguments' => array('league' => NULL),
-    ),
-    'dash' => array(
-      'arguments' => array('title' => NULL, 'content' => NULL, 'region' => 'main', 'link' => NULL, ),
     ),
     'team_stats' => array(
       'arguments' => array('league' => NULL),
@@ -883,179 +920,6 @@ function page_grid($league) {
   print theme('page', $output);
 }
 
-function page_mypicks_week($league, $week) {
-  global $user, $_PICKEM_TIMEZONE;
-
-  // param check: is this week valid for this league?
-  // param check: is current user a memeber of this league?
-  if ( !is_valid_week($league, $week) || !is_my_league($league) ) {
-    return drupal_not_found();
-  }
-
-  drupal_set_title($week->wk_name .' Picks - '. $user->name);
-
-  // setup breadcrumbs
-  $breadcrumb = drupal_get_breadcrumb();
-  $breadcrumb[] = l($league->name, 'pickem/'. $league->lid);
-  drupal_set_breadcrumb($breadcrumb);
-
-  // used to saving to multiple leagues that use the same pickset.
-  $similar_leagues = get_my_leagues($league->gsid);
-
-  //POSTING, save picks
-  if (count($_POST) > 0) {
-    if ($week->week_past == 1) {
-      drupal_set_title($week->wk_name .' picks are locked.');
-      print theme('page', "You cannot change your picks now.");
-      return;
-    }
-
-    if ( isset($_POST['apply_to_all_my_leagues'] ) ) {
-      unset($_POST['apply_to_all_my_leagues']);
-      foreach ($similar_leagues as $l) {
-        foreach ($_POST as $gid => $pick) {
-          $gid = preg_split('/_/', $gid);
-          set_pick($gid[1], $user->uid, $l->lid, $pick);
-        }
-      }
-      $t_string = t('Picks saved (all leagues/%user-name/%week-name).', array('%user-name' => $user->name, '%week-name' => $week->wk_name));
-      drupal_set_message($t_string);
-      watchdog('pickem', $t_string, NULL, WATCHDOG_NOTICE);
-    }
-    else {
-      foreach ($_POST as $gid => $pick) {
-        $gid = preg_split('/_/', $gid);
-        set_pick($gid[1], $user->uid, $league->lid, $pick);
-      }
-      $t_string = t('Picks saved (%league-name/%user-name/%week-name).', array('%league-name' => $league->name, '%user-name' => $user->name, '%week-name' => $week->wk_name));
-      drupal_set_message($t_string);
-      watchdog('pickem', $t_string, NULL, WATCHDOG_NOTICE);
-    }
-  }
-
-  $teams = get_teams(array('gameset_id' => $league->gsid));
-  $games = get_games(array('week_id' => $week->wid));
-  $picks = get_picks(array('league_id' => $league->lid, 'user_id' => $user->uid, 'week_id' => $week->wid));
-
-  $output = '<div class="pickem"><form action="" method="post"><table class="picks">';
-  if ($league->scoring_type == 0) {
-    $output .= "<tr><th>Visitor</th><th>Home</th><th>Game Time($_PICKEM_TIMEZONE)</th></tr>";
-  }
-  elseif ($league->scoring_type == 1) {
-    $output .= "<tr><th>Visitor</th><th>VSpread</th><th>Home</th><th>HSpread</th><th>Game Time($_PICKEM_TIMEZONE)</th></tr>";
-  }
-
-  foreach ($games as $gid => $game) {
-    $v_sel = '';
-    $h_sel = '';
-    if ($picks[$gid][$user->uid]->winnerpick_id == $game->v_id) {
-      $v_sel = "checked";
-    }
-    elseif ($picks[$gid][$user->uid]->winnerpick_id == $game->h_id) {
-      $h_sel = "checked";
-    }
-
-    if ($week->week_past == 0) {
-      $output .= '<tr>';
-      $output .= '<td><input type="radio" id="gid_'. $gid .'_'. $game->v_id .'" name="gid_'. $gid .'" value="'. $game->v_id .'" '. $v_sel .'/> <label for="gid_'. $gid .'_'. $game->v_id .'">'. $teams[$game->v_id]->small_logo_img . $teams[$game->v_id]->short_name .'</label></td>';
-      if ($league->scoring_type == 1) {
-        $output .= '<td>'. $game->v_spread .'</td>';
-      }
-      $output .= '<td><input type="radio" id="gid_'. $gid .'_'. $game->h_id .'" name="gid_'. $gid .'" value="'. $game->h_id .'" '. $h_sel .'/> <label for="gid_'. $gid .'_'. $game->h_id .'">'. $teams[$game->h_id]->small_logo_img . $teams[$game->h_id]->short_name .'</label></td>';
-      if ($league->scoring_type == 1) {
-        $output .= '<td>'. $game->h_spread .'</td>';
-      }
-    }
-    else {
-      $output .= '<tr>';
-      if ($picks[$gid][$user->uid]->winnerpick_id == $game->v_id) {
-        $output .= '<td><div class="picks-align picked">'. $teams[$game->v_id]->small_logo_img .'<b>'. $teams[$game->v_id]->short_name .' &radic;</b></div></td>';
-        if ($league->scoring_type == 1) {
-          $output .= '<td>'. $game->v_spread .'</td>';
-        }
-      }
-      else {
-        $output .= '<td><div class="picks-align">'. $teams[$game->v_id]->small_logo_img . $teams[$game->v_id]->short_name .'</div></td>';
-        if ($league->scoring_type == 1) {
-          $output .= '<td>'. $game->v_spread .'</td>';
-        }
-      }
-
-      if ($picks[$gid][$user->uid]->winnerpick_id == $game->h_id) {
-        $output .= '<td><div class="picks-align picked">'. $teams[$game->h_id]->small_logo_img .'<b>'. $teams[$game->h_id]->short_name .' &radic;</b></div></td>';
-        if ($league->scoring_type == 1) {
-          $output .= '<td>'. $game->h_spread .'</td>';
-        }
-      }
-      else {
-        $output .= '<td><div class="picks-align">'. $teams[$game->h_id]->small_logo_img . $teams[$game->h_id]->short_name .'</div></td>';
-        if ($league->scoring_type == 1) {
-          $output .= '<td>'. $game->h_spread .'</td>';
-        }
-      }
-    }
-    if (isset ($picks[$gid][$user->uid])) {
-      $output .= '<td class="pick">'. $game->gametime .'</td></tr>';
-    }
-    else {
-      $output .= '<td class="nopick">'. $game->gametime .'</td></tr>';
-    }
-  }
-  $output .= '</table>';
-
-  if ($week->week_past == 0 ) {
-    if ( count($similar_leagues) > 1 ) {
-      $output .= '<p><input type="checkbox" name="apply_to_all_my_leagues"/>Apply picks to all my leagues that use the same game set<br/><br/>';
-    }
-    $output .= '<input type="submit" value="Save Picks"/></p>';
-  }
-  $output .= '</form></div>';
-
-
-  print theme('page', $output);
-}
-
-function page_mypicks_all($league) {
-  global $_PICKEM_MY_LEAGUES;
-  global $user;
-
-  // param check: is current user a memeber of this league?
-  if ( !is_my_league($league) ) {
-    return drupal_not_found();
-  }
-
-  drupal_set_title("My Picks - ". $user->name);
-
-  $breadcrumb = drupal_get_breadcrumb();
-  $breadcrumb[] = l($league->name, 'pickem/'. $league->lid);
-  drupal_set_breadcrumb($breadcrumb);
-
-  $flip = array('even' => 'odd', 'odd' => 'even');
-  $class = 'even';
-
-  $teams = get_teams(array('gameset_id' => $league->gsid));
-
-  $games = get_games(array('league_id' => $league->lid));
-
-  $output = '<div class="pickem">Click on week number to make picks.<table class="picks">';
-
-  $last_week_id = 0;
-  foreach ($games as $gid => $game) {
-    if ( $game->wid <> $last_week_id ) {
-      $class = $flip[$class];
-      $output .= '<tr class="'. $class .'"><th>'. l($game->wk_number, "pickem/$league->lid/mypicks/" . $game->wid) .'</th><td>';
-    }
-    $last_week_id = $game->wid;
-    $output .= '<div class="picks-float">';
-    $output .= $teams[$game->v_id]->short_name .'<br/>@'. $teams[$game->h_id]->short_name;
-    $output .= "</div>";
-  }
-  $output .= "</td></tr>";
-
-  $output .= "</table></div>";
-
-  print theme('page', $output);
-}
 
 function page_weeklypicks($league, $week) {
   global $user;
@@ -1096,30 +960,39 @@ function page_weeklypicks($league, $week) {
     $class=$flip[$class];
     $output .= '<tr class="'. $class .'"><td class="users">'. $user_totals['ranking'] .'. '. l($user_totals['name'], 'user/'. $uid) .'</td><td>'. $user_totals['total'] .'</td>';
     foreach ($gids as $gid => $winnerid) {
-      $p_team = $teams[$picks[$gid][$uid]->winnerpick_id]->short_name;
 
-      if (isset ($picks[$gid][$uid]->winnerpick_id) && $picks[$gid][$uid]->winnerpick_id == $winnerid && $winnerid != 0) {
-        $output .= '<td class="win">'. $p_team .'</td>';
-      }
-      elseif (isset ($picks[$gid][$uid]->winnerpick_id) && $winnerid == -1) {
-        $output .= '<td class="tie">'. $p_team .'</td>';
-      }
-      elseif (isset ($picks[$gid][$uid]->winnerpick_id) && $picks[$gid][$uid]->winnerpick_id != $winnerid && $winnerid != 0) {
-        $output .= '<td class="loss">'. $p_team .'</td>';
-      }
-      else {
-        if ($week->week_past == 1 || $uid == $user->uid) {
-          $output .= '<td>'. $p_team .'</td>';
+      if ($league->scoring_type == PICKEM_TYPE_WIN_LOSS || $league->scoring_type == PICKEM_TYPE_SPREAD) {
+        $p_team = $teams[$picks[$gid][$uid]->winnerpick_id]->short_name;
+
+        if (isset ($picks[$gid][$uid]->winnerpick_id) && $picks[$gid][$uid]->winnerpick_id == $winnerid && $winnerid != 0) {
+          $output .= '<td class="win">'. $p_team .'</td>';
+        }
+        elseif (isset ($picks[$gid][$uid]->winnerpick_id) && $winnerid == -1) {
+          $output .= '<td class="tie">'. $p_team .'</td>';
+        }
+        elseif (isset ($picks[$gid][$uid]->winnerpick_id) && $picks[$gid][$uid]->winnerpick_id != $winnerid && $winnerid != 0) {
+          $output .= '<td class="loss">'. $p_team .'</td>';
         }
         else {
-          if (isset ($picks[$gid][$uid]->winnerpick_id)) {
-            $output .= '<td>X</td>';
+          if ($week->week_past == 1 || $uid == $user->uid) {
+            $output .= '<td>'. $p_team .'</td>';
           }
           else {
-            $output .= '<td>&nbsp;</td>';
+            if (isset ($picks[$gid][$uid]->winnerpick_id)) {
+              $output .= '<td>X</td>';
+            }
+            else {
+              $output .= '<td>&nbsp;</td>';
+            }
           }
         }
       }
+      else if ($league->scoring_type == PICKEM_TYPE_SCORE_DIFF) {
+        $output .= '<td>'. $user_totals['weeks'][$week->wid]['games'][$gid] .'</td>';
+      }
+
+
+
     }
     $output .= '</tr>';
   }
@@ -1127,102 +1000,6 @@ function page_weeklypicks($league, $week) {
   $output .= '</table></div>';
 
   drupal_set_title($week->wk_name .' Pick Summary');
-  print theme('page', $output);
-}
-
-function page_standings($league) {
-  drupal_set_title("Standings");
-
-  $breadcrumb = drupal_get_breadcrumb();
-  $breadcrumb[] = l($league->name, 'pickem/'. $league->lid);
-  drupal_set_breadcrumb($breadcrumb);
-
-  drupal_add_js('misc/collapse.js');
-
-  $totals = get_user_totals($league);
-  $week_totals = get_totals_by_week($league);
-
-  $flip = array('even' => 'odd', 'odd' => 'even');
-  $class = 'even';
-
-  $output = '<div class="pickem">Click on week numbers to see weekly pick summary.';
-  $output .= '<div><fieldset class="collapsible"><legend><a href="#">Regular Season</a></legend>';
-  $output .= '<table class="standings"><tr><th>Overall Rank</th>';
-
-  $wk_summary = array();
-  $output .= '<th colspan="2">TOT</th>';
-  $weeks = get_weeks(array('gameset_id' => $league->gsid, 'playoffs' => 0));
-  foreach ($weeks as $wid => $week) {
-    $output .= '<th class="week-numbers">'. l($week->wk_number, 'pickem/'. $league->lid ."/weeklypicks/$wid") .'</th>';
-  }
-  $output .= "</tr>";
-
-  foreach ($totals as $uid => $u_object) {
-    $class = $flip[$class];
-    $output .= '<tr class="'. $class .'">';
-    $output .= '<td class="users">'. $u_object['ranking'] .'.&nbsp;&nbsp;'. l($u_object['name'], 'user/'. $uid) .'</td>';
-
-    if ($u_object['pts_back'] == 0) {
-      $output .= '<td class="totals">'. $u_object['total'] .'</td><td class="gamesback">&nbsp;</td>';
-      $high = $u_object['total'];
-    }
-    else {
-      $output .= '<td class="totals">'. $u_object['total'] .'</td><td class="gamesback">+'. $u_object['pts_back'] .'</td>';
-    }
-
-    foreach ($weeks as $wid => $week) {
-      if ($u_object['weeks'][$wid] == $week_totals[$wid]["min"]) {
-        $output .= '<td class="weekly weekly-low">'. $u_object['weeks'][$wid] .'</td>';
-      }
-      elseif ($u_object['weeks'][$wid] == $week_totals[$wid]["max"]) {
-        $output .= '<td class="weekly weekly-high">'. $u_object['weeks'][$wid] .'</td>';
-      }
-      else {
-        $output .= '<td class="weekly">'. $u_object['weeks'][$wid] .'</td>';
-      }
-    }
-    $output .= "</tr>";
-  }
-  $output .= '</table></fieldset></div>';
-
-  //playoff table
-  $playoff_weeks = get_weeks(array('gameset_id' => $league->gsid, 'playoffs' => 1));
-  $output .= '<div><fieldset class="collapsible"><legend><a href="#">Playoffs</a></legend>';
-  $output .= '<table class="standings">';
-
-  $output .= '<tr><th>Overall Rank</th><th colspan="2">TOT</th>';
-  foreach ($playoff_weeks as $wid => $week) {
-    $output .= '<th class="week-numbers">'. l('Week&nbsp;'. $week->wk_number .'<br/>'. $week->wk_name, 'pickem/'. $league->lid ."/weeklypicks/$wid", array('html' => TRUE)) .'</th>';
-  }
-  $output .= "</tr>";
-  foreach ($totals as $uid => $u) {
-    $class = $flip[$class];
-    $output .= '<tr class="'. $class .'">';
-    $output .= '<td class="users">'. $u['ranking'] .'.&nbsp;&nbsp;'. l($u['name'], 'user/'. $uid) .'</td>';
-
-    if ($u['pts_back'] == 0) {
-      $output .= '<td class="totals">'. $u['total'] .'</td><td class="gamesback">&nbsp;</td>';
-      $high = $u['total'];
-    }
-    else {
-      $output .= '<td class="totals">'. $u['total'] .'</td><td class="gamesback">+'. $u['pts_back'] .'</td>';
-    }
-    foreach ($playoff_weeks as $wid => $week) {
-      if ($u['weeks'][$wid] == $week_totals[$wid]["min"]) {
-        $output .= '<td class="weekly weekly-low">'. $u['weeks'][$wid] .'</td>';
-      }
-      elseif ($u['weeks'][$wid] == $week_totals[$wid]["max"]) {
-        $output .= '<td class="weekly weekly-high">'. $u['weeks'][$wid] .'</td>';
-      }
-      else {
-        $output .= '<td>'. $u['weeks'][$wid] .'</td>';
-      }
-    }
-    $output .= "</tr>";
-  }
-  $output .= '</table></fieldset></div>';
-
-  $output .= '</div>';
   print theme('page', $output);
 }
 
@@ -1248,166 +1025,6 @@ function league_router() {
   print theme('page', $o);
 }
 
-function page_league($league) {
-  drupal_set_title($league->name .' League');
-
-  $breadcrumb = drupal_get_breadcrumb();
-  $breadcrumb[1] = l($league->name, 'pickem/'. $league->lid);
-  drupal_set_breadcrumb($breadcrumb);
-
-  $o  = '<div class="pickem"><table class="league-nav"><tr>';
-  $o .= '<td class="col1">'. theme('league_nav', $league) .'</td>';
-  if ( is_my_league($league) ) {
-    $o .= '<td class="col2">'. theme('my_league_summary', $league) .'</td>';
-  }
-  else {
-    $o .= '<td class="col2">&nbsp;</td>';
-  }
-  $o .= '</tr>';
-
-  $o .= '<tr><td colspan="2">'. theme('league_messages', $league) .'</td></tr>';
-
-  $o .= '<tr><td colspan="2">'. theme('this_weeks_games') .'</td></tr></table></div>';
-
-
-  print theme('page', $o);
-}
-
-function theme_league_nav($league) {
-    global $user;
-
-    $o = '';
-    $o .=  '<ul>';
-
-    if ( is_my_league($league) ) {
-      $o .= '<li>'. l('My Picks', 'pickem/'. $league->lid .'/mypicks') .'</li>';
-    }
-
-    $cur_w = get_current_week($league, FALSE);
-    if ($cur_w->wk_number <> '') {
-      $o .= '<li>'. l('Pick Summary(week '. $cur_w->wk_number .')', 'pickem/'. $league->lid .'/weeklypicks/'. $cur_w->wid) .'</li>';
-    }
-    else {
-      //print_r($cur_w);
-    }
-
-    $o .= '<li>'. l('Standings', 'pickem/'. $league->lid .'/standings') .'</li>';
-
-    if ( $league->rules_node_id != 0 ) {
-      $o .= '<li>'. l('Rules and Regs', 'node/'. $league->rules_node_id) .'</li>';
-    }
-
-    if ( $league->forum_id != 0 ) {
-      $o .= '<li>'. l('Talk and Taunting', 'forum/'. $league->forum_id) .'</li>';
-    }
-
-    if ( user_access('administer pickem') && $cur_w->wk_number <> '' ) {
-      $o .= '<li>'. l('Update Week\'s Scores', 'admin/pickem/scores/'. $league->lid . '/edit/' . $cur_w->wid) .'</li>';
-    }
-
-    $o .= '<li>Research<ul>';
-    if ( $league->partial_league == 0 ) {
-      $o .= '<li>'. l('Schedule Grid', 'pickem/'. $league->lid .'/grid') .'</li>';
-    }
-    if (module_exists("open_flash_chart_api")) {
-      $o .= '<li>'. l('High/Low Chart', 'pickem/'. $league->lid .'/chart1') .'</li>';
-      if ( $league->partial_league == 0 ) {
-        $o .= '<li>'. l('Team Pickability Chart', 'pickem/'. $league->lid .'/chart2') .'</li>';
-      }
-    }
-    if ( $league->partial_league == 0 ) {
-      $o .= '<li>'. l('Team Win-Loss Stats', 'pickem/'. $league->lid .'/team_stats') .' / '. l('vPower', 'pickem/'. $league->lid .'/team_power') .'</li>';
-    }
-
-    $o .= '</ul></li></ul>';
-
-    return theme('dash', 'Navigation', $o);
-}
-
-function theme_my_league_summary($league) {
-  //drupal_set_message('theme_my_league_summary');
-  global $user;
-
-  $totals = get_user_totals($league); //sorted by overall score
-  $title = 'My Summary';
-  $content = '<div class="my-league-summary">';
-  $content .= 'RANK: #'. $totals[$user->uid]['ranking'] .'<br/>';
-  if ( $totals[$user->uid]['ranking'] > 1 ) {
-    $content .= 'POINTS BACK: '. $totals[$user->uid]['pts_back'] .'<br/>';
-  }
-  $content .= 'TOTAL POINTS: '. $totals[$user->uid]['total'] .'<br/>';
-  if ( $totals[$user->uid]['best_week_id'] <> -1 ) {
-    $content .= 'BEST WEEK SCORE:  '. $totals[$user->uid]['weeks'][$totals[$user->uid]['best_week_id']] .' (Week '. $totals[$user->uid]['best_week_id'] .')<br/>';
-    $content .= 'WORST WEEK SCORE:  '. $totals[$user->uid]['weeks'][$totals[$user->uid]['worst_week_id']] .' (Week '. $totals[$user->uid]['worst_week_id'] .')<br/>';
-  }
-  $content .= '</div>';
-  return theme('dash', $title, $content);
-}
-
-
-function theme_league_messages($league) {
-  global $user;
-  global $_PICKEM_TIMEZONE;
-
-  if ( is_my_league($league) && $league->forum_id != 0 ) {
-    $post_link = '/node/add/forum/'. $league->forum_id;
-    $output = '<a href="'. $post_link .'">Post new forum topic.</a>';
-  }
-  $output .= '<ul>';
-  $cur_w = get_current_week($league, TRUE);
-
-  if ( $cur_w->firstgame_date != '' ) {
-    if ( $cur_w->firstgame_dow <> "Sunday" ) {
-      $output .= '<li class="warning">Warning: The first game is on <span style="text-decoration:underline;">'. strtoupper($cur_w->firstgame_dow) .'</span>.</li>';
-    }
-    if (module_exists("jstimer")) {
-      $output .= '<li class="warning">'. get_countdown_timer($cur_w) .'</span></li>';
-    }
-    else {
-      $output .= '<li class="warning">Week '. ($cur_w->wk_number) .' picks due by '. date('l, F j, Y \a\t g:i a', strtotime($cur_w->firstgame)) .'('. $_PICKEM_TIMEZONE .").</li>";
-    }
-  }
-
-
-  if ( is_my_league($league) && $league->forum_id != 0 ) {
-    $sql = db_rewrite_sql("SELECT n.nid, n.title, l.comment_count, l.last_comment_timestamp, u.name, c.cid, c.comment, c.subject comment_subject, cu.name comment_name, c.timestamp comment_timestamp FROM {node} n INNER JOIN {node_comment_statistics} l ON n.nid = l.nid inner join {users} u on u.uid=n.uid inner join {term_node} tn on tn.nid=n.nid left outer join {comments} c on c.nid=n.nid left outer join {users} cu on cu.uid=c.uid WHERE n.status = 1 AND n.type = 'forum' and tn.tid=%d ORDER BY GREATEST(n.created, IF(c.timestamp IS NULL, 0, c.timestamp)) DESC");
-    $result = db_query($sql, $league->forum_id);
-
-    $i = 1;
-    $content='';
-    while ($node = db_fetch_object($result)) {
-      if ( $i > 4 ) {
-        break;
-      }
-      $i++;
-      if ( $node->comment ) {
-        $content .= '<li>'. l($node->comment_subject .' - '. $node->comment_name .' <Re: '. $node->title .'>', 'node/'. $node->nid  )  .  ' ('. format_date($node->comment_timestamp, 'small') .') <a href="/comment/reply/'. $node->nid .'/'. $node->cid .'">-Reply</a></li>';
-      }
-      else {
-        $content .= '<li>'. l($node->title .' - '. $node->name, 'node/'. $node->nid  )  .' ('. format_date($node->last_comment_timestamp, 'small') .') <a href="/comment/reply/'. $node->nid .'/#comment-form">-Reply</a></li>';
-      }
-    }
-
-    if ( $content == '' ) {
-      $content = "<li>None</li>";
-    }
-
-    $output .= $content;
-  }
-  $output .= '</ul>';
-
-  return theme('dash', 'Messages', $output);
-}
-
-function theme_dash($title, $content, $region='main', $link=NULL) {
-  if ( isset($link) ) {
-    $output = '<div class="dash"><div class="title">'. $link .'</div><div>'. $content .'</div></div>';
-  }
-  else {
-    $output = '<div class="dash"><div class="title">'. $title .'</div><div>'. $content .'</div></div>';
-  }
-  return $output;
-}
 
 function theme_leaderboard_block($league) {
   if ( !isset($league) ) {
@@ -1429,6 +1046,7 @@ function theme_leaderboard_block($league) {
   return $content;
 }
 
+
 function theme_this_weeks_games_block($league) {
   $cur_w = get_current_week($league, FALSE);
   if ( $cur_w->wid == "" ) {
@@ -1449,7 +1067,7 @@ function theme_this_weeks_games_block($league) {
   return $content;
 }
 
-function page_team_power($league) {
+function team_power_page($league) {
   drupal_set_title('Team vPower Rankings');
 
   $breadcrumb = drupal_get_breadcrumb();
@@ -1571,7 +1189,7 @@ function theme_team_power($league) {
 }
 
 
-function page_team_stats($league) {
+function team_stats_page($league) {
   drupal_set_title('Team Stats');
 
   $breadcrumb = drupal_get_breadcrumb();
@@ -1713,220 +1331,6 @@ function stream_logo() {
   print file_get_contents($full_path .'/'. $files[array_rand($files)]);
 }
 
-
-function chart1($league, $user=NULL) {
-  drupal_set_title('Charts');
-
-  $breadcrumb = drupal_get_breadcrumb();
-  $breadcrumb[] = l($league->name, 'pickem/'. $league->lid);
-  drupal_set_breadcrumb($breadcrumb);
-
-  $g = new open_flash_chart_api();
-
-  if ( isset($user) ) {
-    $g->set_title( $user->name .': '. t('Weekly Points High/Low Chart'), '{font-size: 20px;}' );
-  }
-  else {
-    $g->set_title( t('Weekly Points High/Low Chart'), '{font-size: 20px;}' );
-  }
-
-  $g->set_width('100%');
-  $g->set_height('480');
-
-  $weeks = get_totals_by_week($league);
-
-  $b = array();
-  foreach ($weeks as $w) {
-    if ( $w['count'] == '' ) {
-      $b[] = 'null';
-    }
-    else {
-      $b[] = $w['total'] / $w['count'];
-    }
-  }
-  $g->set_data($b);
-  $g->line_dot( 2, 4, '#008000', 'League AVG', 12 );
-
-  if ( isset($user) ) {
-    $ut = get_user_totals($league);
-    $c = array();
-    foreach ($weeks as $w) {
-      if ( $ut[$user->uid]['weeks'][$w['name']] == '' ) {
-        $c[] = 'null';
-      }
-      else {
-        $c[] = $ut[$user->uid]['weeks'][$w['name']];
-      }
-    }
-    $g->set_data($c);
-    $g->line_hollow( 2, 5, '#000080', $ut[$user->uid]['name'], 12 );
-  }
-
-   $a = array();
-  foreach ($weeks as $w) {
-    if ( $w['max'] == '' ) {
-      $a[] = new candle('null', 'null', 'null', 'null');
-    }
-    else {
-      $a[] = new candle($w['max'], $w['min'], $w['max'], $w['min']);
-    }
-  }
-  $g->candle( $a, 70, 1, '#800000', 'High/Low', 12 );
-
-
-  // X axis:
-  $x_labels = array();
-  $weeks = get_weeks(array('gameset_id' => $league->gsid));
-  foreach ($weeks as $wid => $week) {
-    $x_labels[] = $week->wk_number;
-  }
-  $g->set_x_labels( $x_labels );
-  $g->set_x_legend( 'Week', 12);
-
-  $g->set_y_max( 16 );
-  $g->y_label_steps( 8 );
-  $g->set_y_legend( 'Points', 12);
-
-  $g->set_bg_colour('0xDFFFDF');
-
-  $g->set_tool_tip( '#x_legend# #x_label# (#val#)' );
-
-  $o = '<div class="pickem">'. $g->render('js');
-
-  $users = get_users($league);
-  foreach ($users as $u) {
-    $o .= '<span class="user-list-horiz">';
-    $name = $u->name;
-    $name = str_replace(' ', '&nbsp;', $name);
-    if ( $user->uid == $u->uid ) {
-      $o .= $name;
-    }
-    else {
-      $o .= l($name, 'pickem/'. $league->lid .'/chart1/'. $u->uid, array('html' => TRUE));
-    }
-    $o .= '</span>';
-  }
-  $o .= '</div>';
-  print theme('page', $o);
-
-}
-
-
-
-function chart2($league, $sort_by='win_lose') {
-  drupal_set_title('Charts');
-
-  $breadcrumb = drupal_get_breadcrumb();
-  $breadcrumb[] = l($league->name, 'pickem/'. $league->lid);
-  drupal_set_breadcrumb($breadcrumb);
-
-  $g = new open_flash_chart_api();
-  $g->set_title( t('Team Pickability (Regular Season)'), '{font-size: 20px;}' );
-  $g->set_width('100%');
-  $g->set_height('480');
-
-  $teams = get_team_totals($league, $sort_by);
-  $x_labels = array();
-  $a = array();
-  foreach ($teams as $tid => $team_data) {
-    $a[] = is_null($team_data['pickability'])?'NULL':$team_data['pickability'];
-    $x_labels[] = $team_data['abbrev'];
-  }
-  $g->set_data($a);
-  $g->area_hollow( 2, 3, 25, '#000080', 'Correctly Picked', 12);
-
-  $a = array();
-  foreach ($teams as $tid => $team_data) {
-    $a[] = is_null($team_data['pickability_w'])?'NULL':$team_data['pickability_w'];
-  }
-  $g->set_data($a);
-  $g->area_hollow( 2, 3, 25, '#800080', 'Correctly Picked To Win', 12);
-
-
-  $g->set_x_labels( $x_labels );
-  $g->set_x_label_style( 12, '#000000', 2);
-
-  $g->set_x_legend( 'Percent that a team is correctly picked', 12);
-
-  $g->set_y_max( 100 );
-  $g->y_label_steps( 10 );
-  $g->set_y_legend( 'Percent', 12);
-
-  $g->set_bg_colour('0xDFFFDF');
-  //echo $g->render();
-
-  $g->set_tool_tip( '#x_label# (#val#)' );
-
-  $o = $g->render('js');
-
-  if ($sort_by == 'to_win' ) {
-    $o .= l('Sort By "Correctly Picked"', 'pickem/'. $league->lid .'/chart2/win_lose', array('html' => TRUE));
-  }
-  else {
-    $o .= l('Sort By "Correctly Picked To Win"', 'pickem/'. $league->lid .'/chart2/to_win', array('html' => TRUE));
-  }
-
-  print theme('page', $o);
-}
-
-function chart3($league, $team_id) {
-  drupal_set_title('Charts');
-
-  $breadcrumb = drupal_get_breadcrumb();
-  $breadcrumb[] = l($league->name, 'pickem/'. $league->lid);
-  drupal_set_breadcrumb($breadcrumb);
-
-  $teams = get_teams(array('gameset_id' => $league->gsid));
-
-  $g = new open_flash_chart_api();
-  $g->set_title( t('Team Scoring - '. $teams[$team_id]->tm_abbrev ), '{font-size: 20px;}' );
-  $g->set_width('100%');
-  $g->set_height('480');
-
-  $x_labels = array();
-  $pf = array();
-  $pa = array();
-  $games = get_games(array('gameset_id' => $league->gsid, 'team_id' => $team_id));
-  foreach ($games as $gid => $row) {
-    if ( is_null($row->h_score) || is_null($row->v_score)  ) {
-      continue;
-    }
-
-    if ( $team_id == $row->h_id ) {
-      $pf[] = $row->h_score;
-      $pa[] = $row->v_score;
-      $x_labels[] = $teams[$row->v_id]->tm_abbrev;
-    }
-    else {
-      $pf[] = $row->v_score;
-      $pa[] = $row->h_score;
-      $x_labels[] = $teams[$row->h_id]->tm_abbrev;
-    }
-  }
-  $g->set_data($pf);
-  $g->area_hollow( 2, 3, 25, '#000080', 'Points For', 12);
-
-  $g->set_data($pa);
-  $g->area_hollow( 2, 3, 25, '#800080', 'Points Against', 12);
-
-  $g->set_x_labels( $x_labels );
-  $g->set_x_label_style( 12, '#000000', 2);
-
-  $g->set_x_legend( 'Opponent', 12);
-
-  $g->set_y_max( 60 );
-  $g->y_label_steps( 10 );
-  $g->set_y_legend( 'Points', 12);
-
-  $g->set_bg_colour('0xDFFFDF');
-  //echo $g->render();
-
-  $g->set_tool_tip( $teams[$team_id]->tm_abbrev .' vs #x_label# (#val#)');
-
-  $o = $g->render('js');
-
-  print theme('page', $o);
-}
 
 function email_warning($user, $week_id, $firstgame, $missing_picks, $league_id) {
 
@@ -2189,4 +1593,50 @@ function sort_team_stats_team_asc($a, $b) {
   else {
    return 0;
   }
+}
+
+
+
+/**
+ * Good General Use Forms
+ */
+
+
+function league_select_form($form_state=NULL) {
+  $options = array();
+  $leagues = get_leagues();
+  foreach ($leagues as $lid => $l) {
+    $options[$lid] = $l->name;
+  }
+
+  $form['league_select'] = array( '#type' => 'select', '#title' => t('Select League'), '#default_value' => 1, '#options' => $options);
+  $form['op'] = array(
+    '#type' => 'button',
+    '#value' => t('Choose')
+  );
+  return $form;
+}
+
+
+function user_select_form($form_state=NULL, $league=NULL, $title='Select User To Modify', $not_in_league=0) {
+
+  $users = get_users($league, $not_in_league);
+  $user_list = array();
+  foreach ($users as $u_id => $user_data) {
+    $user_list[$u_id] = $user_data->name;
+  }
+
+  $form = array();
+  $form['user_select'] = array(
+    '#type' => 'select',
+    '#title' => t($title),
+    '#default_value' => 1,
+    '#options' => $user_list,
+  );
+  $op = explode(' ', $title);
+  $form['op'] = array(
+    '#type' => 'button',
+    '#value' => t($op[0])
+  );
+  return $form;
 }
