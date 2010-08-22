@@ -1267,6 +1267,11 @@ function email_league_form() {
       '#title'         => t('Send as BCC (hide recipients)'),
       '#default_value' => 0,
     );
+    $form['copy_yourself'] = array(
+      '#type'          => 'checkbox',
+      '#title'         => t('Send a copy to yourself'),
+      '#default_value' => 0
+    );
     $form['submit'] = array(
       '#type'  => 'submit',
       '#value' => t('Send e-mail'),
@@ -1294,12 +1299,18 @@ function email_league_form_validate($form, &$form_state) {
 }
 
 
-
 function email_league_form_submit($form, &$form_state) {
+  global $user;
 
   $bcc = $form_state['values']['bcc'];
+  $copy_yourself = $form_state['values']['copy_yourself'];
 
-  $headers['From'] = $headers['Reply-To'] = $headers['Sender'] = $headers['Return-Path'] = $headers['Errors-To'] = variable_get('pickem_commisioner_email', '');
+  $return_address = variable_get('pickem_commisioner_email', '');
+  if ( $return_address == '' ) {
+    $return_address = $user->mail;
+  }
+
+  $headers['From'] = $headers['Reply-To'] = $headers['Sender'] = $headers['Return-Path'] = $headers['Errors-To'] = $return_address;
 
   $headers['Content-Type'] = 'text/plain; charset=UTF-8; format=flowed';
   //$headers['Content-Type'] = 'text/html; charset=UTF-8;';
@@ -1315,6 +1326,12 @@ function email_league_form_submit($form, &$form_state) {
 
   // Load the recipients
   $recipients = array();
+
+  // Add the logged-in user if they want a copy.
+  if ($copy_yourself == 1) {
+    array_push($recipients, $user);
+  }
+
   foreach ($form_state['values']['league_id'] as $league_id) {
     $league = league_load($league_id);
     $recipients = array_merge($recipients, get_users($league));
