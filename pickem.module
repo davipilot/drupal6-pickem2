@@ -602,15 +602,30 @@ function pickem_menu() {
 function pickem_user($op, &$edit, &$account, $category = NULL) {
   switch ($op) {
     case 'insert':
-      // a new user is being added; add them to the default league
+      // This is for sites that DON't use administrative approval for new accounts.
       $auto_signup = variable_get('pickem_auto_signup_enable', 0);
       $default_league = variable_get('pickem_auto_signup_default_league', 0);
-      if (  $auto_signup == 1 && $default_league != 0 ) {
+      if ($auto_signup == 1 && $default_league != 0 && $edit['status'] == 1) {
         $query = "insert into {pickem_users} (uid, lid) values(%d, %d)";
         $result = db_query($query, $account->uid, $default_league);
         drupal_set_message($account->name .' added to default pickem league.');
       }
       $edit['pickem_user_email_reminders'] = variable_get('pickem_default_email_reminders', 1);
+    break;
+    case 'update':
+      // This is for sites that use administrative approval for new accounts.
+      if ( $account->status == 0 && $edit['status'] == 1 ) {
+        // a new user is being added; add them to the default league
+        $auto_signup = variable_get('pickem_auto_signup_enable', 0);
+        $league = league_load(variable_get('pickem_auto_signup_default_league', 0));
+        $is_member = is_league_member($league, $account);
+        if (!$is_member && $auto_signup == 1 && $default_league != 0 && $edit['status'] == 1) {
+          $query = "insert into {pickem_users} (uid, lid) values(%d, %d)";
+          $result = db_query($query, $account->uid, $league->lid);
+          drupal_set_message($account->name .' added to default pickem league.');
+        }
+        $edit['pickem_user_email_reminders'] = variable_get('pickem_default_email_reminders', 1);
+      }
     break;
     case 'load':
       // NOTE: this isn't run normally for the logged in user, just users loaded with user_load
