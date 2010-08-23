@@ -46,7 +46,7 @@ function theme_mypicks_all($league) {
     foreach ($weeks_games as $gid => $game) {
       // The first column should be the week number link.
       if ( count($cols) == 0 ) {
-        $cols[] = array('data' => l($game->wk_number, "pickem/$league->lid/mypicks/" . $wid), 'class' => 'week');
+        $cols[] = array('data' => l('Week '. $game->wk_number, "pickem/$league->lid/mypicks/" . $wid), 'class' => 'week');
       }
       $current_week .= '<div class="picks-float">' . $teams[$game->v_id]->short_name .'<br/>@'. $teams[$game->h_id]->short_name . '</div>';
     }
@@ -76,8 +76,11 @@ function mypicks_week_form(&$form_state=NULL, $league, $week) {
 
   $form = array();
   $form['games'] = array('#tree' => TRUE);
+  $last = count($games);
+  $count = 0;
   foreach ($games as $gid => $game) {
 
+    $count++;
     $form['games'][$gid]['v_id'] = array(
       '#type' => 'hidden',
       '#value' => $game->v_id
@@ -86,10 +89,9 @@ function mypicks_week_form(&$form_state=NULL, $league, $week) {
       '#type' => 'hidden',
       '#value' => $game->h_id
     );
+    if ($league->scoring_type == PICKEM_TYPE_WIN_LOSS || $league->scoring_type == PICKEM_TYPE_SPREAD || ($league->scoring_type == PICKEM_TYPE_WIN_LOSS_TIEBREAK && $count < $last)) {
 
-    if ($league->scoring_type == PICKEM_TYPE_WIN_LOSS || $league->scoring_type == PICKEM_TYPE_SPREAD) {
-
-      if ($league->scoring_type == PICKEM_TYPE_WIN_LOSS) {
+      if ($league->scoring_type == PICKEM_TYPE_WIN_LOSS || $league->scoring_type == PICKEM_TYPE_WIN_LOSS_TIEBREAK) {
         $options =  array(
             $game->v_id => $teams[$game->v_id]->small_logo_img . $teams[$game->v_id]->short_name,
             $game->h_id => $teams[$game->h_id]->small_logo_img . $teams[$game->h_id]->short_name
@@ -116,7 +118,7 @@ function mypicks_week_form(&$form_state=NULL, $league, $week) {
       }
       
     }
-    elseif ($league->scoring_type == PICKEM_TYPE_SCORE_DIFF) {
+    elseif ($league->scoring_type == PICKEM_TYPE_SCORE_DIFF || $league->scoring_type == PICKEM_TYPE_WIN_LOSS_TIEBREAK) {
       $form['games'][$gid]['pick_v_score'] = array(
         '#type' => 'textfield',
         '#size' => 4,
@@ -185,13 +187,16 @@ function theme_mypicks_week_form($form) {
   $header[] = t('Time(%pickem-timezone)', array('%pickem-timezone' => $_PICKEM_TIMEZONE));
 
   $rows = array();
+  $last = count(element_children($form['games']));
+  $count = 0;
   foreach (element_children($form['games']) as $gid) {
+    $count++;
     $cols = array();
 
-    if ($league->scoring_type == PICKEM_TYPE_WIN_LOSS || $league->scoring_type == PICKEM_TYPE_SPREAD) {
+    if ($league->scoring_type == PICKEM_TYPE_WIN_LOSS || $league->scoring_type == PICKEM_TYPE_SPREAD || ($league->scoring_type == PICKEM_TYPE_WIN_LOSS_TIEBREAK && $count < $last)) {
       $cols[] = drupal_render($form['games'][$gid]['pick']);
     }
-    elseif ($league->scoring_type == PICKEM_TYPE_SCORE_DIFF) {
+    elseif ($league->scoring_type == PICKEM_TYPE_SCORE_DIFF || $league->scoring_type == PICKEM_TYPE_WIN_LOSS_TIEBREAK) {
       $cols[] = drupal_render($form['games'][$gid]['pick_v_score']) . drupal_render($form['games'][$gid]['pick_h_score']);
     }
 
@@ -209,6 +214,9 @@ function theme_mypicks_week_form($form) {
       break;
     case PICKEM_TYPE_SCORE_DIFF:
       $output .= '<p>' . t("Enter each team's final score.") . '</p>';
+      break;
+    case PICKEM_TYPE_WIN_LOSS_TIEBREAK:
+      $output .= '<p>' . t("Pick the winner, and enter the last game's final score.") . '</p>';
       break;
   }
 

@@ -9,6 +9,7 @@
 define('PICKEM_TYPE_WIN_LOSS', 0);
 define('PICKEM_TYPE_SPREAD', 1);
 define('PICKEM_TYPE_SCORE_DIFF', 2);
+define('PICKEM_TYPE_WIN_LOSS_TIEBREAK', 3);
 
 require_once 'pickem.inc';
 
@@ -987,7 +988,7 @@ function page_weeklypicks($league, $week) {
           }
         }
       }
-      else if ($league->scoring_type == PICKEM_TYPE_SCORE_DIFF) {
+      else if ($league->scoring_type == PICKEM_TYPE_SCORE_DIFF || $league->scoring_type == PICKEM_TYPE_WIN_LOSS_TIEBREAK) {
         $output .= '<td>'. $user_totals['weeks'][$week->wid]['games'][$gid] .'</td>';
       }
 

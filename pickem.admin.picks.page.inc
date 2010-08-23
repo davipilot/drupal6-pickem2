@@ -96,8 +96,11 @@ function admin_picks_week_form(&$form_state=NULL, $league, $week, $account) {
 
   $form = array();
   $form['games'] = array('#tree' => TRUE);
+  $last = count($games);
+  $count = 0;
   foreach ($games as $gid => $game) {
 
+    $count++;
     $form['games'][$gid]['v_id'] = array(
       '#type' => 'hidden',
       '#value' => $game->v_id
@@ -107,9 +110,10 @@ function admin_picks_week_form(&$form_state=NULL, $league, $week, $account) {
       '#value' => $game->h_id
     );
 
-    if ($league->scoring_type == PICKEM_TYPE_WIN_LOSS || $league->scoring_type == PICKEM_TYPE_SPREAD) {
+    if ($league->scoring_type == PICKEM_TYPE_WIN_LOSS || $league->scoring_type == PICKEM_TYPE_SPREAD || ($league->scoring_type == PICKEM_TYPE_WIN_LOSS_TIEBREAK && $count < $last)) {
+      
 
-      if ($league->scoring_type == PICKEM_TYPE_WIN_LOSS) {
+      if ($league->scoring_type == PICKEM_TYPE_WIN_LOSS || $league->scoring_type == PICKEM_TYPE_WIN_LOSS_TIEBREAK) {
         $options =  array(
             $game->v_id => $teams[$game->v_id]->small_logo_img . $teams[$game->v_id]->short_name,
             $game->h_id => $teams[$game->h_id]->small_logo_img . $teams[$game->h_id]->short_name
@@ -130,7 +134,7 @@ function admin_picks_week_form(&$form_state=NULL, $league, $week, $account) {
       );
 
     }
-    elseif ($league->scoring_type == PICKEM_TYPE_SCORE_DIFF) {
+    elseif ($league->scoring_type == PICKEM_TYPE_SCORE_DIFF || $league->scoring_type == PICKEM_TYPE_WIN_LOSS_TIEBREAK) {
       $form['games'][$gid]['pick_v_score'] = array(
         '#type' => 'textfield',
         '#size' => 4,
@@ -197,7 +201,7 @@ function theme_admin_picks_week_form($form) {
     if ($league->scoring_type == PICKEM_TYPE_WIN_LOSS || $league->scoring_type == PICKEM_TYPE_SPREAD) {
       $cols[] = drupal_render($form['games'][$gid]['pick']);
     }
-    elseif ($league->scoring_type == PICKEM_TYPE_SCORE_DIFF) {
+    elseif ($league->scoring_type == PICKEM_TYPE_SCORE_DIFF || $league->scoring_type == PICKEM_TYPE_WIN_LOSS_TIEBREAK) {
       $cols[] = drupal_render($form['games'][$gid]['pick_v_score']) . drupal_render($form['games'][$gid]['pick_h_score']);
     }
 

@@ -71,6 +71,7 @@ function pickem_settings(&$form_state=NULL) {
     '#type' => 'checkbox',
     '#title' => t('Enable'),
     '#return_value' => 1,
+  
     '#default_value' => variable_get('pickem_auto_signup_enable', 0),
     '#description' => t("This will automatically assign new users to the selected league."),
   );
@@ -711,7 +712,7 @@ function pickem_game_edit(&$form_state, $type, $week, $game) {
     $game->v_score = '';
   }
 
-  $teams = get_games(array('week_id' => $week->wid));
+  $teams = get_teams(array(gameset_id => $week->gsid));
   $team_list = array();
   $team_list[0] = "";
   foreach ($teams as $t_id => $team_data) {
@@ -982,11 +983,12 @@ function pickem_league_edit(&$form_state, $type, $league) {
     '#title'  => t('Scoring Type'),
     '#type' => 'radios',
     '#default_value' => $league->scoring_type,
-    '#options' => array(PICKEM_TYPE_WIN_LOSS => t('Pick the winner'), PICKEM_TYPE_SPREAD => t('Pick the winner with point spread'), PICKEM_TYPE_SCORE_DIFF => t('Score differential')),
+    '#options' => array(PICKEM_TYPE_WIN_LOSS => t('Pick the winner'), PICKEM_TYPE_SPREAD => t('Pick the winner with point spread'), PICKEM_TYPE_SCORE_DIFF => t('Score differential'), PICKEM_TYPE_WIN_LOSS_TIEBREAK => t('Pick the winner with tie-breaker')),
     '#description' =>
       t('Pick the winner: a simple you pick the winner game.') . '<br/>' .
       t('Pick the winner with point spread: you pick the winner based on point spread.') . '<br/>' .
-      t('Score differential: you pick the score of the game and get points for correct score differential and winner.')
+      t('Score differential: you pick the score of the game and get points for correct score differential and winner.') . '<br/>' .
+      t('Pick the winner with tie-breaker: a simple you pick the winner game, but you pick the score for the last game to break ties.') 
   );
   $form['league']['partial_league'] = array(
     '#type' => 'checkbox',
@@ -1422,7 +1424,7 @@ function page_admin_scores($league, $week) {
     $output .= '<td class="time">'. $game->gametime .'</td></tr>';
   }
   $output .= '</table>';
-  $output .= '<input type="submit" value="savescores"/>';
+  $output .= '<input type="submit" value="Save Scores"/>';
   $output .= '</form></div>';
 
 
