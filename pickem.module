@@ -609,6 +609,8 @@ function pickem_user($op, &$edit, &$account, $category = NULL) {
         $query = "insert into {pickem_users} (uid, lid) values(%d, %d)";
         $result = db_query($query, $account->uid, $default_league);
         drupal_set_message($account->name .' added to default pickem league.');
+        // Clear the pickem_get_user_totals_* cache so new user will show up in standings.
+        cache_clear_all('pickem_get_team_totals_', 'cache', TRUE);
       }
       $edit['pickem_user_email_reminders'] = variable_get('pickem_default_email_reminders', 1);
     break;
@@ -625,6 +627,8 @@ function pickem_user($op, &$edit, &$account, $category = NULL) {
           drupal_set_message($account->name .' added to default pickem league.');
         }
         $edit['pickem_user_email_reminders'] = variable_get('pickem_default_email_reminders', 1);
+        // Clear the pickem_get_user_totals_* cache so new user WON'T show up in standings.
+        cache_clear_all('pickem_get_team_totals_', 'cache', TRUE);
       }
     break;
     case 'load':

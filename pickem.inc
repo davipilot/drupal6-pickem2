@@ -159,7 +159,7 @@ function is_valid_week($league, $week) {
 }
 
 function is_last_game_of_week($game, $reset = FALSE) {
-  static $lastgames = array();  
+  static $lastgames = array();
   $cachekey = $game->wid;
   if (empty($lastgames[$cachekey])) {
     $sql = "SELECT gid from {pickem_games} where wid = ". $game->wid ." order by gametime desc, gid";
@@ -225,10 +225,10 @@ function get_users($league=NULL, $not_in_league=0) {
   else {
     if ( $not_in_league == 0 ) {
       //drupal_set_message("All users IN league " . $league->lid);
-      $query = "SELECT u.* from {users} u inner join {pickem_users} pu on pu.uid=u.uid where u.uid<>0 and pu.lid=%d order by name";
+      $query = "SELECT u.* from {users} u inner join {pickem_users} pu on pu.uid=u.uid where u.uid<>0 and u.status<>0 and pu.lid=%d order by name";
     }
     else {
-      $query = "SELECT * from {users} where uid not in (select uid from {pickem_users} where lid=%d) and uid<>0 order by name";
+      $query = "SELECT * from {users} where uid not in (select uid from {pickem_users} where lid=%d) and uid<>0 and u.status<>0 order by name";
     }
     $result = db_query($query, $league->lid);
   }
@@ -531,7 +531,6 @@ function set_pick($user_id, $league, $pick) {
 function get_user_totals($league=NULL, $week_id=0, $reset = FALSE) {
   static $cache_totals;
   $cache_key = 'pickem_get_user_totals_'. $league->lid .'_'. $week_id;
-$reset=TRUE;
   if (!isset($cache_totals[$cache_key]) || $reset) {
     if (!$reset && ($cache = cache_get($cache_key)) && !empty($cache->data)) {
       $totals = $cache->data;
@@ -563,7 +562,10 @@ $reset=TRUE;
       }
 
       while ($row = db_fetch_object($result)) {
-        //print_r($row);
+        // If user is not in list, skip them.
+        if (!isset($totals[$row->uid])) {
+          continue;
+        }
 
         if (!isset ($totals[$row->uid]['weeks'][$row->wid])) {
           $totals[$row->uid]['weeks'][$row->wid]['total'] = 0;
@@ -632,7 +634,7 @@ $reset=TRUE;
               isset($row->h_score) ?
                 $totals[$row->uid]['weeks'][$row->wid]['last_game_completed'] = TRUE :
                 $totals[$row->uid]['weeks'][$row->wid]['last_game_completed'] = FALSE;
-                
+
             }
           }
 
@@ -643,7 +645,7 @@ $reset=TRUE;
               $totals[$row->uid]['weeks'][$row->wid]['total'] += 1;
               $totals[$row->uid]['total'] += 1;
             }
-  
+
             // exact match score
             if ($row->h_score == $row->pick_h_score && $row->v_score == $row->pick_v_score) {
               $totals[$row->uid]['weeks'][$row->wid]['games'][$row->gid] += 2;
@@ -700,7 +702,7 @@ $reset=TRUE;
           }
         }
       }
-      
+
       // total current ranking
       uasort($totals, "sort_totals");
       $ordinal = 0;
