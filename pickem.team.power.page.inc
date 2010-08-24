@@ -16,7 +16,7 @@ function team_power_page($league) {
 
   $o = '<div class="pickem">'. theme('team_power', $league) .'</div>';
 
-  print theme('page', $o);
+  return theme('team_power', $league);
 }
 
 function theme_team_power($league) {

@@ -16,7 +16,7 @@ function team_stats_page($league) {
 
   $o = '<div class="pickem">'. theme('team_stats', $league) .'</div>';
 
-  return theme('team_stats', $o);
+  return theme('team_stats', $league);
 }
 
 
@@ -129,4 +129,52 @@ function theme_team_stats($league) {
   $o = theme('table', $header, $rows, array('style' => '100%;') );
 
   return $o;
+}
+
+
+// bunch of sort routines for team_stats
+// should really simplify this
+function sort_team_stats_pct_desc($a, $b) {
+  if ($a->win_percent > $b->win_percent) {
+    return -1;
+  }
+  elseif ($a->win_percent < $b->win_percent) {
+    return 1;
+  }
+  else {
+   return 0;
+  }
+}
+function sort_team_stats_pct_asc($a, $b) {
+  if ($a->win_percent < $b->win_percent) {
+    return -1;
+  }
+  elseif ($a->win_percent > $b->win_percent) {
+    return 1;
+  }
+  else {
+   return 0;
+  }
+}
+function sort_team_stats_team_desc($a, $b) {
+  if ($a->long_name > $b->long_name) {
+    return -1;
+  }
+  elseif ($a->long_name < $b->long_name) {
+    return 1;
+  }
+  else {
+   return 0;
+  }
+}
+function sort_team_stats_team_asc($a, $b) {
+  if ($a->long_name < $b->long_name) {
+    return -1;
+  }
+  elseif ($a->long_name > $b->long_name) {
+    return 1;
+  }
+  else {
+   return 0;
+  }
 }
