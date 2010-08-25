@@ -1077,36 +1077,9 @@ function league_switcher($leagues = NULL) {
 }
 
 
-function league_access($string, $account = NULL) {
-  drupal_set_message('league_access');
-
-  global $user;
-
-  if (is_null($account)) {
-    $account = $user;
-  }
-
-  // Need play pickem first
-  if ( user_access('play pickem', $account) == FALSE ) {
-    return FALSE;
-  }
-
-  if ( $string == 'league access' ) {
-    $leagues = get_my_leagues($account);
-    foreach ($leagues as $l) {
-      if ( arg(1) == $l->lid ) {
-        return TRUE;
-      }
-    }
-  }
-  return FALSE;
-}
-
-
 /**
  * Good General Use Forms
  */
-
 function league_select_form($form_state=NULL) {
   $options = array();
   $leagues = get_leagues();
