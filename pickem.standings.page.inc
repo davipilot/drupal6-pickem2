@@ -45,28 +45,28 @@ function theme_standings($league) {
   }
   $output .= "</tr>";
 
-  foreach ($totals as $uid => $u_object) {
+  foreach ($totals as $uid => $tot) {
     $class = $flip[$class];
     $output .= '<tr class="'. $class .'">';
-    $output .= '<td class="users">'. $u_object['ranking'] .'.&nbsp;&nbsp;'. theme('username', $u_object['user_obj']) .'</td>';
+    $output .= '<td class="users">'. $tot['ranking'] .'.&nbsp;&nbsp;'. theme('username', $tot['user_obj']) .'</td>';
 
-    if ($u_object['pts_back'] == 0) {
-      $output .= '<td class="totals">'. $u_object['total'] .'</td><td class="gamesback">&nbsp;</td>';
-      $high = $u_object['total'];
+    if ($tot['pts_back'] == 0) {
+      $output .= '<td class="totals">'. $tot['total'] .'</td><td class="gamesback">&nbsp;</td>';
+      $high = $tot['total'];
     }
     else {
-      $output .= '<td class="totals">'. $u_object['total'] .'</td><td class="gamesback">+'. $u_object['pts_back'] .'</td>';
+      $output .= '<td class="totals">'. $tot['total'] .'</td><td class="gamesback">+'. $tot['pts_back'] .'</td>';
     }
 
     foreach ($weeks as $wid => $week) {
-      if ($u_object['weeks'][$wid]['total'] == $week_totals[$wid]["min"] && $week_totals[$wid]["min"] != $week_totals[$wid]["max"]) {
-        $output .= '<td class="weekly weekly-low">'. $u_object['weeks'][$wid]['total'] .'</td>';
+      if ($tot['weeks'][$wid]['total'] == $week_totals[$wid]["min"] && $week_totals[$wid]["min"] != $week_totals[$wid]["max"]) {
+        $output .= '<td class="weekly weekly-low">'. $tot['weeks'][$wid]['total'] .'</td>';
       }
-      elseif ($u_object['weeks'][$wid]['total'] == $week_totals[$wid]["max"] && $week_totals[$wid]["min"] != $week_totals[$wid]["max"]) {
-        $output .= '<td class="weekly weekly-high">'. $u_object['weeks'][$wid]['total'] .'</td>';
+      elseif ($tot['weeks'][$wid]['total'] == $week_totals[$wid]["max"] && $week_totals[$wid]["min"] != $week_totals[$wid]["max"]) {
+        $output .= '<td class="weekly weekly-high">'. $tot['weeks'][$wid]['total'] .'</td>';
       }
       else {
-        $output .= '<td class="weekly">'. $u_object['weeks'][$wid]['total'] .'</td>';
+        $output .= '<td class="weekly">'. $tot['weeks'][$wid]['total'] .'</td>';
       }
     }
     $output .= "</tr>";

@@ -803,17 +803,17 @@ function get_totals_by_week($league) {
     if ( $week->week_past==1 ) {
       $max = 0;
       $min = 100;
-      $tot = 0;
+      $week_total = 0;
       $count = 0;
-      foreach ($totals as $uid => $u) {
-        if ( isset($u['weeks'][$wid]['total']) ) {
-          if ($u['weeks'][$wid]['total'] > $max) {
-            $max = $u['weeks'][$wid]['total'];
+      foreach ($totals as $uid => $tot) {
+        if ( isset($tot['weeks'][$wid]['total']) ) {
+          if ($tot['weeks'][$wid]['total'] > $max) {
+            $max = $tot['weeks'][$wid]['total'];
           }
-          if ( $u['weeks'][$wid]['total'] < $min ) {
-            $min = $u['weeks'][$wid]['total'];
+          if ( $tot['weeks'][$wid]['total'] < $min ) {
+            $min = $tot['weeks'][$wid]['total'];
           }
-          $tot += $u['weeks'][$wid]['total'];
+          $week_total += $tot['weeks'][$wid]['total'];
           $count += 1;
         }
       }
@@ -823,7 +823,7 @@ function get_totals_by_week($league) {
         "max" => $max,
         "min" => $min,
         "count" => $count,
-        "total" => $tot,
+        "total" => $week_total,
       );
     }
   }

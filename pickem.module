@@ -978,9 +978,9 @@ function page_weeklypicks($league, $week) {
 
   $totals = get_user_totals($league, $week->wid); //sorted by weekly scores
   $picks = get_picks( array('league_id' => $league->lid, 'week_id' => $week->wid) );
-  foreach ($totals as $uid => $user_totals) {
+  foreach ($totals as $uid => $tot) {
     $class=$flip[$class];
-    $output .= '<tr class="'. $class .'"><td class="users">'. $user_totals['ranking'] .'. '. theme('username', $user_totals['user_obj']) .'</td><td>'. $user_totals['total'] .'</td>';
+    $output .= '<tr class="'. $class .'"><td class="users">'. $tot['ranking'] .'. '. theme('username', $tot['user_obj']) .'</td><td>'. $tot['total'] .'</td>';
     foreach ($gids as $gid => $winnerid) {
 
       if ($league->scoring_type == PICKEM_TYPE_WIN_LOSS || $league->scoring_type == PICKEM_TYPE_SPREAD) {
@@ -1010,7 +1010,7 @@ function page_weeklypicks($league, $week) {
         }
       }
       else if ($league->scoring_type == PICKEM_TYPE_SCORE_DIFF || $league->scoring_type == PICKEM_TYPE_WIN_LOSS_TIEBREAK) {
-        $output .= '<td>'. $user_totals['weeks'][$week->wid]['games'][$gid] .'</td>';
+        $output .= '<td>'. $tot['weeks'][$week->wid]['games'][$gid] .'</td>';
       }
 
 
@@ -1056,9 +1056,9 @@ function theme_leaderboard_block($league) {
   $content = '<table class="pickem-league-leaders">';
   $how_many = 10;
   $i = 0;
-  foreach ($totals as $uid => $totalinfo) {
-    $u_name = str_replace(' ', '&nbsp;', $totalinfo['name']);
-    $content .= '<tr><td class="score">'. $totalinfo['total'] .'</td><td class="user">' . theme('username', $totalinfo['user_obj']) . '</td></tr>';
+  foreach ($totals as $uid => $tot) {
+    $u_name = str_replace(' ', '&nbsp;', $tot['name']);
+    $content .= '<tr><td class="score">'. $tot['total'] .'</td><td class="user">' . theme('username', $tot['user_obj']) . '</td></tr>';
     $i++;
     if ( $i >= $how_many ) {
       break;
