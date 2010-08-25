@@ -96,7 +96,7 @@ function chart_hi_low_page($league, $account = NULL) {
     $o .= '<span class="user-list-horiz">';
     // Hack required because of non-standard link formatting below.
     if ( isset($u->realname) ) {
-      $name = $u->realname;
+      $name = check_plain($u->realname);
     }
     else {
       $name = $u->name;
