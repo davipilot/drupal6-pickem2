@@ -8,7 +8,7 @@
 
 
 function chart_hi_low_page($league, $account = NULL) {
-  drupal_set_title('Charts');
+  drupal_set_title('');
 
   $breadcrumb = drupal_get_breadcrumb();
   $breadcrumb[] = l($league->name, 'pickem/'. $league->lid);
@@ -16,13 +16,7 @@ function chart_hi_low_page($league, $account = NULL) {
 
   $g = new open_flash_chart_api();
 
-  if ( $account === NULL ) {
-    $g->set_title( t('Weekly Points High/Low Chart'), '{font-size: 20px;}' );
-  }
-  else {
-    $g->set_title( $account->name .': '. t('Weekly Points High/Low Chart'), '{font-size: 20px;}' );
-  }
-
+  $g->set_title( t('Weekly Points High/Low Chart'), '{font-size: 20px;}' );
   $g->set_width('100%');
   $g->set_height('480');
 
@@ -100,13 +94,20 @@ function chart_hi_low_page($league, $account = NULL) {
   $users = get_users($league, 0, variable_get('pickem_full_user_load', 0));
   foreach ($users as $u) {
     $o .= '<span class="user-list-horiz">';
-    $name = $u->name;
+    // Hack required because of non-standard link formatting below.
+    if ( isset($u->realname) ) {
+      $name = $u->realname;
+    }
+    else {
+      $name = $u->name;
+    }
     $name = str_replace(' ', '&nbsp;', $name);
+    // Currently viewed chart account doesn't get a link.
     if ( $account->uid == $u->uid ) {
       $o .= $name;
     }
     else {
-      // Problem here for RealName.  This is not a normal /user/uid link.
+      // Can't use theme('username',$) here.  This is not a normal /user/uid link.
       $o .= l($name, 'pickem/'. $league->lid .'/chart1/'. $u->uid, array('html' => TRUE));
     }
     $o .= '</span>';
@@ -118,7 +119,7 @@ function chart_hi_low_page($league, $account = NULL) {
 
 
 function chart_team_pickability_page($league, $sort_by='win_lose') {
-  drupal_set_title('Charts');
+  drupal_set_title('');
 
   $breadcrumb = drupal_get_breadcrumb();
   $breadcrumb[] = l($league->name, 'pickem/'. $league->lid);
@@ -175,7 +176,7 @@ function chart_team_pickability_page($league, $sort_by='win_lose') {
 
 
 function chart_team_scoring_page($league, $team_id) {
-  drupal_set_title('Charts');
+  drupal_set_title('');
 
   $breadcrumb = drupal_get_breadcrumb();
   $breadcrumb[] = l($league->name, 'pickem/'. $league->lid);
