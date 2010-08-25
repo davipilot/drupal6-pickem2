@@ -97,7 +97,7 @@ function chart_hi_low_page($league, $account = NULL) {
 
   $o = '<div class="pickem">'. $g->render('js');
 
-  $users = get_users($league);
+  $users = get_users($league, 0, variable_get('pickem_full_user_load', 0));
   foreach ($users as $u) {
     $o .= '<span class="user-list-horiz">';
     $name = $u->name;
@@ -106,6 +106,7 @@ function chart_hi_low_page($league, $account = NULL) {
       $o .= $name;
     }
     else {
+      // Problem here for RealName.  This is not a normal /user/uid link.
       $o .= l($name, 'pickem/'. $league->lid .'/chart1/'. $u->uid, array('html' => TRUE));
     }
     $o .= '</span>';
