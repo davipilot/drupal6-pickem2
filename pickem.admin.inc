@@ -71,7 +71,7 @@ function pickem_settings(&$form_state=NULL) {
     '#type' => 'checkbox',
     '#title' => t('Enable'),
     '#return_value' => 1,
-  
+
     '#default_value' => variable_get('pickem_auto_signup_enable', 0),
     '#description' => t("This will automatically assign new users to the selected league."),
   );
@@ -88,6 +88,14 @@ function pickem_settings(&$form_state=NULL) {
     '#options' => $leagues,
     '#title' => t('League'),
     '#description' => t("Which league should users be signed up for?"),
+  );
+
+  $form['pickem_full_user_load'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Fully themeable user links'),
+    '#return_value' => 1,
+    '#default_value' => variable_get('pickem_full_user_load', 0),
+    '#description' => t("This enables compatibility with user name formatters like the RealName module.  With large user lists (>100) it may cause slower performance."),
   );
 
   // Check to see if the jstimer is configured correctly.
@@ -988,7 +996,7 @@ function pickem_league_edit(&$form_state, $type, $league) {
       t('Pick the winner: a simple you pick the winner game.') . '<br/>' .
       t('Pick the winner with point spread: you pick the winner based on point spread.') . '<br/>' .
       t('Score differential: you pick the score of the game and get points for correct score differential and winner.') . '<br/>' .
-      t('Pick the winner with tie-breaker: a simple you pick the winner game, but you pick the score for the last game to break ties.') 
+      t('Pick the winner with tie-breaker: a simple you pick the winner game, but you pick the score for the last game to break ties.')
   );
   $form['league']['partial_league'] = array(
     '#type' => 'checkbox',
@@ -1087,11 +1095,11 @@ function pickem_users_list($form_state=NULL, $league) {
     '#theme' => 'pickem_users_list',
     '#tree' => TRUE,
   );
-  $users = get_users($league);
+  $users = get_users($league, 0, variable_get('pickem_full_user_load', 0));
   foreach ( $users as $user ) {
     $form['users'][] = array(
       'user_link' => array(
-        '#value' => l($user->name, 'user/'. $user->uid)
+        '#value' => theme('username', $user->user_obj)
       ),
       'remove_link' => array(
         '#value' => l('Remove', 'admin/pickem/users/'. $league->lid .'/remove/'. $user->uid)

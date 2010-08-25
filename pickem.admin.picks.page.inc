@@ -111,7 +111,7 @@ function admin_picks_week_form(&$form_state=NULL, $league, $week, $account) {
     );
 
     if ($league->scoring_type == PICKEM_TYPE_WIN_LOSS || $league->scoring_type == PICKEM_TYPE_SPREAD || ($league->scoring_type == PICKEM_TYPE_WIN_LOSS_TIEBREAK && $count < $last)) {
-      
+
 
       if ($league->scoring_type == PICKEM_TYPE_WIN_LOSS || $league->scoring_type == PICKEM_TYPE_WIN_LOSS_TIEBREAK) {
         $options =  array(

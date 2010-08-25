@@ -48,7 +48,7 @@ function theme_standings($league) {
   foreach ($totals as $uid => $u_object) {
     $class = $flip[$class];
     $output .= '<tr class="'. $class .'">';
-    $output .= '<td class="users">'. $u_object['ranking'] .'.&nbsp;&nbsp;'. l($u_object['name'], 'user/'. $uid) .'</td>';
+    $output .= '<td class="users">'. $u_object['ranking'] .'.&nbsp;&nbsp;'. theme('username', $u_object['user_obj']) .'</td>';
 
     if ($u_object['pts_back'] == 0) {
       $output .= '<td class="totals">'. $u_object['total'] .'</td><td class="gamesback">&nbsp;</td>';
@@ -87,7 +87,7 @@ function theme_standings($league) {
     foreach ($totals as $uid => $u) {
       $class = $flip[$class];
       $output .= '<tr class="'. $class .'">';
-      $output .= '<td class="users">'. $u['ranking'] .'.&nbsp;&nbsp;'. l($u['name'], 'user/'. $uid) .'</td>';
+      $output .= '<td class="users">'. $u['ranking'] .'.&nbsp;&nbsp;'. theme('username', $u['user_obj']) .'</td>';
 
       if ($u['pts_back'] == 0) {
         $output .= '<td class="totals">'. $u['total'] .'</td><td class="gamesback">&nbsp;</td>';

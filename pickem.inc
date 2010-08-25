@@ -216,7 +216,7 @@ function get_weeks( $filter = array('league_id' => NULL, 'gameset_id' => NULL, '
 }
 
 
-function get_users($league=NULL, $not_in_league=0) {
+function get_users($league=NULL, $not_in_league=0, $full_user_load=0) {
 
   if ( !isset($league) ) {
     $query = "SELECT u.* from {users} u where u.uid<>0 order by name";
@@ -228,13 +228,23 @@ function get_users($league=NULL, $not_in_league=0) {
       $query = "SELECT u.* from {users} u inner join {pickem_users} pu on pu.uid=u.uid where u.uid<>0 and u.status<>0 and pu.lid=%d order by name";
     }
     else {
-      $query = "SELECT * from {users} where uid not in (select uid from {pickem_users} where lid=%d) and uid<>0 and u.status<>0 order by name";
+      $query = "SELECT * from {users} where uid not in (select uid from {pickem_users} where lid=%d) and uid<>0 and status<>0 order by name";
     }
     $result = db_query($query, $league->lid);
   }
   $users = array();
   while ($row = db_fetch_object($result)) {
     $users[$row->uid] = $row;
+    if ( $full_user_load == 1 ) {
+    	// Do a full user_load, hooks and all, for RealName module compatibility.
+      $users[$row->uid]->user_obj = user_load($row->uid);
+    }
+    else {
+      // Create a user-like object.  This is more performant on large user lists than a full user_load().
+      $users[$row->uid]->user_obj = new stdClass;
+      $users[$row->uid]->user_obj->name = $row->name;
+      $users[$row->uid]->user_obj->uid = $row->uid;
+    }
   }
   return $users;
 }
@@ -537,9 +547,10 @@ function get_user_totals($league=NULL, $week_id=0, $reset = FALSE) {
     }
     else {
       $totals = array();
-      $users = get_users($league);
+      $users = get_users($league, 0, variable_get('pickem_full_user_load', 0));
       foreach ($users as $u) {
         $totals[$u->uid] = array(
+        	'user_obj' => $u,
           'total' => 0,
           'name' => $u->name,
           'best_week_id' => -1,
