@@ -1128,6 +1128,9 @@ function pickem_users_add_submit($form, &$form_state) {
 
   db_query("insert into {pickem_users} (lid,uid) values (%d,%d)", $league->lid, $user_id);
 
+  // Clear the pickem_* caches so user will show up on various screens.
+  cache_clear_all('pickem_', 'cache', TRUE);
+
   $t_string = t('"%name" was added to league "%league_name".', array('%name' => $user->name, '%league_name' => $league->name));
   drupal_set_message($t_string);
   watchdog('pickem', $t_string, NULL, WATCHDOG_NOTICE);
@@ -1145,6 +1148,9 @@ function pickem_users_remove_confirm_submit($form, &$form_state) {
   $user = $form['#user'];
   $league = $form['#league'];
   db_query("delete from {pickem_users} where lid=%d and uid=%d", $league->lid, $user->uid);
+
+  // Clear the pickem_* caches so user won't show up on various screens.
+  cache_clear_all('pickem_', 'cache', TRUE);
 
   $t_string = t('"%name" was removed from league "%league_name".', array('%name' => $user->name, '%league_name' => $league->name));
   drupal_set_message($t_string);
