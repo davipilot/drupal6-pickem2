@@ -208,16 +208,8 @@ function pickem_gameset_edit(&$form_state, $type, $gameset) {
 
   return $form;
 }
-/**
- * Validate form values for a league being added or edited.
- */
-function pickem_gameset_edit_validate($form, &$form_state) {
-  $gameset = &$form_state['values'];
-  // not used since it is required, keep this for a while.
-  if (empty($gameset['gs_name'])) {
-    form_set_error('gs_name', t('You must at least choose a name.'));
-  }
-}
+
+
 /**
  * Submit form values for a league being added or edited.
  */
@@ -406,15 +398,8 @@ function pickem_team_edit(&$form_state, $type, $gameset, $team) {
 
   return $form;
 }
-/**
- * Validate form values for a menu link being added or edited.
- */
-function pickem_team_edit_validate($form, &$form_state) {
-  $team = &$form_state['values'];
-  //if ($team['tm_name'] == 'lions') {
-  //  form_set_error('tm_name', t("Sorry for you.", array('@tm_name' => $team['tm_name'])));
-  //}
-}
+
+
 function pickem_team_edit_submit($form, &$form_state) {
   $team = $form_state['values'];
 
@@ -607,9 +592,8 @@ function pickem_week_edit(&$form_state, $type, $gameset, $week) {
 
   return $form;
 }
-function pickem_week_edit_validate($form, &$form_state) {
-  $week = &$form_state['values'];
-}
+
+
 function pickem_week_edit_submit($form, &$form_state) {
   $week = $form_state['values'];
 
@@ -792,6 +776,8 @@ function pickem_game_edit(&$form_state, $type, $week, $game) {
 
   return $form;
 }
+
+
 /**
  * Validate form values for a game being added or edited.
  */
@@ -1010,13 +996,8 @@ function pickem_league_edit(&$form_state, $type, $league) {
 
   return $form;
 }
-function pickem_league_edit_validate($form, &$form_state) {
-  $league = &$form_state['values'];
-  // not used since it is required, keep this for a while.
-  if (empty($league['name'])) {
-    form_set_error('name', t('You must at least choose a name.'));
-  }
-}
+
+
 function pickem_league_edit_submit($form, &$form_state) {
   $league = $form_state['values'];
 
@@ -1115,12 +1096,8 @@ function pickem_users_add(&$form_state, $league) {
   unset($form['op']);  // may change this later
   return $form;
 }
-function pickem_users_add_validate($form, &$form_state) {
-  //$user = &$form_state['values'];
-  //if ($team['tm_name'] == 'lions') {
-  //  form_set_error('tm_name', t("Sorry for you.", array('@tm_name' => $team['tm_name'])));
-  //}
-}
+
+
 function pickem_users_add_submit($form, &$form_state) {
   $league = $form['#league'];
   $user_id = $form_state['values']['user_select'];
@@ -1300,18 +1277,6 @@ function email_league_form() {
   }
 
   return $form;
-}
-
-
-
-/**
- * Validate the site-wide contact page form submission.
- */
-function email_league_form_validate($form, &$form_state) {
-  // required fields are already checked.
-  //if (!$form_state['values']['league_id']) {
-  //  form_set_error('league_id', t('You must select at least one league.'));
-  //}
 }
 
 
