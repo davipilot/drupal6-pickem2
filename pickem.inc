@@ -17,6 +17,11 @@
  *   cannot be loaded.
  */
 function league_load($league_id) {
+
+  // Clear the pickem_* caches in case you change league scoring type.
+  cache_clear_all('pickem_', 'cache', TRUE);
+
+  global $_PICKEM_SCORING_ENGINES;
   $valid = TRUE;
   $league = FALSE;
   if ( is_numeric($league_id) ) {
@@ -24,6 +29,7 @@ function league_load($league_id) {
     if ( count($ret) > 0 ) {
       $tmp = each($ret);
       $league = $tmp['value'];
+      $league->scoring_engine = $_PICKEM_SCORING_ENGINES[$league->scoring_type];
     }
     else {
       $valid = FALSE;
@@ -236,7 +242,7 @@ function get_users($league=NULL, $not_in_league=0, $full_user_load=0) {
   while ($row = db_fetch_object($result)) {
     $users[$row->uid] = $row;
     if ( $full_user_load == 1 ) {
-    	// Do a full user_load, hooks and all, for RealName module compatibility.
+      // Do a full user_load, hooks and all, for RealName module compatibility.
       $users[$row->uid]->user_obj = user_load($row->uid);
     }
     else {
@@ -456,8 +462,10 @@ function get_picks($filter = array('league_id' => NULL, 'user_id' => NULL, 'week
   $picks = array();
   while ($row = db_fetch_object($result)) {
     $picks[$row->gid][$row->uid] = $row;
-    if ($row->pick_v_score + $row->pick_h_score == 1) {
-      $picks[$row->gid][$row->uid]->winnerpick_id = $row->pick_h_score == 1 ? $row->h_id : $row->v_id;
+
+    // If the user did not pick the winner, but did pick the score, use the score values.
+    if ( !isset($picks[$row->gid][$row->uid]->winnerpick_id) && isset($row->pick_v_score) && isset($row->pick_h_score) ) {
+      $picks[$row->gid][$row->uid]->winnerpick_id = $row->pick_h_score > $row->pick_v_score ? $row->h_id : $row->v_id;
     }
   }
 
@@ -477,8 +485,8 @@ function set_pick($user_id, $league, $pick) {
     }
   }
 
-  // Do the insert/update for each league type.
-  if ($league->scoring_type == PICKEM_TYPE_WIN_LOSS || $league->scoring_type == PICKEM_TYPE_SPREAD) {
+  // Pick the winner.
+  if (isset($pick['pick'])) {
     if ($type == "insert") {
       drupal_set_message("insert");
       $query = "insert into {pickem_picks} (gid,uid,lid,winnerpick_id,picktime) values (%d,%d,%d,%d,'%s')";
@@ -495,17 +503,9 @@ function set_pick($user_id, $league, $pick) {
       }
     }
   }
-  else if ($league->scoring_type == PICKEM_TYPE_SCORE_DIFF || $league->scoring_type == PICKEM_TYPE_WIN_LOSS_TIEBREAK) {
-    if ($pick['pick'] > 0) {
-      foreach (array('v', 'h') as $hv) {
-        if ($pick['pick'] == $pick[$hv .'_id']) {
-          $pick['pick_'. $hv .'_score'] = 1;
-        }
-        else {
-          $pick['pick_'. $hv .'_score'] = 0;
-        }
-      }
-    }
+
+  // Pick the score.
+  else {
     if ($type == "insert") {
       $query = "insert into {pickem_picks} (gid,uid,lid,pick_v_score,pick_h_score,picktime) values (%d,%d,%d,%d,%d,'%s')";
       $result = db_query($query, $pick['gid'], $user_id, $league->lid, $pick['pick_v_score'], $pick['pick_h_score'], date('Y-m-d H:i:s', time()));
@@ -514,6 +514,7 @@ function set_pick($user_id, $league, $pick) {
       }
     }
     elseif ($type == "update") {
+      // NOTE: using db_query with replacements, you can't set the score to NULL from the GUI.  A blank is cast to 0.
       $query = "update {pickem_picks} set pick_v_score=%d, pick_h_score=%d, picktime='%s' where gid=%d and uid=%d and lid=%d";
       $result = db_query($query, $pick['pick_v_score'], $pick['pick_h_score'], date('Y-m-d H:i:s', time()), $pick['gid'], $user_id, $league->lid);
       if ( $result == FALSE ) {
@@ -546,11 +547,20 @@ function get_user_totals($league=NULL, $week_id=0, $reset = FALSE) {
       $totals = $cache->data;
     }
     else {
+
+      // Load the scoring engine include file and test for the get_user_totals_* function.
+      require_once $league->scoring_engine['include'];
+      if (!isset($league->scoring_engine) || !function_exists('get_user_totals_'. $league->scoring_engine['type'])) {
+        drupal_set_message('No scoring engine.');
+        return;
+      }
+
+      // Initialized $totals array with current league users.
       $totals = array();
       $users = get_users($league, 0, variable_get('pickem_full_user_load', 0));
       foreach ($users as $u) {
         $totals[$u->uid] = array(
-        	'user_obj' => $u,
+          'user_obj' => $u,
           'total' => 0,
           'name' => $u->name,
           'best_week_id' => -1,
@@ -582,97 +592,12 @@ function get_user_totals($league=NULL, $week_id=0, $reset = FALSE) {
           $totals[$row->uid]['weeks'][$row->wid]['total'] = 0;
         }
 
-        // pick the winner.
-        if ( $league->scoring_type == PICKEM_TYPE_WIN_LOSS ) {
-
-          if ($row->h_score > $row->v_score && $row->winnerpick_id == $row->h_id) {
-            $totals[$row->uid]['weeks'][$row->wid]['games'][$row->gid] = $row->wk_points;
-            $totals[$row->uid]['weeks'][$row->wid]['total'] += $row->wk_points;
-            $totals[$row->uid]['total'] += $row->wk_points;
-          }
-          elseif ($row->v_score > $row->h_score && $row->winnerpick_id == $row->v_id) {
-            $totals[$row->uid]['weeks'][$row->wid]['games'][$row->gid] = $row->wk_points;
-            $totals[$row->uid]['weeks'][$row->wid]['total'] += $row->wk_points;
-            $totals[$row->uid]['total'] += $row->wk_points;
-          }
-          elseif ($row->v_score == $row->h_score && $row->h_score <> "") {
-            $totals[$row->uid]['weeks'][$row->wid]['games'][$row->gid] = $row->wk_points;
-            $totals[$row->uid]['weeks'][$row->wid]['total'] += $row->wk_points;
-            $totals[$row->uid]['total'] += $row->wk_points;
-          }
-        }
-
-        // pick the winner with spread.
-        elseif ( $league->scoring_type == PICKEM_TYPE_SPREAD ) {
-          // home win
-          if ( ($row->h_score + $row->h_spread) > $row->v_score && $row->winnerpick_id == $row->h_id) {
-            $totals[$row->uid]['weeks'][$row->wid]['games'][$row->gid] = $row->wk_points;
-            $totals[$row->uid]['weeks'][$row->wid]['total'] += $row->wk_points;
-            $totals[$row->uid]['total'] += $row->wk_points;
-          }
-          // visitor win
-          elseif ( ($row->v_score + $row->v_spread) > $row->h_score && $row->winnerpick_id == $row->v_id) {
-            $totals[$row->uid]['weeks'][$row->wid]['games'][$row->gid] = $row->wk_points;
-            $totals[$row->uid]['weeks'][$row->wid]['total'] += $row->wk_points;
-            $totals[$row->uid]['total'] += $row->wk_points;
-          }
-          // tie.
-          elseif ( ($row->v_score + $row->v_spread) == $row->h_score && $row->h_score <> "") {
-            $totals[$row->uid]['weeks'][$row->wid]['games'][$row->gid] = $row->wk_points;
-            $totals[$row->uid]['weeks'][$row->wid]['total'] += $row->wk_points;
-            $totals[$row->uid]['total'] += $row->wk_points;
-          }
-        }
-
-        // Scoring differential: 1 for winner, 4 for score diff and 6 for both
-        elseif ( $league->scoring_type == PICKEM_TYPE_SCORE_DIFF || $league->scoring_type == PICKEM_TYPE_WIN_LOSS_TIEBREAK) {
-          // picked the correct winner or picked the tie.
-          if ($row->h_score > $row->v_score && $row->pick_h_score > $row->pick_v_score ||
-              $row->v_score > $row->h_score && $row->pick_v_score > $row->pick_h_score ||
-              $row->v_score == $row->h_score && $row->pick_v_score == $row->pick_h_score) {
-            $totals[$row->uid]['weeks'][$row->wid]['games'][$row->gid] = 1;
-            $totals[$row->uid]['weeks'][$row->wid]['total'] += 1;
-            $totals[$row->uid]['total'] += 1;
-          }
-          if ($league->scoring_type == PICKEM_TYPE_WIN_LOSS_TIEBREAK) {
-            $game = new stdClass;
-            $game->gid = $row->gid;
-            $game->wid = $row->wid;
-            if (is_last_game_of_week($game)) {
-              // @todo: should we make it so that you have to pick the win/loss correct to be eligible to earn the bonus point?
-              $totals[$row->uid]['weeks'][$row->wid]['last_game_total_differential'] = abs(($row->pick_v_score + $row->pick_h_score) - ($row->h_score + $row->v_score));
-              $totals[$row->uid]['weeks'][$row->wid]['last_gid'] = $row->gid;
-              isset($row->h_score) ?
-                $totals[$row->uid]['weeks'][$row->wid]['last_game_completed'] = TRUE :
-                $totals[$row->uid]['weeks'][$row->wid]['last_game_completed'] = FALSE;
-
-            }
-          }
-
-          if ($league->scoring_type == PICKEM_TYPE_SCORE_DIFF) {
-            // picked the correct goal differential
-            if ($row->h_score - $row->v_score == $row->pick_h_score - $row->pick_v_score) {
-              $totals[$row->uid]['weeks'][$row->wid]['games'][$row->gid] += 1;
-              $totals[$row->uid]['weeks'][$row->wid]['total'] += 1;
-              $totals[$row->uid]['total'] += 1;
-            }
-
-            // exact match score
-            if ($row->h_score == $row->pick_h_score && $row->v_score == $row->pick_v_score) {
-              $totals[$row->uid]['weeks'][$row->wid]['games'][$row->gid] += 2;
-              $totals[$row->uid]['weeks'][$row->wid]['total'] += 2;
-              $totals[$row->uid]['total'] += 2;
-            }
-          }
-          if (! isset($totals[$row->uid]['weeks'][$row->wid]['games'][$row->gid])) {
-            $totals[$row->uid]['weeks'][$row->wid]['games'][$row->gid] = 0;
-          }
-
-        }
+        // Calculate weekly totals using the appropriate scoring engine.
+        call_user_func('get_user_totals_'. $league->scoring_engine['type'], &$totals, $row);
 
       }
 
-      // best and worst weeks
+      // Calculate user's best and worst weeks.
       $weekwinners = array();
       foreach ($totals as $uid => $u_object) {
         foreach ($u_object['weeks'] as $wid => $week_item) {
@@ -686,35 +611,10 @@ function get_user_totals($league=NULL, $week_id=0, $reset = FALSE) {
           if ( $week_item['total'] < $totals[$uid]['weeks'][$totals[$uid]['worst_week_id']]['total'] ) {
             $totals[$uid]['worst_week_id'] = $wid;
           }
-          if ($league->scoring_type == PICKEM_TYPE_WIN_LOSS_TIEBREAK && $totals[$uid]['weeks'][$wid]['last_game_completed'] ) {
-            $abs = $totals[$uid]['weeks'][$wid]['last_game_total_differential'];
-            if (! isset($weekwinners[$wid])) {
-              $weekwinners[$wid]['uids'][] = $uid;
-              $weekwinners[$wid]['abs'] = $abs;
-            }
-            elseif ($abs < $weekwinners[$wid]['abs']) {
-              $weekwinners[$wid]['uids'] = array();
-              $weekwinners[$wid]['uids'][] = $uid;
-              $weekwinners[$wid]['abs'] = $abs;
-            }
-            elseif ($abs = $weekwinners[$wid]['abs']) {
-              $weekwinners[$wid]['uids'][] = $uid;
-            }
-          }
-        }
-      }
-      if ($league->scoring_type == PICKEM_TYPE_WIN_LOSS_TIEBREAK) {
-        foreach (array_keys($weekwinners) as $wid) {
-          foreach ($weekwinners[$wid]['uids'] as $uid) {
-            $gid = $totals[$uid]['weeks'][$wid]['last_gid'];
-            $totals[$uid]['weeks'][$wid]['games'][$gid] += 1;
-            $totals[$uid]['weeks'][$wid]['total'] += 1;
-            $totals[$uid]['total'] += 1;
-          }
         }
       }
 
-      // total current ranking
+      // Calculate total ordinal ranking.
       uasort($totals, "sort_totals");
       $ordinal = 0;
       $last_ordinal = 0;
@@ -1094,4 +994,114 @@ function get_team_stats($league) {
   }
 
   return $team_stats;
+}
+
+
+function build_picks_week_form($form_state=NULL, $league, $week, $account) {
+
+  $teams = get_teams(array('gameset_id' => $league->gsid));
+  $games = get_games(array('week_id' => $week->wid));
+  $picks = get_picks(array('league_id' => $league->lid, 'user_id' => $account->uid, 'week_id' => $week->wid));
+
+  $form = array();
+  $form['games'] = array('#tree' => TRUE);
+  $last = count($games);
+  $count = 0;
+  foreach ($games as $gid => $game) {
+
+    $count++;
+    $form['games'][$gid]['v_id'] = array(
+      '#type' => 'hidden',
+      '#value' => $game->v_id
+    );
+    $form['games'][$gid]['h_id'] = array(
+      '#type' => 'hidden',
+      '#value' => $game->h_id
+    );
+
+    // Build-up the team labels.
+    $v_team_label = $teams[$game->v_id]->small_logo_img . $teams[$game->v_id]->short_name;
+    $h_team_label = $teams[$game->h_id]->small_logo_img . $teams[$game->h_id]->short_name;
+    if ( $league->scoring_engine['features']['with_spread'] == 1 ) {
+      $v_team_label .= '&nbsp;&nbsp;' . ($game->v_spread>0?'+'.$game->v_spread:$game->v_spread);
+      $h_team_label .= '&nbsp;&nbsp;' . ($game->h_spread>0?'+'.$game->h_spread:$game->h_spread);
+    }
+
+
+    // Add the pick score boxes.
+    if ( $league->scoring_engine['features']['pick_score'] == 1 ||
+      ($league->scoring_engine['features']['with_last_weekly_score'] == 1 && $count == $last) ) {
+      $form['games'][$gid]['pick_v_score'] = array(
+        '#type' => 'textfield',
+        '#size' => 4,
+        '#default_value' => $picks[$gid][$account->uid]->pick_v_score,
+        '#field_suffix' => $v_team_label,
+        '#prefix' => '<div class="pickem-team-score-diff">'
+      );
+      $form['games'][$gid]['pick_h_score'] = array(
+        '#type' => 'textfield',
+        '#size' => 4,
+        '#default_value' => $picks[$gid][$account->uid]->pick_h_score,
+        '#field_suffix' => $h_team_label,
+        '#suffix' => '</div>'
+      );
+
+      // Disabled the input boxes if the week has past.
+      if ( $week->week_past == 1 ) {
+        $form['games'][$gid]['pick_v_score']['#attributes']['readonly'] = 'readonly';
+        $form['games'][$gid]['pick_v_score']['#attributes']['disabled'] = 'disabled';
+        $form['games'][$gid]['pick_h_score']['#attributes']['readonly'] = 'readonly';
+        $form['games'][$gid]['pick_h_score']['#attributes']['disabled'] = 'disabled';
+      }
+
+    // Add the pick team boxes.
+    } else {
+      $form['games'][$gid]['pick'] = array(
+        '#type' => 'radios',
+        '#default_value' => $picks[$gid][$account->uid]->winnerpick_id,
+        '#attributes' => array('class' => 'pickem-team-radios'),
+        '#options' => array($game->v_id=>$v_team_label, $game->h_id=>$h_team_label)
+      );
+
+      // Disabled the radio boxes if the week has past.
+      if ( $week->week_past == 1 ) {
+        $form['games'][$gid]['pick']['#attributes']['readonly'] = 'readonly';
+        $form['games'][$gid]['pick']['#attributes']['disabled'] = 'disabled';
+      }
+
+    }
+
+    $form['games'][$gid]['gametime'] = array(
+      '#value' => $game->gametime
+    );
+  }
+
+  // If $account is entered in more than one league with the same scoring type,
+  // add a checkbox to apply these picks to related leagues.
+  $leagues = get_my_leagues($league->gsid, $account->uid);
+  $apply_to_leagues = array();
+  foreach ($leagues as $l) {
+    if ($l->scoring_type == $league->scoring_type) {
+      $apply_to_leagues[] = $l->name;
+    }
+  }
+
+  $form['apply_to_all_leagues'] = array(
+    '#type' => 'checkbox',
+    '#access' => ($week->week_past == 0 && count($apply_to_leagues) > 1),
+    '#title' => t('Apply picks to all leagues that use the same game set and scoring system.'),
+    '#description' => implode(', ', $apply_to_leagues),
+    '#default_value' => 0
+  );
+
+
+  // Add the submit button.
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#access' => ($week->week_past == 0),
+    '#value' => t('Save Picks'),
+    '#weight' => 5
+  );
+
+  return $form;
 }

@@ -977,12 +977,8 @@ function pickem_league_edit(&$form_state, $type, $league) {
     '#title'  => t('Scoring Type'),
     '#type' => 'radios',
     '#default_value' => $league->scoring_type,
-    '#options' => array(PICKEM_TYPE_WIN_LOSS => t('Pick the winner'), PICKEM_TYPE_SPREAD => t('Pick the winner with point spread'), PICKEM_TYPE_SCORE_DIFF => t('Score differential'), PICKEM_TYPE_WIN_LOSS_TIEBREAK => t('Pick the winner with tie-breaker')),
-    '#description' =>
-      t('Pick the winner: a simple you pick the winner game.') . '<br/>' .
-      t('Pick the winner with point spread: you pick the winner based on point spread.') . '<br/>' .
-      t('Score differential: you pick the score of the game and get points for correct score differential and winner.') . '<br/>' .
-      t('Pick the winner with tie-breaker: a simple you pick the winner game, but you pick the score for the last game to break ties.')
+    '#options' => get_scoring_type_options(),
+    '#description' => get_scoring_type_descriptions()
   );
   $form['league']['partial_league'] = array(
     '#type' => 'checkbox',
@@ -1000,6 +996,9 @@ function pickem_league_edit(&$form_state, $type, $league) {
 
 function pickem_league_edit_submit($form, &$form_state) {
   $league = $form_state['values'];
+
+  // Clear the pickem_* caches in case you change league scoring type.
+  cache_clear_all('pickem_', 'cache', TRUE);
 
   if ( $league['lid'] == 0 ) {
     $query = "insert into {pickem_leagues} (name, rules_node_id, forum_id, scoring_type, gsid, partial_league) values('%s', %d, %d, %d, %d, %d)";
@@ -1623,4 +1622,26 @@ function export_gameset($gameset) {
   drupal_set_message($t_string);
   watchdog('pickem', $t_string, NULL, WATCHDOG_NOTICE);
   drupal_goto('admin/pickem/gamesets');
+}
+
+
+function get_scoring_type_options() {
+  global $_PICKEM_SCORING_ENGINES;
+
+  $options = array();
+  foreach ( $_PICKEM_SCORING_ENGINES as $type => $engine ) {
+    $options[$type] = $engine['name'];
+  }
+  return $options;
+}
+
+
+function get_scoring_type_descriptions() {
+  global $_PICKEM_SCORING_ENGINES;
+
+  $descriptions = '';
+  foreach ( $_PICKEM_SCORING_ENGINES as $type => $engine ) {
+    $descriptions .= $engine['name'] .': '. $engine['description'] . '<br/>';
+  }
+  return $descriptions;
 }

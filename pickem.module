@@ -6,16 +6,13 @@
  * Enables the sports pickem module.
 */
 
-define('PICKEM_TYPE_WIN_LOSS', 0);
-define('PICKEM_TYPE_SPREAD', 1);
-define('PICKEM_TYPE_SCORE_DIFF', 2);
-define('PICKEM_TYPE_WIN_LOSS_TIEBREAK', 3);
-
-require_once 'pickem.inc';
 
 /*
  * GLOBALS
  */
+
+// Configure pickem-wide timezone.
+// @TODO, make timezone league specific.
 global $_PICKEM_TIMEZONE;
 $_PICKEM_TIMEZONE = variable_get('pickem_time_zone', 'US/Eastern');
 // dump this conditional for drupal 7, date_default_timezone_set is php5
@@ -29,6 +26,47 @@ else {
 
 global $_PICKEM_MY_LEAGUES;
 $_PICKEM_MY_LEAGUES = array();
+
+// Configure scoring engines.
+define('PICKEM_TYPE_WIN_LOSS', 0);
+define('PICKEM_TYPE_SPREAD', 1);
+define('PICKEM_TYPE_SCORE_DIFF', 2);
+define('PICKEM_TYPE_WIN_LOSS_TIEBREAK', 3);
+global $_PICKEM_SCORING_ENGINES;
+$_PICKEM_SCORING_ENGINES = array(
+  PICKEM_TYPE_WIN_LOSS => array(
+    'type' => 'win_loss',
+    'name' => t('Pick the winner'),
+    'description' => t('Simply pick the winner of each game.'),
+    'include' => 'pickem.scoring.win.loss.inc',
+    'features' => array('pick'=>1, 'pick_score'=>0, 'with_spread'=>0, 'with_last_weekly_score'=>0)
+  ),
+  PICKEM_TYPE_SPREAD => array(
+    'type' => 'spread',
+    'name' => t('Pick the winner with point spread'),
+    'description' => t('Pick the winner of each game based on point spread.'),
+    'include' => 'pickem.scoring.spread.inc',
+    'features' => array('pick'=>1, 'pick_score'=>0, 'with_spread'=>1, 'with_last_weekly_score'=>0)
+  ),
+  PICKEM_TYPE_SCORE_DIFF => array(
+    'type' => 'score_diff',
+    'name' => t('Score differential'),
+    'description' => t('Pick the score of each game and get points for correct score differential and winner.'),
+    'include' => 'pickem.scoring.score.diff.inc',
+    'features' => array('pick'=>0, 'pick_score'=>1, 'with_spread'=>0, 'with_last_weekly_score'=>0)
+  ),
+  PICKEM_TYPE_WIN_LOSS_TIEBREAK => array(
+    'type' => 'win_loss_tiebreak',
+    'name' => t('Pick the winner with tie-breaker'),
+    'description' => t('Pick the winner of each game and pick the score for the last game to break weekly ties.'),
+    'include' => 'pickem.scoring.win.loss.tiebreak.inc',
+    'features' => array('pick'=>1, 'pick_score'=>0, 'with_spread'=>0, 'with_last_weekly_score'=>1)
+  )
+);
+
+// Include utility functions.
+require_once 'pickem.inc';
+
 
 /**
  * Implementation of hook_help().
@@ -719,8 +757,6 @@ function pickem_cron() {
 }
 
 
-
-
 /**
  * Implementation of hook_theme().
  */
@@ -814,7 +850,8 @@ function pickem_theme() {
 
 
 /**
- * Menu Callbacks
+ * Go to the user's correct league page.  If they are in more than one,
+ * display a list so they can choose.
  */
 function league_router() {
   global $_PICKEM_MY_LEAGUES;
@@ -838,6 +875,12 @@ function league_router() {
 }
 
 
+/**
+ * Theme function for the leaderboard block.
+ *
+ * @param $league
+ *   A fully loaded league object.
+ */
 function theme_leaderboard_block($league) {
   if ( !isset($league) ) {
     return '';
@@ -859,6 +902,12 @@ function theme_leaderboard_block($league) {
 }
 
 
+/**
+ * Theme function for the this week's games block.
+ *
+ * @param $league
+ *   A fully loaded league object.
+ */
 function theme_this_weeks_games_block($league) {
   $cur_w = get_current_week($league, FALSE);
   if ( $cur_w->wid == "" ) {
@@ -880,6 +929,12 @@ function theme_this_weeks_games_block($league) {
 }
 
 
+/**
+ * A callback for a random logo.  Usually used for the site logo at the top.
+ *
+ * @return
+ *   A streamed image with a content type of image/png.
+ */
 function stream_logo() {
   header("content-type: image/png");
 

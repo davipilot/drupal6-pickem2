@@ -67,111 +67,9 @@ function mypicks_week_page($league, $week) {
 }
 
 
-function mypicks_week_form(&$form_state=NULL, $league, $week) {
+function mypicks_week_form($form_state=NULL, $league, $week) {
   global $user;
-
-  $teams = get_teams(array('gameset_id' => $league->gsid));
-  $games = get_games(array('week_id' => $week->wid));
-  $picks = get_picks(array('league_id' => $league->lid, 'user_id' => $user->uid, 'week_id' => $week->wid));
-
-  $form = array();
-  $form['games'] = array('#tree' => TRUE);
-  $last = count($games);
-  $count = 0;
-  foreach ($games as $gid => $game) {
-
-    $count++;
-    $form['games'][$gid]['v_id'] = array(
-      '#type' => 'hidden',
-      '#value' => $game->v_id
-    );
-    $form['games'][$gid]['h_id'] = array(
-      '#type' => 'hidden',
-      '#value' => $game->h_id
-    );
-    if ($league->scoring_type == PICKEM_TYPE_WIN_LOSS || $league->scoring_type == PICKEM_TYPE_SPREAD || ($league->scoring_type == PICKEM_TYPE_WIN_LOSS_TIEBREAK && $count < $last)) {
-
-      if ($league->scoring_type == PICKEM_TYPE_WIN_LOSS || $league->scoring_type == PICKEM_TYPE_WIN_LOSS_TIEBREAK) {
-        $options =  array(
-            $game->v_id => $teams[$game->v_id]->small_logo_img . $teams[$game->v_id]->short_name,
-            $game->h_id => $teams[$game->h_id]->small_logo_img . $teams[$game->h_id]->short_name
-        );
-      }
-      elseif ($league->scoring_type == PICKEM_TYPE_SPREAD) {
-        $options =  array(
-            $game->v_id => $teams[$game->v_id]->small_logo_img . $teams[$game->v_id]->short_name . '&nbsp;&nbsp;' . ($game->v_spread>0?'+'.$game->v_spread:$game->v_spread),
-            $game->h_id => $teams[$game->h_id]->small_logo_img . $teams[$game->h_id]->short_name . '&nbsp;&nbsp;' . ($game->h_spread>0?'+'.$game->h_spread:$game->h_spread)
-        );
-      }
-
-      $form['games'][$gid]['pick'] = array(
-        '#type' => 'radios',
-        '#default_value' => $picks[$gid][$user->uid]->winnerpick_id,
-        '#attributes' => array('class' => 'pickem-team-radios'),
-        '#options' => $options
-      );
-
-      // Disabled the radio boxes if the week has past.
-      if ( $week->week_past == 1 ) {
-        $form['games'][$gid]['pick']['#attributes']['readonly'] = 'readonly';
-        $form['games'][$gid]['pick']['#attributes']['disabled'] = 'disabled';
-      }
-
-    }
-    elseif ($league->scoring_type == PICKEM_TYPE_SCORE_DIFF || $league->scoring_type == PICKEM_TYPE_WIN_LOSS_TIEBREAK) {
-      $form['games'][$gid]['pick_v_score'] = array(
-        '#type' => 'textfield',
-        '#size' => 4,
-        '#default_value' => $picks[$gid][$user->uid]->pick_v_score,
-        '#field_suffix' => $teams[$game->v_id]->small_logo_img . $teams[$game->v_id]->short_name,
-        '#prefix' => '<div class="pickem-team-score-diff">'
-      );
-      $form['games'][$gid]['pick_h_score'] = array(
-        '#type' => 'textfield',
-        '#size' => 4,
-        '#default_value' => $picks[$gid][$user->uid]->pick_h_score,
-        '#field_suffix' => $teams[$game->h_id]->small_logo_img . $teams[$game->h_id]->short_name,
-        '#suffix' => '</div>'
-      );
-
-      // Disabled the input boxes if the week has past.
-      if ( $week->week_past == 1 ) {
-        $form['games'][$gid]['pick_v_score']['#attributes']['readonly'] = 'readonly';
-        $form['games'][$gid]['pick_v_score']['#attributes']['disabled'] = 'disabled';
-        $form['games'][$gid]['pick_h_score']['#attributes']['readonly'] = 'readonly';
-        $form['games'][$gid]['pick_h_score']['#attributes']['disabled'] = 'disabled';
-      }
-
-
-    }
-    $form['games'][$gid]['gametime'] = array(
-      '#value' => $game->gametime
-    );
-  }
-
-  $my_leagues = get_my_leagues($league->gsid);
-  $my_list = array();
-  foreach ($my_leagues as $l) {
-    if ($l->scoring_type == $league->scoring_type) {
-      $my_list[] = $l->name;
-    }
-  }
-
-  $form['apply_to_all_my_leagues'] = array(
-    '#type' => 'checkbox',
-    '#access' => ($week->week_past == 0 && count($my_list) > 1),
-    '#title' => t('Apply picks to all my leagues that use the same game set and scoring system.'),
-    '#description' => implode(', ',$my_list),
-    '#default_value' => 0
-  );
-
-  $form['submit'] = array(
-    '#type' => 'submit',
-    '#access' => ($week->week_past == 0),
-    '#value' => t('Save Picks'),
-    '#weight' => 5,
-    '#submit' => array('mypicks_week_form_submit'),
-  );
+  $form = build_picks_week_form(&$form_state, $league, $week, $user);
 
   return $form;
 }
@@ -193,10 +91,10 @@ function theme_mypicks_week_form($form) {
     $count++;
     $cols = array();
 
-    if ($league->scoring_type == PICKEM_TYPE_WIN_LOSS || $league->scoring_type == PICKEM_TYPE_SPREAD || ($league->scoring_type == PICKEM_TYPE_WIN_LOSS_TIEBREAK && $count < $last)) {
+    if (isset($form['games'][$gid]['pick'])) {
       $cols[] = drupal_render($form['games'][$gid]['pick']);
     }
-    elseif ($league->scoring_type == PICKEM_TYPE_SCORE_DIFF || $league->scoring_type == PICKEM_TYPE_WIN_LOSS_TIEBREAK) {
+    else {
       $cols[] = drupal_render($form['games'][$gid]['pick_v_score']) . drupal_render($form['games'][$gid]['pick_h_score']);
     }
 
@@ -204,22 +102,7 @@ function theme_mypicks_week_form($form) {
     $rows[] = $cols;
   }
 
-  $output = '';
-  switch ($league->scoring_type) {
-    case PICKEM_TYPE_WIN_LOSS:
-      $output .= '<p>' . t('Just pick the winner.') . '</p>';
-      break;
-    case PICKEM_TYPE_SPREAD:
-      $output .= '<p>' . t('Pick the winner taking the point spread into consideration.') . '</p>';
-      break;
-    case PICKEM_TYPE_SCORE_DIFF:
-      $output .= '<p>' . t("Enter each team's final score.") . '</p>';
-      break;
-    case PICKEM_TYPE_WIN_LOSS_TIEBREAK:
-      $output .= '<p>' . t("Pick the winner, and enter the last game's final score.") . '</p>';
-      break;
-  }
-
+  $output = $league->scoring_engine['description'];
   $output .= theme('table', $header, $rows);
   $output .= drupal_render($form);
   return $output;
@@ -241,7 +124,7 @@ function mypicks_week_form_submit($form, &$form_state) {
 
   // Check and see if the user wants to save to all their leagues that use the same gameset.
   $save_for_these_leagues = array();
-  if ( $form_state['values']['apply_to_all_my_leagues'] == 1 ) {
+  if ( $form_state['values']['apply_to_all_leagues'] == 1 ) {
     $save_for_these_leagues = get_my_leagues($league->gsid);
   }
   else {

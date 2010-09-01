@@ -45,38 +45,32 @@ function weeklypicks_page($league, $week) {
     $output .= '<tr class="'. $class .'"><td class="users">'. $tot['ranking'] .'. '. theme('username', $tot['user_obj']) .'</td><td>'. $tot['total'] .'</td>';
     foreach ($gids as $gid => $winnerid) {
 
-      if ($league->scoring_type == PICKEM_TYPE_WIN_LOSS || $league->scoring_type == PICKEM_TYPE_SPREAD) {
-        $p_team = $teams[$picks[$gid][$uid]->winnerpick_id]->short_name;
-
-        if (isset ($picks[$gid][$uid]->winnerpick_id) && $picks[$gid][$uid]->winnerpick_id == $winnerid && $winnerid != 0) {
-          $output .= '<td class="win">'. $p_team .'</td>';
-        }
-        elseif (isset ($picks[$gid][$uid]->winnerpick_id) && $winnerid == -1) {
-          $output .= '<td class="tie">'. $p_team .'</td>';
-        }
-        elseif (isset ($picks[$gid][$uid]->winnerpick_id) && $picks[$gid][$uid]->winnerpick_id != $winnerid && $winnerid != 0) {
-          $output .= '<td class="loss">'. $p_team .'</td>';
+      // Week has not yet started, don't show picks or scores unless auth user is the pick user.
+      if ($week->week_past == 0) {
+        if (isset ($picks[$gid][$uid]->winnerpick_id)) {
+          $p_team = $teams[$picks[$gid][$uid]->winnerpick_id]->short_name;
+          $output .= ($uid == $user->uid) ? '<td>'. $p_team .'</td>' : '<td>X</td>';
         }
         else {
-          if ($week->week_past == 1 || $uid == $user->uid) {
-            $output .= '<td>'. $p_team .'</td>';
-          }
-          else {
-            if (isset ($picks[$gid][$uid]->winnerpick_id)) {
-              $output .= '<td>X</td>';
-            }
-            else {
-              $output .= '<td>&nbsp;</td>';
-            }
-          }
+          $output .= '<td>&nbsp;</td>';
         }
       }
-      else if ($league->scoring_type == PICKEM_TYPE_SCORE_DIFF || $league->scoring_type == PICKEM_TYPE_WIN_LOSS_TIEBREAK) {
-        $output .= '<td>'. $tot['weeks'][$week->wid]['games'][$gid] .'</td>';
+
+      // Week start has passed, go ahead and show picks and totals.
+      else {
+        $p_team = $teams[$picks[$gid][$uid]->winnerpick_id]->short_name;
+
+        // If user received some points, mark it green (class=win).
+        if ($tot['weeks'][$week->wid]['games'][$gid] > 0) {
+          $output .= '<td class="win">'. $p_team .': ' . $tot['weeks'][$week->wid]['games'][$gid] . '</td>';
+        }
+        elseif ($tot['weeks'][$week->wid]['games'][$gid] == 0 && $gids[$gid] != 0) {
+          $output .= '<td class="loss">'. $p_team .': ' . $tot['weeks'][$week->wid]['games'][$gid] . '</td>';
+        }
+        else {
+          $output .= '<td>'. $p_team . '</td>';
+        }
       }
-
-
-
     }
     $output .= '</tr>';
   }
