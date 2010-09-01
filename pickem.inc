@@ -17,10 +17,6 @@
  *   cannot be loaded.
  */
 function league_load($league_id) {
-
-  // Clear the pickem_* caches in case you change league scoring type.
-  cache_clear_all('pickem_', 'cache', TRUE);
-
   global $_PICKEM_SCORING_ENGINES;
   $valid = TRUE;
   $league = FALSE;
