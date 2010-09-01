@@ -1016,8 +1016,14 @@ function build_picks_week_form($form_state=NULL, $league, $week, $account) {
     );
 
     // Build-up the team labels.
-    $v_team_label = $teams[$game->v_id]->small_logo_img . $teams[$game->v_id]->short_name;
-    $h_team_label = $teams[$game->h_id]->small_logo_img . $teams[$game->h_id]->short_name;
+    if ( variable_get('pickem_prefer_long_team_names', 0) == 0 ) {
+	    $v_team_label = $teams[$game->v_id]->small_logo_img . $teams[$game->v_id]->short_name;
+	    $h_team_label = $teams[$game->h_id]->small_logo_img . $teams[$game->h_id]->short_name;
+	  }
+	  else {
+	    $v_team_label = $teams[$game->v_id]->small_logo_img . $teams[$game->v_id]->long_name;
+	    $h_team_label = $teams[$game->h_id]->small_logo_img . $teams[$game->h_id]->long_name;
+	  }
     if ( $league->scoring_engine['features']['with_spread'] == 1 ) {
       $v_team_label .= '&nbsp;&nbsp;' . ($game->v_spread>0?'+'.$game->v_spread:$game->v_spread);
       $h_team_label .= '&nbsp;&nbsp;' . ($game->h_spread>0?'+'.$game->h_spread:$game->h_spread);
@@ -1032,7 +1038,7 @@ function build_picks_week_form($form_state=NULL, $league, $week, $account) {
         '#size' => 4,
         '#default_value' => $picks[$gid][$account->uid]->pick_v_score,
         '#field_suffix' => $v_team_label,
-        '#prefix' => '<div class="pickem-team-score-diff">'
+        '#prefix' => '<div class="pickem-team-score-diff-' . variable_get('pickem_prefer_long_team_names', 0) . '">'
       );
       $form['games'][$gid]['pick_h_score'] = array(
         '#type' => 'textfield',
@@ -1055,7 +1061,7 @@ function build_picks_week_form($form_state=NULL, $league, $week, $account) {
       $form['games'][$gid]['pick'] = array(
         '#type' => 'radios',
         '#default_value' => $picks[$gid][$account->uid]->winnerpick_id,
-        '#attributes' => array('class' => 'pickem-team-radios'),
+        '#attributes' => array('class' => 'pickem-team-radios-' . variable_get('pickem_prefer_long_team_names', 0)),
         '#options' => array($game->v_id=>$v_team_label, $game->h_id=>$h_team_label)
       );
 

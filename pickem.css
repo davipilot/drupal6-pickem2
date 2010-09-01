@@ -207,11 +207,11 @@ table.pickem-picks .picked {
 /*
   ADMIN SCORES TABLE
 */
-.pickem table.admin-scores {
-  width: 500px;
+.pickem table.admin-scores .team-0 {
+  width: 15em;
 }
-.pickem table.admin-scores .team {
-  width: 75px;
+.pickem table.admin-scores .team-1 {
+  width: 35em;
 }
 .pickem table.admin-scores .score {
   width: 125px;
@@ -334,14 +334,25 @@ table.pickem-picks .picked {
 }
 
 
-/* mypicks week */
-.pickem-team-radios div {
+/* picks week
+ * -1 is "prefer longnames"
+ */
+.pickem-team-radios-0 div {
   float:left;
-  width: 200px;
+  width: 15em;
 }
-.pickem-team-score-diff div {
+.pickem-team-radios-1 div {
   float:left;
-  width: 200px;
+  width: 25em;
+}
+
+.pickem-team-score-diff-0 div {
+  float:left;
+  width: 15em;
+}
+.pickem-team-score-diff-1 div {
+  float:left;
+  width: 25em;
 }
 .pickem-team-score-diff label {
   display: inline;

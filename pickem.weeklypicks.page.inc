@@ -22,7 +22,12 @@ function weeklypicks_page($league, $week) {
   $weeks = get_weeks(array('week_id' => $week->wid));
   $games = get_games(array('week_id' => $week->wid));
   foreach ($games as $gid => $g_data) {
-    $output .= '<th>'. $teams[$g_data->v_id]->tm_abbrev ."<br/>@<br/>". $teams[$g_data->h_id]->tm_abbrev .'</th>';
+    if (variable_get('pickem_prefer_long_team_names', 0) == 1) {
+    	$output .= '<th>'. $teams[$g_data->v_id]->long_name ."<br/>@<br/>". $teams[$g_data->h_id]->long_name .'</th>';
+    }
+    else {
+    	$output .= '<th>'. $teams[$g_data->v_id]->short_name ."<br/>@<br/>". $teams[$g_data->h_id]->short_name .'</th>';
+    }
     if ( $g_data->h_score == NULL ) {
       $gids[$gid] = 0;  // game not played
     }

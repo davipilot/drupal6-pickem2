@@ -90,6 +90,14 @@ function pickem_settings(&$form_state=NULL) {
     '#description' => t("Which league should users be signed up for?"),
   );
 
+  $form['pickem_prefer_long_team_names'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Prefer long team names'),
+    '#return_value' => 1,
+    '#default_value' => variable_get('pickem_prefer_long_team_names', 0),
+    '#description' => t("When there is room, use the full team name and not the abbreviation.  Some leagues have ambiguous team abbreviations."),
+  );
+
   $form['pickem_full_user_load'] = array(
     '#type' => 'checkbox',
     '#title' => t('Fully themeable user links'),
@@ -670,8 +678,14 @@ function pickem_games_list(&$form_state=NULL, $week) {
   $teams = get_teams();
   $games = get_games(array('week_id' => $week->wid));
   foreach ($games as $gid => $game) {
-    $home_team = $teams[$game->h_id]->long_name;
-    $vis_team = $teams[$game->v_id]->long_name;
+    if ( variable_get('pickem_prefer_long_team_names', 0) == 1 ) {
+      $home_team = $teams[$game->h_id]->long_name;
+      $vis_team = $teams[$game->v_id]->long_name;
+    }
+    else {
+      $home_team = $teams[$game->h_id]->short_name;
+      $vis_team = $teams[$game->v_id]->short_name;
+    }
     $matchup = "$vis_team @ $home_team (". $game->gametime .")";
 
     $form['games'][] = array(
@@ -708,7 +722,12 @@ function pickem_game_edit(&$form_state, $type, $week, $game) {
   $team_list = array();
   $team_list[0] = "";
   foreach ($teams as $t_id => $team_data) {
-    $team_list[$t_id] = ($team_data->tm_abbrev <> '')?$team_data->tm_abbrev:$team_data->tm_name;
+    if ( variable_get('pickem_prefer_long_team_names', 0) == 1 ) {
+      $team_list[$t_id] = $team_data->long_name;
+    }
+    else {
+      $team_list[$t_id] = $team_data->short_name;
+    }
   }
 
   $form = array();
@@ -1397,8 +1416,14 @@ function page_admin_scores($league, $week) {
   $output .= '<tr><th colspan="2">Visitor</th><th colspan="2">Home</th><th>Game Time(EST)</th></tr>';
   foreach ($games as $gid => $game) {
     $output .= '<tr>';
-    $output .= '<td class="team">'. $teams[$game->v_id]->short_name .'</td><td class="score"><input name="gid_'. $gid .'_vid_'. $game->v_id .'" type="text" size="3" value="'. $game->v_score .'" /></td>';
-    $output .= '<td class="team">'. $teams[$game->h_id]->short_name .'</td><td class="score"><input name="gid_'. $gid .'_hid_'. $game->h_id .'" type="text" size="3" value="'. $game->h_score .'" /></td>';
+    if (variable_get('pickem_prefer_long_team_names', 0) == 1) {
+      $output .= '<td class="team-' . variable_get('pickem_prefer_long_team_names', 0) . '">'. $teams[$game->v_id]->long_name .'</td><td class="score"><input name="gid_'. $gid .'_vid_'. $game->v_id .'" type="text" size="3" value="'. $game->v_score .'" /></td>';
+      $output .= '<td class="team-' . variable_get('pickem_prefer_long_team_names', 0) . '">'. $teams[$game->h_id]->long_name .'</td><td class="score"><input name="gid_'. $gid .'_hid_'. $game->h_id .'" type="text" size="3" value="'. $game->h_score .'" /></td>';
+    }
+    else {
+      $output .= '<td class="team-' . variable_get('pickem_prefer_long_team_names', 0) . '">'. $teams[$game->v_id]->short_name .'</td><td class="score"><input name="gid_'. $gid .'_vid_'. $game->v_id .'" type="text" size="3" value="'. $game->v_score .'" /></td>';
+      $output .= '<td class="team-' . variable_get('pickem_prefer_long_team_names', 0) . '">'. $teams[$game->h_id]->short_name .'</td><td class="score"><input name="gid_'. $gid .'_hid_'. $game->h_id .'" type="text" size="3" value="'. $game->h_score .'" /></td>';
+    }
     $output .= '<td class="time">'. $game->gametime .'</td></tr>';
   }
   $output .= '</table>';
