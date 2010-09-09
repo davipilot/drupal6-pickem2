@@ -262,7 +262,7 @@ function pickem_menu() {
   $items['pickem/random_logo.png'] = array(
     'title' => t('Team Logo'),
     'page callback' => 'stream_logo',
-    'access arguments' => array(TRUE),
+    'access callback' => TRUE,
     'type' => MENU_CALLBACK,
   );
 
