@@ -22,9 +22,7 @@
 function get_user_totals_win_loss_tiebreak($totals=FALSE, $row=FALSE) {
 
   // If it is the last game of the week, use the score picks.
-  $game = new stdClass;
-  $game->wid = $row->wid;
-  if (is_last_game_of_week($game)) {
+  if ( is_last_game_of_week(array('gid'=>$row->gid, 'wid'=>$row->wid)) ) {
 
     // Picked the correct winner or tie (1 point).
     if ($row->h_score > $row->v_score && $row->pick_h_score > $row->pick_v_score ||

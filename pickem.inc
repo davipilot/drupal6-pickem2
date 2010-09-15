@@ -162,6 +162,10 @@ function is_valid_week($league, $week) {
 
 function is_last_game_of_week($game, $reset = FALSE) {
   static $lastgames = array();
+
+  // Game can be an array or an object.  Make it always an object.
+  $game = (object)$game;
+
   $cachekey = $game->wid;
   if (empty($lastgames[$cachekey])) {
     $sql = "SELECT gid from {pickem_games} where wid = ". $game->wid ." order by gametime desc, gid";
@@ -1017,13 +1021,13 @@ function build_picks_week_form($form_state=NULL, $league, $week, $account) {
 
     // Build-up the team labels.
     if ( variable_get('pickem_prefer_long_team_names', 0) == 0 ) {
-	    $v_team_label = $teams[$game->v_id]->small_logo_img . $teams[$game->v_id]->short_name;
-	    $h_team_label = $teams[$game->h_id]->small_logo_img . $teams[$game->h_id]->short_name;
-	  }
-	  else {
-	    $v_team_label = $teams[$game->v_id]->small_logo_img . $teams[$game->v_id]->long_name;
-	    $h_team_label = $teams[$game->h_id]->small_logo_img . $teams[$game->h_id]->long_name;
-	  }
+      $v_team_label = $teams[$game->v_id]->small_logo_img . $teams[$game->v_id]->short_name;
+      $h_team_label = $teams[$game->h_id]->small_logo_img . $teams[$game->h_id]->short_name;
+    }
+    else {
+      $v_team_label = $teams[$game->v_id]->small_logo_img . $teams[$game->v_id]->long_name;
+      $h_team_label = $teams[$game->h_id]->small_logo_img . $teams[$game->h_id]->long_name;
+    }
     if ( $league->scoring_engine['features']['with_spread'] == 1 ) {
       $v_team_label .= '&nbsp;&nbsp;' . ($game->v_spread>0?'+'.$game->v_spread:$game->v_spread);
       $h_team_label .= '&nbsp;&nbsp;' . ($game->h_spread>0?'+'.$game->h_spread:$game->h_spread);
