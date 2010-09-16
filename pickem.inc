@@ -488,7 +488,6 @@ function set_pick($user_id, $league, $pick) {
   // Pick the winner.
   if (isset($pick['pick'])) {
     if ($type == "insert") {
-      drupal_set_message("insert");
       $query = "insert into {pickem_picks} (gid,uid,lid,winnerpick_id,picktime) values (%d,%d,%d,%d,'%s')";
       $result = db_query($query, $pick['gid'], $user_id, $league->lid, $pick['pick'], date('Y-m-d H:i:s', time()));
       if ( $result == FALSE ) {
