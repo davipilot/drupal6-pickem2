@@ -31,20 +31,17 @@ function get_user_totals_win_loss_tiebreak($totals=FALSE, $row=FALSE) {
       $totals[$row->uid]['weeks'][$row->wid]['games'][$row->gid] = 1;
       $totals[$row->uid]['weeks'][$row->wid]['total'] += 1;
       $totals[$row->uid]['total'] += 1;
+      $totals[$row->uid]['weeks'][$row->wid]['picks'][$row->gid] = 1;
     }
 
-    // Picked the correct score differential (1 more point).
+    // Picked the correct score differential.
     if ($row->h_score - $row->v_score == $row->pick_h_score - $row->pick_v_score) {
-      $totals[$row->uid]['weeks'][$row->wid]['games'][$row->gid] += 1;
-      $totals[$row->uid]['weeks'][$row->wid]['total'] += 1;
-      $totals[$row->uid]['total'] += 1;
+      $totals[$row->uid]['weeks'][$row->wid]['picks'][$row->gid] += 1;
     }
 
-    // Picked the exact match score (2 more points).
+    // Picked the exact match score.
     if ($row->h_score == $row->pick_h_score && $row->v_score == $row->pick_v_score) {
-      $totals[$row->uid]['weeks'][$row->wid]['games'][$row->gid] += 2;
-      $totals[$row->uid]['weeks'][$row->wid]['total'] += 2;
-      $totals[$row->uid]['total'] += 2;
+      $totals[$row->uid]['weeks'][$row->wid]['picks'][$row->gid] += 2;
     }
   }
 
@@ -70,6 +67,66 @@ function get_user_totals_win_loss_tiebreak($totals=FALSE, $row=FALSE) {
   // If the user received no points for this game, put in a zero.
   if (! isset($totals[$row->uid]['weeks'][$row->wid]['games'][$row->gid])) {
     $totals[$row->uid]['weeks'][$row->wid]['games'][$row->gid] = 0;
+  }
+
+}
+
+/**
+ * After all user totals are calculated, this function is called to wrap-up any extra calculations.
+ *
+ * @param $totals
+ *   A deep array to store user totals (from get_user_totals() in pickem.inc)
+ * @return
+ *   NULL
+ */
+function get_user_totals_finalize_win_loss_tiebreak($totals=FALSE) {
+
+  // Get the weekly high-scores and users who achieved it.
+  $weekly_best = array();
+  foreach ($totals as $uid => $u_object) {
+    foreach ($u_object['weeks'] as $wid => $w_object) {
+      if (!isset($weekly_best[$wid])) {
+        $weekly_best[$wid] = array('pts'=>0, 'users'=>array());
+      }
+      // If this is a new best score, set the weekly_best and clear the previous users.
+      if ($w_object['total'] > $weekly_best[$wid]['pts']) {
+        $weekly_best[$wid]['pts'] = $w_object['total'];
+        $weekly_best[$wid]['users'] = array();
+        $weekly_best[$wid]['users'][$uid] = 1;
+      }
+      elseif ($w_object['total'] == $weekly_best[$wid]['pts']) {
+        $weekly_best[$wid]['users'][$uid] = 1;
+      }
+    }
+  }
+
+  foreach ($totals as $uid => $u_object) {
+    foreach ($u_object['weeks'] as $wid => $w_object) {
+      // Skip the user-week if they didn't get the best score that week.
+      // Or there was only one best score that week => NO BONUS.
+      if ( !isset($weekly_best[$wid]['users'][$uid]) || count($weekly_best[$wid]['users']) < 2 ) {
+        continue;
+      }
+
+      foreach ($w_object['games'] as $gid => $g_object) {
+        if ( is_last_game_of_week(array('gid'=>$gid, 'wid'=>$wid)) ) {
+         // Picked the correct score differential (1 more point).
+          if ($totals[$uid]['weeks'][$wid]['picks'][$gid] == 2) {
+            $totals[$uid]['weeks'][$wid]['games'][$gid] += 1;
+            $totals[$uid]['weeks'][$wid]['total'] += 1;
+            $totals[$uid]['total'] += 1;
+          }
+
+          // Picked the exact match score (2 more points).
+          if ($totals[$uid]['weeks'][$wid]['picks'][$gid] == 4) {
+            $totals[$uid]['weeks'][$wid]['games'][$gid] += 2;
+            $totals[$uid]['weeks'][$wid]['total'] += 2;
+            $totals[$uid]['total'] += 2;
+          }
+
+        }
+      }
+    }
   }
 
 }
