@@ -1080,9 +1080,9 @@ function build_picks_week_form($form_state=NULL, $league, $week, $account) {
       }
 
     }
-
+    $unix_game_time = strtotime($game->gametime);
     $form['games'][$gid]['gametime'] = array(
-      '#value' => $game->gametime
+      '#value' => format_date($unix_game_time, 'medium', '', date('Z', $unix_game_time) )
     );
   }
 
