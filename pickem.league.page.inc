@@ -48,7 +48,7 @@ function theme_league_nav($league) {
 
     $cur_w = get_current_week($league, FALSE);
     if ($cur_w->wk_number <> '') {
-      $o .= '<li>'. l('Pick Summary(week '. $cur_w->wk_number .')', 'pickem/'. $league->lid .'/weeklypicks/'. $cur_w->wid) .'</li>';
+      $o .= '<li>'. l('Pick Summary('. $cur_w->wk_number .')', 'pickem/'. $league->lid .'/weeklypicks/'. $cur_w->wid) .'</li>';
     }
     else {
       //print_r($cur_w);
