@@ -21,17 +21,15 @@ function theme_league_page($league) {
   $breadcrumb[1] = l($league->name, 'pickem/'. $league->lid);
   drupal_set_breadcrumb($breadcrumb);
 
-  $o  = '<div class="pickem"><table class="league-nav"><tr>';
-  $o .= '<td class="col1">'. theme('league_nav', $league) .'</td>';
+  $o  = '<div class="pickem-league-page">';
   if ( is_my_league($league) ) {
-    $o .= '<td class="col2">'. theme('my_league_summary', $league) .'</td>';
+    $o .= theme('my_league_summary', $league);
   }
-  else {
-    $o .= '<td class="col2">&nbsp;</td>';
-  }
-  $o .= '</tr>';
-  $o .= '<tr><td colspan="2">'. theme('league_messages', $league) .'</td></tr>';
-  $o .= '</table></div>';
+
+  $o .= theme('league_nav', $league);
+  $o .= '<br/>';
+  $o .= theme('league_messages', $league);
+  $o .= '</div>';
   return $o;
 }
 
@@ -84,7 +82,7 @@ function theme_league_nav($league) {
 
     $o .= '</ul></li></ul>';
 
-    return theme('dash', 'Navigation', $o);
+    return theme('dash', 'Navigation', $o, 'league-page-navigation');
 }
 
 
@@ -96,8 +94,7 @@ function theme_my_league_summary($league) {
 
   $totals = get_user_totals($league); //sorted by overall score
   $title = 'My Summary';
-  $content = '<div class="my-league-summary">';
-  $content .= 'RANK: #'. $totals[$user->uid]['ranking'] .'<br/>';
+  $content = 'RANK: #'. $totals[$user->uid]['ranking'] .'<br/>';
   if ( $totals[$user->uid]['ranking'] > 1 ) {
     $content .= 'POINTS BACK: '. $totals[$user->uid]['pts_back'] .'<br/>';
   }
@@ -106,8 +103,7 @@ function theme_my_league_summary($league) {
     $content .= 'BEST WEEK SCORE:  '. $totals[$user->uid]['weeks'][$totals[$user->uid]['best_week_id']]['total'] .' ('. $weeks[$totals[$user->uid]['best_week_id']]->wk_name .')<br/>';
     $content .= 'WORST WEEK SCORE:  '. $totals[$user->uid]['weeks'][$totals[$user->uid]['worst_week_id']]['total'] .' ('. $weeks[$totals[$user->uid]['worst_week_id']]->wk_name .')<br/>';
   }
-  $content .= '</div>';
-  return theme('dash', $title, $content);
+  return theme('dash', $title, $content, 'league-page-summary');
 }
 
 
@@ -127,7 +123,7 @@ function theme_league_messages($league) {
       $output .= '<li class="warning">Warning: The first game is on <span style="text-decoration:underline;">'. strtoupper($cur_w->firstgame_dow) .'</span>.</li>';
     }
     if (module_exists("jstimer")) {
-      $output .= '<li class="warning">'. get_countdown_timer($cur_w) .'</span></li>';
+      $output .= '<li class="warning">'. get_countdown_timer($cur_w) .'</li>';
     }
     else {
       $output .= '<li class="warning">Week '. ($cur_w->wk_number) .' picks due by '. date('l, F j, Y \a\t g:i a', strtotime($cur_w->firstgame)) .'('. $_PICKEM_TIMEZONE .").</li>";
@@ -162,16 +158,16 @@ function theme_league_messages($league) {
   }
   $output .= '</ul>';
 
-  return theme('dash', 'Messages', $output);
+  return theme('dash', 'Messages', $output, 'league-page-messages');
 }
 
 
-function theme_dash($title, $content, $region='main', $link=NULL) {
-  if ( isset($link) ) {
-    $output = '<div class="dash"><div class="title">'. $link .'</div><div>'. $content .'</div></div>';
+function theme_dash($title, $content, $class_wrapper=NULL) {
+  if ( isset($class_wrapper) ) {
+    $output = "<div class=\"dash $class_wrapper\"><div class=\"title\">$title</div><div>$content</div></div>";
   }
   else {
-    $output = '<div class="dash"><div class="title">'. $title .'</div><div>'. $content .'</div></div>';
+    $output = "<div class=\"dash\"><div class=\"title\">$title</div><div>$content</div></div>";
   }
   return $output;
 }

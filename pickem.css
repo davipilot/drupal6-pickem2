@@ -226,14 +226,14 @@ table.pickem-picks .picked {
 .pickem .dash {
   font-size:11px;
 }
-.pickem .dash td {
-  margin:0;
-  padding:0;
-}
 .pickem .dash .title {
   font-weight:bold;
   text-decoration: underline;
 }
+.league-page-summary {
+  float:right;
+}
+
 
 /*
   USER LIST
