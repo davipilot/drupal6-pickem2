@@ -27,7 +27,6 @@ function theme_league_page($league) {
   }
 
   $o .= theme('league_nav', $league);
-  $o .= '<br/>';
   $o .= theme('league_messages', $league);
   $o .= '</div>';
   return $o;
