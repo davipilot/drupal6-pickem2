@@ -1430,7 +1430,7 @@ function page_admin_scores($league, $week) {
   $output .= '<input type="submit" value="Save Scores"/>';
   $output .= '</form></div>';
 
-
+  drupal_set_title(t('Edit Scores - ') . $week->wk_name);
   print theme('page', $output);
 }
 
