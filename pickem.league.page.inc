@@ -65,7 +65,7 @@ function theme_league_nav($league) {
     }
 
     if ( user_access('administer pickem') && $cur_w->wk_number <> '' ) {
-      $o .= '<li>'. l('Update Week\'s Scores', 'admin/pickem/scores/'. $league->lid . '/edit/' . $cur_w->wid) .'</li>';
+      $o .= '<li>'. l('Update Scores', 'admin/pickem/scores/'. $league->lid . '/edit/' . $cur_w->wid) .'</li>';
     }
 
     $o .= '<li>Research<ul>';
@@ -92,6 +92,8 @@ function theme_my_league_summary($league) {
   //drupal_set_message('theme_my_league_summary');
   global $user;
 
+  $weeks = get_weeks(array('gameset_id' => $league->gsid));
+
   $totals = get_user_totals($league); //sorted by overall score
   $title = 'My Summary';
   $content = '<div class="my-league-summary">';
@@ -101,8 +103,8 @@ function theme_my_league_summary($league) {
   }
   $content .= 'TOTAL POINTS: '. $totals[$user->uid]['total'] .'<br/>';
   if ( $totals[$user->uid]['best_week_id'] <> -1 ) {
-    $content .= 'BEST WEEK SCORE:  '. $totals[$user->uid]['weeks'][$totals[$user->uid]['best_week_id']]['total'] .' (Week '. $totals[$user->uid]['best_week_id'] .')<br/>';
-    $content .= 'WORST WEEK SCORE:  '. $totals[$user->uid]['weeks'][$totals[$user->uid]['worst_week_id']]['total'] .' (Week '. $totals[$user->uid]['worst_week_id'] .')<br/>';
+    $content .= 'BEST WEEK SCORE:  '. $totals[$user->uid]['weeks'][$totals[$user->uid]['best_week_id']]['total'] .' ('. $weeks[$totals[$user->uid]['best_week_id']]->wk_name .')<br/>';
+    $content .= 'WORST WEEK SCORE:  '. $totals[$user->uid]['weeks'][$totals[$user->uid]['worst_week_id']]['total'] .' ('. $weeks[$totals[$user->uid]['worst_week_id']]->wk_name .')<br/>';
   }
   $content .= '</div>';
   return theme('dash', $title, $content);
