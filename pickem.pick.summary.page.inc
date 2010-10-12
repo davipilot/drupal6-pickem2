@@ -98,7 +98,7 @@ function pick_summary_form($form_state=NULL, $league, $week) {
 
       // Week has not yet started, don't show picks or scores unless auth user is the pick user.
       if ($week->week_past == 0) {
-        if (isset ($picks[$gid][$uid]->winnerpick_id)) {
+        if ( isset($picks[$gid][$uid]->winnerpick_id) && $picks[$gid][$uid]->winnerpick_id != 0) {
           if ( $uid == $user->uid ) {
             // User is allowed to see their own picks, but not others.
             $user_form['picks'][$gid]['picked'] = array('#value' => $picks[$gid][$uid]->winnerpick_id);
@@ -150,14 +150,31 @@ function theme_pick_summary_form($form) {
 
     foreach (element_children($form['games']) as $gid) {
       $class = '';
-      if ( $form['users'][$key]['picks'][$gid]['points']['#value'] > 0 ) {
+      if ( $form['games'][$gid]['winner']['#value'] == 0 ) {
+        $class = 'not-played';
+      } elseif ( $form['users'][$key]['picks'][$gid]['points']['#value'] > 0 ) {
         $class = 'win';
       } elseif ( $form['users'][$key]['picks'][$gid]['points']['#value'] == 0 ) {
         $class = 'loss';
       }
 
-      $cols[] = array('data' => $form['games'][$gid]['teams'][$form['users'][$key]['picks'][$gid]['picked']['#value']]['short_name']['#value'] . ": " .
-        $form['users'][$key]['picks'][$gid]['points']['#value'], 'class' => $class);
+      $col = array('data' => '');
+      if ( $form['users'][$key]['picks'][$gid]['picked']['#value'] == 0 ) {
+        $col['data'] .= 'X';
+      }
+      elseif ( $form['users'][$key]['picks'][$gid]['picked']['#value'] == -1 ) {
+        $col['data'] .= '-';
+      }
+      else {
+        $col['data'] .= $form['games'][$gid]['teams'][$form['users'][$key]['picks'][$gid]['picked']['#value']]['short_name']['#value'];
+      }
+      $col['class'] = $class;
+
+      if ( $class != 'not-played' && $form['users'][$key]['picks'][$gid]['points']['#value'] >= 0 ) {
+        $col['data'] .= ": " . $form['users'][$key]['picks'][$gid]['points']['#value'];
+      }
+
+      $cols[] = $col;
     }
 
 
