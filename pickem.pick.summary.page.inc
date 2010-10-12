@@ -119,8 +119,20 @@ function pick_summary_form($form_state=NULL, $league, $week) {
       // Week start has passed, go ahead and show picks and totals.
       else {
         // User is allowed to see all picks now.
-        $user_form['picks'][$gid]['picked'] = array('#value' => $picks[$gid][$uid]->winnerpick_id);
-        $user_form['picks'][$gid]['points'] = array('#value' => $tot['weeks'][$week->wid]['games'][$gid]);
+        // If they didn't pick at all, use a -1.
+        if ($picks[$gid][$uid]->winnerpick_id == 0) {
+          $user_form['picks'][$gid]['picked'] = array('#value' => -1);
+        }
+        else {
+          $user_form['picks'][$gid]['picked'] = array('#value' => $picks[$gid][$uid]->winnerpick_id);
+        }
+
+        if ( !isset($tot['weeks'][$week->wid]['games'][$gid]) ) {
+          $user_form['picks'][$gid]['points'] = array('#value' => 0);
+        }
+        else {
+          $user_form['picks'][$gid]['points'] = array('#value' => $tot['weeks'][$week->wid]['games'][$gid]);
+        }
       }
     }
 
