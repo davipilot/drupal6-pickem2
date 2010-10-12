@@ -290,45 +290,45 @@ table.pickem-picks .picked {
 }
 
 /*
- this week's pick summary
+ Pick Summary Page
 */
-.pickem table.pick-summary {
+.pickem-pick-summary {
   border-style: none;
 }
-.pickem table.pick-summary * {
+.pickem-pick-summary * {
   border-style: none;
   margin: 0; padding: 2px 0 2px 0;
   font-size: 10px;
   text-align: center;
   white-space: nowrap;
 }
-.pickem table.pick-summary th {
+.pickem-pick-summary th {
   line-height: 10px;
 }
-.pickem table.pick-summary td.users {
+.pickem-pick-summary td.users {
   border-style: none;
   padding-left: 2px;
   text-align:left;
 }
-.pickem table.pick-summary td.users a {
+.pickem-pick-summary td.users a {
   font-size: 12px;
 }
-.pickem table.pick-summary td {
+.pickem-pick-summary td {
   border-left: 3px solid #cccccc;
 }
-.pickem table.pick-summary td.win {
+.pickem-pick-summary td.win {
   background: #90EE90;
   border-left: 3px solid #006400;
 }
-.pickem table.pick-summary td.loss {
+.pickem-pick-summary td.loss {
   background: #FF7070;
   border-left: 3px solid #8B0000;
 }
-.pickem table.pick-summary td.tie {
+.pickem-pick-summary td.tie {
   background: #FFB6C1;
   border-left: 3px solid #F08080;
 }
-.pickem table.pick-summary td.bye {
+.pickem-pick-summary td.bye {
   background: #D3D3D3;
   border-left: 3px solid black;
 }

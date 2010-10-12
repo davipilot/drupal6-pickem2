@@ -41,7 +41,7 @@ function theme_standings($league) {
   $output .= '<th colspan="2">TOT</th>';
   $weeks = get_weeks(array('gameset_id' => $league->gsid, 'playoffs' => 0));
   foreach ($weeks as $wid => $week) {
-    $output .= '<th class="week-numbers">'. l($week->wk_number, 'pickem/'. $league->lid ."/weeklypicks/$wid") .'</th>';
+    $output .= '<th class="week-numbers">'. l($week->wk_number, 'pickem/'. $league->lid ."/summary/$wid") .'</th>';
   }
   $output .= "</tr>";
 
