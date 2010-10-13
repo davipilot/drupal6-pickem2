@@ -848,9 +848,9 @@ function pickem_theme() {
       'file' => 'pickem.team.power.page.inc',
       'arguments' => array('league' => NULL),
     ),
-    'pick_summary_form' => array(
+    'pick_summary' => array(
       'file' => 'pickem.pick.summary.page.inc',
-      'arguments' => array('form' => NULL)
+      'arguments' => array('theme_data' => NULL)
     )
   );
 }
