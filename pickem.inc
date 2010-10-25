@@ -592,13 +592,13 @@ function get_user_totals($league=NULL, $week_id=0, $reset = FALSE) {
         }
 
         // Calculate weekly totals using the appropriate scoring engine.
-        call_user_func('get_user_totals_'. $league->scoring_engine['type'], &$totals, $row);
+        call_user_func_array('get_user_totals_'. $league->scoring_engine['type'], array(&$totals, $row));
 
       }
 
       // If there is a get_user_totals_finalize_* function for this scoring engine, run it.
       if ( function_exists('get_user_totals_finalize_'. $league->scoring_engine['type']) ) {
-        call_user_func('get_user_totals_finalize_'. $league->scoring_engine['type'], &$totals);
+        call_user_func_array('get_user_totals_finalize_'. $league->scoring_engine['type'], array(&$totals));
       }
 
       // Calculate user's best and worst weeks.
