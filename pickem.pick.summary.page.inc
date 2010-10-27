@@ -138,12 +138,24 @@ function pick_summary_page($league, $week) {
 
 function theme_pick_summary($theme_data) {
 
+  // Pager.
+  global $pager_page_array, $pager_total;
+  $page = isset($_GET['page']) ? $_GET['page'] : 0;
+  $pager_page_array = explode(',', $page);
+  // how many pages.
+  $items_per_page = variable_get('pickem_summary_items_per_page', 1000);
+  $pager_total[0] = ceil(count($theme_data['games']) / $items_per_page);
+
   $header = array();
   $header[] = t('Weekly Rank');
   $header[] = t('Points');
+  $i = 0;
   foreach ($theme_data['games'] as $gid => $game_info) {
-    $short_game_title = str_replace(" @ ", "<br/>@<br/>", $theme_data['games'][$gid]['short_game_title']);
-    $header[] = array('data' => $short_game_title, 'title' => $theme_data['games'][$gid]['long_game_title']);
+    if ( $i >= $page * $items_per_page && $i < ($page+1) * $items_per_page ) {
+      $short_game_title = str_replace(" @ ", "<br/>@<br/>", $theme_data['games'][$gid]['short_game_title']);
+      $header[] = array('data' => $short_game_title, 'title' => $theme_data['games'][$gid]['long_game_title']);
+    }
+    $i++;
   }
 
   $rows = array();
@@ -152,38 +164,44 @@ function theme_pick_summary($theme_data) {
     $cols[] = array('data' => $theme_data['users'][$key]['weekly_rank'] . '. '. $theme_data['users'][$key]['user_link'], 'class'=>'users');
     $cols[] = $theme_data['users'][$key]['weekly_points'];
 
+    $i = 0;
     foreach (element_children($theme_data['games']) as $gid) {
-      $class = '';
-      if ( $theme_data['games'][$gid]['winner'] == 0 ) {
-        $class = 'not-played';
-      } elseif ( $theme_data['users'][$key]['picks'][$gid]['points'] > 0 ) {
-        $class = 'win';
-      } elseif ( $theme_data['users'][$key]['picks'][$gid]['points'] == 0 ) {
-        $class = 'loss';
+      if ( $i >= $page * $items_per_page && $i < ($page+1) * $items_per_page ) {
+        $class = '';
+        if ( $theme_data['games'][$gid]['winner'] == 0 ) {
+          $class = 'not-played';
+        } elseif ( $theme_data['users'][$key]['picks'][$gid]['points'] > 0 ) {
+          $class = 'win';
+        } elseif ( $theme_data['users'][$key]['picks'][$gid]['points'] == 0 ) {
+          $class = 'loss';
+        }
+
+        $col = array('data' => '');
+        if ( $theme_data['users'][$key]['picks'][$gid]['picked'] == 0 ) {
+          $col['data'] .= 'X';
+        }
+        elseif ( $theme_data['users'][$key]['picks'][$gid]['picked'] == -1 ) {
+          $col['data'] .= '-';
+        }
+        else {
+          $col['data'] .= $theme_data['games'][$gid]['teams'][$theme_data['users'][$key]['picks'][$gid]['picked']]['short_name'];
+        }
+        $col['class'] = $class;
+
+        if ( $class != 'not-played' && $theme_data['users'][$key]['picks'][$gid]['points'] >= 0 ) {
+          $col['data'] .= ": " . $theme_data['users'][$key]['picks'][$gid]['points'];
+        }
+
+        $cols[] = $col;
       }
 
-      $col = array('data' => '');
-      if ( $theme_data['users'][$key]['picks'][$gid]['picked'] == 0 ) {
-        $col['data'] .= 'X';
-      }
-      elseif ( $theme_data['users'][$key]['picks'][$gid]['picked'] == -1 ) {
-        $col['data'] .= '-';
-      }
-      else {
-        $col['data'] .= $theme_data['games'][$gid]['teams'][$theme_data['users'][$key]['picks'][$gid]['picked']]['short_name'];
-      }
-      $col['class'] = $class;
-
-      if ( $class != 'not-played' && $theme_data['users'][$key]['picks'][$gid]['points'] >= 0 ) {
-        $col['data'] .= ": " . $theme_data['users'][$key]['picks'][$gid]['points'];
-      }
-
-      $cols[] = $col;
+      $i++;
     }
 
 
     array_push($rows, $cols);
   }
-
-  return theme('table', $header, $rows, array('class'=>'pickem-pick-summary'));
+  $output = theme('table', $header, $rows, array('class'=>'pickem-pick-summary'));
+  $output .= theme('pager', array(), 20);
+  return $output;
 }

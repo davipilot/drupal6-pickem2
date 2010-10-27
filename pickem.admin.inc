@@ -106,6 +106,21 @@ function pickem_settings(&$form_state=NULL) {
     '#description' => t("This enables compatibility with user name formatters like the RealName module.  With large user lists (>100) it may cause slower performance."),
   );
 
+  $form['pagers'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Configure pagers for various pickem screens'),
+    '#description' => t("These values represent games/page for each screen.  Set these to a big numbers (ie 1000) if you don't want a pagers to show on the screens."),
+    '#collapsible' => TRUE
+  );
+  $form['pagers']['pickem_summary_items_per_page'] = array(
+    '#type' => 'textfield',
+    '#size' => 5,
+    '#title' => t('Pick summary screen'),
+    '#default_value' => variable_get('pickem_summary_items_per_page', 1000),
+  );
+
+
+
   // Check to see if the jstimer is configured correctly.
   if (module_exists("jstimer")) {
     if (!module_exists("jst_timer")) {
