@@ -202,8 +202,12 @@ function theme_pick_summary($theme_data) {
     array_push($rows, $cols);
   }
   $output = '';
-  $output .= theme('pager', array(), 20);
   $output .= theme('table', $header, $rows, array('class'=>'pickem-pick-summary'));
+  $pager_output = theme('pager', array(), 20);
+  if ( strlen($pager_output) > 0 ) {
+    $output .= $pager_output;
+    $output .= '<div style="text-align:center;">'. t('More games on other pages') .'</div>';
+  }
 
   return $output;
 }
