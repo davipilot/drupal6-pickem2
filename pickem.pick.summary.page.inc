@@ -201,7 +201,9 @@ function theme_pick_summary($theme_data) {
 
     array_push($rows, $cols);
   }
-  $output = theme('table', $header, $rows, array('class'=>'pickem-pick-summary'));
+  $output = '';
   $output .= theme('pager', array(), 20);
+  $output .= theme('table', $header, $rows, array('class'=>'pickem-pick-summary'));
+
   return $output;
 }
