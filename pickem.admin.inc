@@ -141,7 +141,8 @@ function pickem_settings(&$form_state=NULL) {
 function theme_pickem_gamesets_list($form) {
 
   $header = array(
-    t('Game Set'),
+    t('Name'),
+    t('Sport'),
     array('data' => t('Operations'), 'colspan' => '5')
   );
 
@@ -149,6 +150,7 @@ function theme_pickem_gamesets_list($form) {
   foreach (element_children($form['gamesets']) as $key) {
     $rows[] = array(
       drupal_render($form['gamesets'][$key]['gs_name']),
+      drupal_render($form['gamesets'][$key]['sport']),
       drupal_render($form['gamesets'][$key]['edit_link']),
       drupal_render($form['gamesets'][$key]['teams_link']),
       drupal_render($form['gamesets'][$key]['weeks_link']),
@@ -175,6 +177,9 @@ function pickem_gamesets_list(&$form_state=NULL) {
     $form['gamesets'][$gsid] = array(
       'gs_name' => array(
         '#value' => $gameset->gs_name
+      ),
+      'sport' => array(
+        '#value' => $gameset->sport
       ),
       'weeks_link' => array(
         '#value' => l('weeks', 'admin/pickem/weeks/'. $gsid .'/list')
@@ -227,6 +232,15 @@ function pickem_gameset_edit(&$form_state, $type, $gameset) {
     '#default_value' => $gameset->gs_name
   );
 
+  $form['gameset']['sport'] = array(
+    '#title'  => t('Sport'),
+    '#required' => TRUE,
+    '#type' => 'textfield',
+    '#size' => 32,
+    '#default_value' => $gameset->sport,
+    '#description' => t('If you are integrating with the Sports Scores module, this NEEDS to match (NFL, NBA, NHL, etc..).'),
+  );
+
   $form['submit'] = array('#type' => 'submit', '#value' => t('Save'));
 
   return $form;
@@ -240,16 +254,16 @@ function pickem_gameset_edit_submit($form, &$form_state) {
   $gameset = $form_state['values'];
 
   if ( $gameset['gsid'] == 0 ) {
-    $query = "insert into {pickem_gamesets} (gs_name) values('%s')";
-    $result = db_query($query, $gameset['gs_name']);
+    $query = "insert into {pickem_gamesets} (gs_name, sport) values('%s', '%s')";
+    $result = db_query($query, $gameset['gs_name'], $gameset['sport']);
 
     $t_string = t('Added game set %name.', array('%name' => $gameset['gs_name']));
     drupal_set_message($t_string);
     watchdog('pickem', $t_string, NULL, WATCHDOG_NOTICE);
   }
   else {
-    $query = "update {pickem_gamesets} set gs_name='%s' where gsid=%d";
-    $result = db_query($query, $gameset['gs_name'], $gameset['gsid']);
+    $query = "update {pickem_gamesets} set gs_name='%s', sport='%s' where gsid=%d";
+    $result = db_query($query, $gameset['gs_name'], $gameset['sport'], $gameset['gsid']);
 
     $t_string = t('Updated game set %name.', array('%name' => $gameset['gs_name']));
     drupal_set_message($t_string);

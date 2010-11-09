@@ -366,7 +366,7 @@ function get_teams($filter = array('team_id' => NULL, 'gameset_id' => NULL)) {
   }
   return $teams;
 }
-function get_gamesets($filter = array('gameset_id' => NULL, 'gameset_name' => NULL)) {
+function get_gamesets($filter = array('gameset_id' => NULL, 'gameset_name' => NULL, 'gameset_sport' => NULL)) {
   if ( !is_null($filter['gameset_id']) ) {
     $query = "SELECT * from {pickem_gamesets} where gsid=%d order by gs_name";
     $result = db_query($query, $filter['gameset_id']);
@@ -374,6 +374,10 @@ function get_gamesets($filter = array('gameset_id' => NULL, 'gameset_name' => NU
   elseif ( !is_null($filter['gameset_name']) ) {
     $query = "SELECT * from {pickem_gamesets} where gs_name='%s' order by gs_name";
     $result = db_query($query, $filter['gameset_name']);
+  }
+  elseif ( !is_null($filter['gameset_sport']) ) {
+    $query = "SELECT * from {pickem_gamesets} where sport='%s' order by gs_name";
+    $result = db_query($query, $filter['gameset_sport']);
   }
   else {
     //all gamesets
@@ -388,7 +392,7 @@ function get_gamesets($filter = array('gameset_id' => NULL, 'gameset_name' => NU
   return $gamesets;
 }
 
-function get_games($filter=array('game_id' => NULL, 'week_id' => NULL, 'gameset_id' => NULL, 'team_id' => NULL, 'league_id' => NULL), $options=array('by_week' => 0, 'order_by' => 'week_past, g.gametime, g.gid') ) {
+function get_games($filter=array('game_id' => NULL, 'week_id' => NULL, 'gameset_id' => NULL, 'team_id' => NULL, 'league_id' => NULL, 'gameday' => NULL), $options=array('by_week' => 0, 'order_by' => 'week_past, g.gametime, g.gid') ) {
 
   $sql_where_list = array();
   if ( !is_null($filter['game_id'] ) ) {
@@ -406,6 +410,11 @@ function get_games($filter=array('game_id' => NULL, 'week_id' => NULL, 'gameset_
   if ( !is_null($filter['team_id'] ) ) {
     $sql_where_list[] = '(g.v_id='. $filter['team_id'] .' or g.h_id='. $filter['team_id'] .')';
   }
+  // NOTE: gameday is stored as a datetime to this is not an exactly equal clause.
+  if ( !is_null($filter['gameday'] ) ) {
+    $sql_where_list[] = "g.gametime between '". $filter['gameday'] . " 00:00' and '". $filter['gameday'] . " 23:59'";
+  }
+
   $order_by = 'week_past, g.gametime, g.gid';
   if ( !is_null($options['order_by']) ) {
     $order_by = $options['order_by'];

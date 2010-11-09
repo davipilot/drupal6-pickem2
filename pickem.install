@@ -53,6 +53,7 @@ function pickem_schema() {
     'fields' => array(
       'gsid'    => array('type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE),
       'gs_name' => array('type' => 'varchar', 'length' => 50, 'not null' => TRUE, 'default' => '', 'description' => t('The name of the gameset, "NCAA March Madness".'), ),
+      'sport'   => array('type' => 'varchar', 'length' => 32, 'not null' => TRUE, 'default' => ''),
     ),
     'primary key' => array('gsid')
   );
@@ -325,5 +326,11 @@ function pickem_update_6203() {
   db_add_field($ret, 'pickem_picks', 'pick_h_score', array('type' => 'int', 'unsigned' => TRUE));
   db_add_field($ret, 'pickem_picks', 'pick_v_score', array('type' => 'int', 'unsigned' => TRUE));
   db_add_field($ret, 'pickem_picks', 'confidence', array('type' => 'int', 'unsigned' => TRUE));
+  return $ret;
+}
+
+function pickem_update_6204() {
+  $ret = array();
+  db_add_field($ret, 'pickem_gamesets',  'sport', array('type' => 'varchar', 'length' => 32, 'not null' => TRUE, 'default' => ''));
   return $ret;
 }

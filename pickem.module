@@ -1185,3 +1185,58 @@ function user_select_form($form_state=NULL, $league=NULL, $title='Select User To
   );
   return $form;
 }
+
+
+/**
+ * Implementation of hook_action_info().
+ */
+function pickem_action_info() {
+  return array(
+    'pickem_update_scores_action' => array(
+      'description' => t('Update pickem module scores'),
+      'type' => 'pickem',
+      'configurable' => FALSE,
+      'hooks' => array(
+        'sports_scores' => array('game_score_final'),
+      ),
+    ),
+  );
+}
+
+
+/**
+ * Action to update scores.
+ *
+ * @param $game_arg
+ *   An array of game data.
+ * @param $context
+ *   Keyed array with context data.
+ *
+ * @ingroup actions
+ */
+function pickem_update_scores_action($game_arg, $context = array()) {
+  // Return if this is called by a different trigger and/or module.
+  if ( $context['hook'] != 'sports_scores' || $context['op'] != 'game_score_final' ) {
+    return;
+  }
+
+  $gamesets = get_gamesets(array('gameset_sport' => $context['sport']));
+  foreach ($gamesets as $gsid => $gameset_row) {
+    $teams = get_teams(array('gameset_id' => $gsid));
+    // Get all games from the same sport on the same day.
+    $games = get_games(array('gsid' => $gsid, 'gameday' => $game_arg['gamedate']));
+    foreach ($games as $gid => $game_row) {
+      // If the teams match
+      if ( $teams[$game_row->h_id]->tm_abbrev == $game_arg['home_team'] &&
+           $teams[$game_row->v_id]->tm_abbrev == $game_arg['visiting_team'] ) {
+
+        // If the scores are not yet saved
+        if ( !isset($game_row->v_score) || !isset($game_row->h_score) ) {
+          $query = "update {pickem_games} set h_score=%s, v_score=%s where gid=%d";
+          $result = db_query($query, $game_arg['home_score'], $game_arg['visiting_score'], $game_row->gid);
+          watchdog('action', 'Pickem score updated from sports scores module; '. $game_arg['home_team'] . ' ' . $game_arg['home_score'] . ', ' . $game_arg['visiting_team'] . ' ' . $game_arg['visiting_score']);
+        }
+      }
+    }
+  }
+}
