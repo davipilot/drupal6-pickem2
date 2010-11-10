@@ -1188,39 +1188,22 @@ function user_select_form($form_state=NULL, $league=NULL, $title='Select User To
 
 
 /**
- * Implementation of hook_action_info().
- */
-function pickem_action_info() {
-  return array(
-    'pickem_update_scores_action' => array(
-      'description' => t('Update pickem module scores'),
-      'type' => 'pickem',
-      'configurable' => FALSE,
-      'hooks' => array(
-        'sports_scores' => array('game_score_final'),
-      ),
-    ),
-  );
-}
-
-
-/**
- * Action to update scores.
+ * Implementation of hook_sports_scores().
  *
+ * @param $op
+ *   A string, either 'game_score_final' or 'game_score_update'.
  * @param $game_arg
- *   An array of game data.
- * @param $context
- *   Keyed array with context data.
- *
- * @ingroup actions
+ *   An array with game data..
+ * @param $sport
+ *   A string with 'NFL', 'NBA', etc.
  */
-function pickem_update_scores_action($game_arg, $context = array()) {
-  // Return if this is called by a different trigger and/or module.
-  if ( $context['hook'] != 'sports_scores' || $context['op'] != 'game_score_final' ) {
+function pickem_sports_scores($op, $game_arg, $sport) {
+  // We only support op = 'game_score_final'.
+  if ($op != 'game_score_final') {
     return;
   }
 
-  $gamesets = get_gamesets(array('gameset_sport' => $context['sport']));
+  $gamesets = get_gamesets(array('gameset_sport' => $sport));
   foreach ($gamesets as $gsid => $gameset_row) {
     $teams = get_teams(array('gameset_id' => $gsid));
     // Get all games from the same sport on the same day.
