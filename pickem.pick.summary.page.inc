@@ -119,6 +119,11 @@ function pick_summary_page($league, $week) {
           $user_form['picks'][$gid]['picked'] = $picks[$gid][$uid]->winnerpick_id;
         }
 
+        if ($picks[$gid][$uid]->pick_h_score + $picks[$gid][$uid]->pick_v_score > 1) {
+          $user_form['picks'][$gid]['pick_h_score'] = $picks[$gid][$uid]->pick_h_score;
+          $user_form['picks'][$gid]['pick_v_score'] = $picks[$gid][$uid]->pick_v_score;
+        }
+        
         if ( !isset($tot['weeks'][$week->wid]['games'][$gid]) ) {
           $user_form['picks'][$gid]['points'] = 0;
         }
@@ -188,11 +193,26 @@ function theme_pick_summary($theme_data) {
         }
         $col['class'] = $class;
 
-        if ( $class != 'not-played' && $theme_data['users'][$key]['picks'][$gid]['points'] >= 0 ) {
-          $col['data'] .= ": " . $theme_data['users'][$key]['picks'][$gid]['points'];
+      if ( $class != 'not-played') {
+        if (isset($theme_data['users'][$key]['picks'][$gid]['pick_v_score'])) {
+          $game = $theme_data['games'][$gid];
+          $pick = $theme_data['users'][$key]['picks'][$gid];
+          // Visting team short name
+          $col['data'] = $game['teams'][$game['v_id']]['short_name'] .' ';
+          // Visting team user's picked score
+          $col['data'] .= $pick['pick_v_score'];
+          $col['data'] .= '|';
+          // Home team short name
+          $col['data'] .= $game['teams'][$game['h_id']]['short_name'] .' ';
+          // Home team user's picked score
+          $col['data'] .= $pick['pick_h_score'];
+          $col['data'] .= '('. $pick['points'] .')';
         }
-
+        elseif ($theme_data['users'][$key]['picks'][$gid]['points'] >= 0 ) {
+          $col['data'] .= "(" . $theme_data['users'][$key]['picks'][$gid]['points'] .")";
+        }
         $cols[] = $col;
+      }
       }
 
       $i++;
