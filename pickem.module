@@ -1222,4 +1222,7 @@ function pickem_sports_scores($op, $game_arg, $sport) {
       }
     }
   }
+
+  // clear pickem_ caches, since you are updating scores.
+  cache_clear_all('pickem_', 'cache', TRUE);
 }
