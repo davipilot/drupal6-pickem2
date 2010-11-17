@@ -46,7 +46,7 @@ function theme_mypicks_all($league) {
     foreach ($weeks_games as $gid => $game) {
       // The first column should be the week number link.
       if ( count($cols) == 0 ) {
-        $cols[] = array('data' => l('Week '. $game->wk_number, "pickem/$league->lid/mypicks/" . $wid), 'class' => 'week');
+        $cols[] = array('data' => l('Week&nbsp;'. $game->wk_number, "pickem/$league->lid/mypicks/" . $wid, array('html' => TRUE)), 'class' => 'week');
       }
       $current_week .= '<div class="picks-float">' . $teams[$game->v_id]->short_name .'<br/>@'. $teams[$game->h_id]->short_name . '</div>';
     }
