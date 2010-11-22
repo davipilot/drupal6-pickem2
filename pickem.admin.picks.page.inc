@@ -102,8 +102,19 @@ function admin_picks_week_form(&$form_state=NULL, $league, $week, $account) {
     unset($form['games'][$gid]['pick']['#attributes']['disabled']);
   }
 
-  // Turn on the apply to all leagues button.
-  unset($form['apply_to_all_leagues']['#access']);
+  // If $account is entered in more than one league with the same scoring type,
+  // add a checkbox to apply these picks to related leagues.
+  $leagues = get_my_leagues($league->gsid, $account->uid);
+  $apply_to_leagues = array();
+  foreach ($leagues as $l) {
+    if ($l->scoring_type == $league->scoring_type) {
+      $apply_to_leagues[] = $l->name;
+    }
+  }
+
+  // Turn on the apply to all leagues button if needed.
+  $form['apply_to_all_leagues']['#access'] = count($apply_to_leagues) > 1;
+
   // Turn on the submit button.
   unset($form['submit']['#access']);
 
@@ -121,6 +132,7 @@ function theme_admin_picks_week_form($form) {
 
   $header = array();
   $header[] = t('Matchup');
+  $header[] = t('Status');
   $header[] = t('Time(%pickem-timezone)', array('%pickem-timezone' => $_PICKEM_TIMEZONE));
 
   $rows = array();
@@ -133,7 +145,7 @@ function theme_admin_picks_week_form($form) {
     else {
       $cols[] = drupal_render($form['games'][$gid]['pick_v_score']) . drupal_render($form['games'][$gid]['pick_h_score']);
     }
-
+    $cols[] = drupal_render($form['games'][$gid]['pick_status']);
     $cols[] = drupal_render($form['games'][$gid]['gametime']);
     $rows[] = $cols;
   }
@@ -170,7 +182,7 @@ function admin_picks_week_form_submit($form, &$form_state) {
       drupal_set_message("Saving picks for " . $l->name);
       foreach ($form_state['values']['games'] as $gid => $pick) {
         $pick['gid'] = $gid;
-        set_pick($account->uid, $l, $pick);
+        set_pick($account->uid, $l, $pick, 'admin');
       }
     }
   }

@@ -24,6 +24,8 @@ function pick_summary_page($league, $week) {
   $theme_data = array('games'=>array(), 'users'=>array());
   foreach ($games as $gid => $g_data) {
 
+    $theme_data['games'][$gid]['game_started'] = $g_data->game_started;
+
     // Save who is the home team and who is the visitor.
     $theme_data['games'][$gid]['h_id'] = $g_data->h_id;
     $theme_data['games'][$gid]['v_id'] = $g_data->v_id;
@@ -88,29 +90,11 @@ function pick_summary_page($league, $week) {
     // Loop collect picks and pick points.
     foreach ($theme_data['games'] as $gid => $game_info) {
 
-      // Week has not yet started, don't show picks or scores unless auth user is the pick user.
-      if ($week->week_past == 0) {
-        if ( isset($picks[$gid][$uid]->winnerpick_id) && $picks[$gid][$uid]->winnerpick_id != 0) {
-          if ( $uid == $user->uid ) {
-            // User is allowed to see their own picks, but not others.
-            $user_form['picks'][$gid]['picked'] = $picks[$gid][$uid]->winnerpick_id;
-          }
-          else {
-            // Use 0 to mean "you are not allowed to see this."
-            $user_form['picks'][$gid]['picked'] = 0;
-          }
-        }
-        else {
-          // Use a -1 to mean they haven't picked yet.
-          // It also might mean they are using another pick system which may
-          // use another field.
-          $user_form['picks'][$gid]['picked'] = -1;
-        }
-      }
+      // Check to see if user is allowed to see this game for other users.
+      if (($league->pick_lock == PICKEM_PICK_LOCK_WEEK && $week->week_past == 1) ||
+          ($league->pick_lock == PICKEM_PICK_LOCK_GAME && $game_info['game_started'] == 1)) {
 
-      // Week start has passed, go ahead and show picks and totals.
-      else {
-        // User is allowed to see all picks now.
+        // User is allowed to see picks now.
         // If they didn't pick at all, use a -1.
         if ($picks[$gid][$uid]->winnerpick_id == 0) {
           $user_form['picks'][$gid]['picked'] = -1;
@@ -129,6 +113,26 @@ function pick_summary_page($league, $week) {
         }
         else {
           $user_form['picks'][$gid]['points'] = $tot['weeks'][$week->wid]['games'][$gid];
+        }
+      }
+
+      // User is not allowed to see other user's picks.
+      else {
+        if ( isset($picks[$gid][$uid]->winnerpick_id) && $picks[$gid][$uid]->winnerpick_id != 0) {
+          if ( $uid == $user->uid ) {
+            // User is allowed to see their own picks, but not others.
+            $user_form['picks'][$gid]['picked'] = $picks[$gid][$uid]->winnerpick_id;
+          }
+          else {
+            // Use 0 to mean "you are not allowed to see this."
+            $user_form['picks'][$gid]['picked'] = 0;
+          }
+        }
+        else {
+          // Use a -1 to mean they haven't picked yet.
+          // It also might mean they are using another pick system which may
+          // use another field.
+          $user_form['picks'][$gid]['picked'] = -1;
         }
       }
     }

@@ -983,7 +983,7 @@ function pickem_league_edit(&$form_state, $type, $league) {
     $league->scoring_type = 0;
     $league->gsid = 0;
     $league->partial_league = 0;
-    $league->pick_lock = 0;
+    $league->pick_lock = PICKEM_PICK_LOCK_WEEK;
   }
   $league_forums_options = league_forums();
   $league_gameset_options = gameset_options();
@@ -1039,7 +1039,7 @@ function pickem_league_edit(&$form_state, $type, $league) {
   $form['league']['pick_lock'] = array(
     '#type' => 'radios',
     '#title' => t('Pick lockup'),
-    '#options' => array( 0 => t('Start of each week'), 1 => t('Start of each game') ),
+    '#options' => array( PICKEM_PICK_LOCK_WEEK => t('Start of each week'), PICKEM_PICK_LOCK_GAME => t('Start of each game') ),
     '#default_value' => $league->pick_lock,
     '#description' => t('When should the users no longer be able to change their picks.'),
   );
