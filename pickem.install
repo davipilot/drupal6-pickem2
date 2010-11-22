@@ -45,6 +45,7 @@ function pickem_schema() {
       'scoring_type'   => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
       'gsid'           => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
       'partial_league' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
+      'pick_lock'      => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
     ),
     'primary key' => array('lid')
   );
@@ -332,5 +333,13 @@ function pickem_update_6203() {
 function pickem_update_6204() {
   $ret = array();
   db_add_field($ret, 'pickem_gamesets',  'sport', array('type' => 'varchar', 'length' => 32, 'not null' => TRUE, 'default' => ''));
+  return $ret;
+}
+
+
+// Add the pick_lock field to the pickem_leagues table.
+function pickem_update_6205() {
+  $ret = array();
+  db_add_field($ret, 'pickem_leagues',  'pick_lock', array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0) );
   return $ret;
 }
