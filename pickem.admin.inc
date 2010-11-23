@@ -715,7 +715,13 @@ function pickem_games_list(&$form_state=NULL, $week) {
       $home_team = $teams[$game->h_id]->short_name;
       $vis_team = $teams[$game->v_id]->short_name;
     }
-    $matchup = "$vis_team @ $home_team (". $game->gametime .")";
+
+    if ($game->neutral_venue == 1) {
+      $matchup = "$vis_team vs $home_team (". $game->gametime .")";
+    }
+    else {
+      $matchup = "$vis_team @ $home_team (". $game->gametime .")";
+    }
 
     $form['games'][] = array(
       'matchup' => array(
@@ -745,6 +751,7 @@ function pickem_game_edit(&$form_state, $type, $week, $game) {
     $game->v_spread = '';
     $game->h_score = '';
     $game->v_score = '';
+    $game->neutral_venue = 0;
   }
 
   $teams = get_teams(array(gameset_id => $week->gsid));
@@ -819,6 +826,13 @@ function pickem_game_edit(&$form_state, $type, $week, $game) {
     '#maxlength' => 10,
     '#default_value' => $game->h_score,
   );
+  $form['game']['neutral_venue'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Neutral venue'),
+    '#return_value' => 1,
+    '#default_value' => $game->neutral_venue,
+    '#description' => t("Is the game taking place at a neutral venue?"),
+  );
 
   $form['submit'] = array('#type' => 'submit', '#value' => t('Save'));
 
@@ -849,8 +863,8 @@ function pickem_game_edit_submit($form, &$form_state) {
     $game['v_score'] = $game['v_score'] == '' ? 'NULL' : (int) $game['v_score'];
     $game['h_score'] = $game['h_score'] == '' ? 'NULL' : (int) $game['h_score'];
 
-    $query = "insert into {pickem_games}(wid, gametime, h_id, h_spread, v_id, v_spread, h_score, v_score) values(%d, '%s', %d, %d, %d, %d, %s, %s)";
-    $result = db_query($query, $game['wid'], date($game['game_time']), $game['home_team'], $game['h_spread'], $game['visitor_team'], $game['v_spread'], $game['h_score'], $game['v_score']);
+    $query = "insert into {pickem_games}(wid, gametime, h_id, h_spread, v_id, v_spread, h_score, v_score, neutral_venue) values(%d, '%s', %d, %d, %d, %d, %s, %s, %d)";
+    $result = db_query($query, $game['wid'], date($game['game_time']), $game['home_team'], $game['h_spread'], $game['visitor_team'], $game['v_spread'], $game['h_score'], $game['v_score'], $game['neutral_venue']);
 
     $t_string = t('Added game id %game-id.', array('%game-id' => db_last_insert_id('pickem_games', 'gid')));
     drupal_set_message($t_string);
@@ -863,8 +877,8 @@ function pickem_game_edit_submit($form, &$form_state) {
     $game['v_score'] = $game['v_score'] == '' ? 'NULL' : (int) $game['v_score'];
     $game['h_score'] = $game['h_score'] == '' ? 'NULL' : (int) $game['h_score'];
 
-    $query = "update {pickem_games} set wid=%d, gametime='%s', h_id=%d, h_spread=%d, v_id=%d, v_spread=%d, h_score=%s, v_score=%s where gid=%d";
-    $result = db_query($query, $game['wid'], date($game['game_time']), $game['home_team'], $game['h_spread'], $game['visitor_team'], $game['v_spread'], $game['h_score'], $game['v_score'], $game['gid']);
+    $query = "update {pickem_games} set wid=%d, gametime='%s', h_id=%d, h_spread=%d, v_id=%d, v_spread=%d, h_score=%s, v_score=%s, neutral_venue=%d where gid=%d";
+    $result = db_query($query, $game['wid'], date($game['game_time']), $game['home_team'], $game['h_spread'], $game['visitor_team'], $game['v_spread'], $game['h_score'], $game['v_score'], $game['neutral_venue'], $game['gid']);
 
     $t_string = t('Updated game id %game-id.', array('%game-id' => $game['gid']));
     drupal_set_message($t_string);

@@ -24,6 +24,14 @@ function pick_summary_page($league, $week) {
   $theme_data = array('games'=>array(), 'users'=>array());
   foreach ($games as $gid => $g_data) {
 
+    # Figure out the matchup operator.
+    if ($g_data->neutral_venue == 1) {
+      $matchup = "<br/>vs<br/>";
+    }
+    else {
+      $matchup = "<br/>@<br/>";
+    }
+
     // Save who is the home team and who is the visitor.
     $theme_data['games'][$gid]['h_id'] = $g_data->h_id;
     $theme_data['games'][$gid]['v_id'] = $g_data->v_id;
@@ -42,14 +50,12 @@ function pick_summary_page($league, $week) {
 
     // Load-up the game titles.
     $theme_data['games'][$gid]['short_game_title'] =
-      $theme_data['games'][$gid]['teams'][$g_data->v_id]['short_name'] .
-      ' @ ' .
-      $theme_data['games'][$gid]['teams'][$g_data->h_id]['short_name'];
+      $theme_data['games'][$gid]['teams'][$g_data->v_id]['short_name'] . $matchup .
+        $theme_data['games'][$gid]['teams'][$g_data->h_id]['short_name'];
 
     $theme_data['games'][$gid]['long_game_title'] =
-      $theme_data['games'][$gid]['teams'][$g_data->v_id]['long_name'] .
-      ' @ ' .
-      $theme_data['games'][$gid]['teams'][$g_data->h_id]['long_name'];
+      $theme_data['games'][$gid]['teams'][$g_data->v_id]['long_name'] . $matchup .
+        $theme_data['games'][$gid]['teams'][$g_data->h_id]['long_name'];
 
 
 
@@ -157,8 +163,8 @@ function theme_pick_summary($theme_data) {
   $i = 0;
   foreach ($theme_data['games'] as $gid => $game_info) {
     if ( $i >= $page * $items_per_page && $i < ($page+1) * $items_per_page ) {
-      $short_game_title = str_replace(" @ ", "<br/>@<br/>", $theme_data['games'][$gid]['short_game_title']);
-      $header[] = array('data' => $short_game_title, 'title' => $theme_data['games'][$gid]['long_game_title']);
+      $long_game_title = str_replace("<br/>", " ", $theme_data['games'][$gid]['long_game_title']);
+      $header[] = array('data' => $theme_data['games'][$gid]['short_game_title'], 'title' => $long_game_title);
     }
     $i++;
   }
