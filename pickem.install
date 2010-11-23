@@ -84,7 +84,8 @@ function pickem_schema() {
       'v_spread'  => array('type' => 'numeric', 'precision' => 10, 'scale' => 1, 'default' => 0),
       'h_score'   => array('type' => 'int',    'unsigned' => TRUE),
       'v_score'   => array('type' => 'int',    'unsigned' => TRUE),
-      'winner_id' => array('type' => 'int',    'unsigned' => TRUE)
+      'winner_id' => array('type' => 'int',    'unsigned' => TRUE),
+      'neutral_venue' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
     ),
     'primary key' => array('gid')
   );
@@ -332,5 +333,13 @@ function pickem_update_6203() {
 function pickem_update_6204() {
   $ret = array();
   db_add_field($ret, 'pickem_gamesets',  'sport', array('type' => 'varchar', 'length' => 32, 'not null' => TRUE, 'default' => ''));
+  return $ret;
+}
+
+
+// Add the neutral_venu field to the pickem_games table.
+function pickem_update_6206() {
+  $ret = array();
+  db_add_field($ret, 'pickem_games',  'neutral_venue', array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0) );
   return $ret;
 }

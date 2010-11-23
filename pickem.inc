@@ -1032,14 +1032,22 @@ function build_picks_week_form($form_state=NULL, $league, $week, $account) {
       '#value' => $game->h_id
     );
 
+    # Figure out the matchup operator.
+    if ($game->neutral_venue == 1) {
+      $matchup = "vs";
+    }
+    else {
+      $matchup = "@";
+    }
+    
     // Build-up the team labels.
     if ( variable_get('pickem_prefer_long_team_names', 0) == 0 ) {
       $v_team_label = $teams[$game->v_id]->small_logo_img . $teams[$game->v_id]->short_name;
-      $h_team_label = $teams[$game->h_id]->small_logo_img . $teams[$game->h_id]->short_name;
+      $h_team_label = $teams[$game->h_id]->small_logo_img . $matchup . ' ' . $teams[$game->h_id]->short_name;
     }
     else {
       $v_team_label = $teams[$game->v_id]->small_logo_img . $teams[$game->v_id]->long_name;
-      $h_team_label = $teams[$game->h_id]->small_logo_img . $teams[$game->h_id]->long_name;
+      $h_team_label = $teams[$game->h_id]->small_logo_img . $matchup . ' ' . $teams[$game->h_id]->long_name;
     }
     if ( $league->scoring_engine['features']['with_spread'] == 1 ) {
       $v_team_label .= '&nbsp;&nbsp;' . ($game->v_spread>0?'+'.$game->v_spread:$game->v_spread);
