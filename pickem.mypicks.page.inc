@@ -82,6 +82,7 @@ function theme_mypicks_week_form($form) {
 
   $header = array();
   $header[] = t('Matchup');
+  $header[] = t('Status');
   $header[] = t('Time(%pickem-timezone)', array('%pickem-timezone' => $_PICKEM_TIMEZONE));
 
   $rows = array();
@@ -97,6 +98,8 @@ function theme_mypicks_week_form($form) {
     else {
       $cols[] = drupal_render($form['games'][$gid]['pick_v_score']) . drupal_render($form['games'][$gid]['pick_h_score']);
     }
+
+    $cols[] = drupal_render($form['games'][$gid]['pick_status']);
 
     $cols[] = drupal_render($form['games'][$gid]['gametime']);
     $rows[] = $cols;
@@ -116,7 +119,7 @@ function mypicks_week_form_submit($form, &$form_state) {
   $week = $form['#parameters'][3];
 
   // You should not be able to save picks after lockup.
-  if ($week->week_past == 1) {
+  if ($league->pick_lock == PICKEM_PICK_LOCK_WEEK && $week->week_past == 1) {
     drupal_set_title($week->wk_name .' picks are locked.');
     print theme('page', "You cannot change your picks now.");
     return;
@@ -137,7 +140,7 @@ function mypicks_week_form_submit($form, &$form_state) {
       drupal_set_message("Saving picks for " . $l->name);
       foreach ($form_state['values']['games'] as $gid => $pick) {
         $pick['gid'] = $gid;
-        set_pick($user->uid, $l, $pick);
+        set_pick($user->uid, $l, $pick, 'user');
       }
     }
   }

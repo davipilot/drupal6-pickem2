@@ -997,6 +997,7 @@ function pickem_league_edit(&$form_state, $type, $league) {
     $league->scoring_type = 0;
     $league->gsid = 0;
     $league->partial_league = 0;
+    $league->pick_lock = PICKEM_PICK_LOCK_WEEK;
   }
   $league_forums_options = league_forums();
   $league_gameset_options = gameset_options();
@@ -1049,6 +1050,13 @@ function pickem_league_edit(&$form_state, $type, $league) {
     '#default_value' => $league->partial_league,
     '#description' => t("If you don't pick every game for every team, use this setting.  It will disable the screens that compare team's records (which will be incorrect for cherry-picked leagues.)"),
   );
+  $form['league']['pick_lock'] = array(
+    '#type' => 'radios',
+    '#title' => t('Pick lockup'),
+    '#options' => array( PICKEM_PICK_LOCK_WEEK => t('Start of each week'), PICKEM_PICK_LOCK_GAME => t('Start of each game') ),
+    '#default_value' => $league->pick_lock,
+    '#description' => t('When should the users no longer be able to change their picks.'),
+  );
 
   $form['submit'] = array('#type' => 'submit', '#value' => t('Save'));
 
@@ -1063,16 +1071,16 @@ function pickem_league_edit_submit($form, &$form_state) {
   cache_clear_all('pickem_', 'cache', TRUE);
 
   if ( $league['lid'] == 0 ) {
-    $query = "insert into {pickem_leagues} (name, rules_node_id, forum_id, scoring_type, gsid, partial_league) values('%s', %d, %d, %d, %d, %d)";
-    $result = db_query($query, $league['name'], $league['rules_node_id'], $league['forum_id'], $league['scoring_type'], $league['gsid'], $league['partial_league']);
+    $query = "insert into {pickem_leagues} (name, rules_node_id, forum_id, scoring_type, gsid, partial_league, pick_lock) values('%s', %d, %d, %d, %d, %d, %d)";
+    $result = db_query($query, $league['name'], $league['rules_node_id'], $league['forum_id'], $league['scoring_type'], $league['gsid'], $league['partial_league'], $league['pick_lock']);
 
     $t_string = t('Added league %league-name.', array('%league-name' => $league['name']));
     drupal_set_message($t_string);
     watchdog('pickem', $t_string, NULL, WATCHDOG_NOTICE);
   }
   else {
-    $query = "update {pickem_leagues} set name='%s', rules_node_id=%d, forum_id=%d, scoring_type=%d, gsid=%d, partial_league=%d where lid=%d";
-    $result = db_query($query, $league['name'], $league['rules_node_id'], $league['forum_id'], $league['scoring_type'], $league['gsid'], $league['partial_league'], $league['lid']);
+    $query = "update {pickem_leagues} set name='%s', rules_node_id=%d, forum_id=%d, scoring_type=%d, gsid=%d, partial_league=%d, pick_lock=%d where lid=%d";
+    $result = db_query($query, $league['name'], $league['rules_node_id'], $league['forum_id'], $league['scoring_type'], $league['gsid'], $league['partial_league'], $league['pick_lock'], $league['lid']);
 
     $t_string = t('Updated league %league-name.', array('%league-name' => $league['name']));
     drupal_set_message($t_string);

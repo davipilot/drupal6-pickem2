@@ -27,6 +27,10 @@ else {
 global $_PICKEM_MY_LEAGUES;
 $_PICKEM_MY_LEAGUES = array();
 
+// Define pick_lock constants
+define('PICKEM_PICK_LOCK_WEEK', 0);
+define('PICKEM_PICK_LOCK_GAME', 1);
+
 // Configure scoring engines.
 define('PICKEM_TYPE_WIN_LOSS', 0);
 define('PICKEM_TYPE_SPREAD', 1);

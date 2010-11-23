@@ -430,10 +430,10 @@ function get_games($filter=array('game_id' => NULL, 'week_id' => NULL, 'gameset_
   $mysqltime = date("Y-m-d H:i:s");
 
   if ( is_null($filter['league_id'] ) ) {
-    $query = "SELECT g.*, case when '$mysqltime' > pw.wk_firstgame then 1 else 0 end as 'week_past', case when '$mysqltime' > date_add(pw.wk_firstgame, INTERVAL 7 DAY) then 1 else 0 end as 'week_over', pw.wk_firstgame, pw.wk_number FROM {pickem_games} g INNER JOIN {pickem_weeks} pw ON pw.wid=g.wid  ". $sql_where ." ORDER BY $order_by";
+    $query = "SELECT g.*, case when '$mysqltime' > g.gametime then 1 else 0 end as 'game_started', case when '$mysqltime' > pw.wk_firstgame then 1 else 0 end as 'week_past', case when '$mysqltime' > date_add(pw.wk_firstgame, INTERVAL 7 DAY) then 1 else 0 end as 'week_over', pw.wk_firstgame, pw.wk_number FROM {pickem_games} g INNER JOIN {pickem_weeks} pw ON pw.wid=g.wid  ". $sql_where ." ORDER BY $order_by";
   }
   else {
-    $query = "SELECT g.*, case when '$mysqltime' > pw.wk_firstgame then 1 else 0 end as 'week_past', case when '$mysqltime' > date_add(pw.wk_firstgame, INTERVAL 7 DAY) then 1 else 0 end as 'week_over', pw.wk_firstgame, pw.wk_number FROM {pickem_games} g INNER JOIN {pickem_weeks} pw ON pw.wid=g.wid inner join {pickem_leagues} l on l.gsid=pw.gsid ". $sql_where ." ORDER BY $order_by";
+    $query = "SELECT g.*, case when '$mysqltime' > g.gametime then 1 else 0 end as 'game_started', case when '$mysqltime' > pw.wk_firstgame then 1 else 0 end as 'week_past', case when '$mysqltime' > date_add(pw.wk_firstgame, INTERVAL 7 DAY) then 1 else 0 end as 'week_over', pw.wk_firstgame, pw.wk_number FROM {pickem_games} g INNER JOIN {pickem_weeks} pw ON pw.wid=g.wid inner join {pickem_leagues} l on l.gsid=pw.gsid ". $sql_where ." ORDER BY $order_by";
   }
 
   $result = db_query($query);
@@ -480,7 +480,15 @@ function get_picks($filter = array('league_id' => NULL, 'user_id' => NULL, 'week
 
   return $picks;
 }
-function set_pick($user_id, $league, $pick) {
+function set_pick($user_id, $league, $pick, $context) {
+
+  // If this comes from the user pick screen, check to see if the game has already started.
+  if ($context == 'user') {
+    $game = game_load($pick['gid']);
+    if ($game->game_started == 1) {
+      return;
+    }
+  }
 
   // Figure out if we need to insert or update.
   $query = 'select count(*) as pickcount from {pickem_picks} where gid=%d and uid=%d and lid=%d';
@@ -1020,7 +1028,17 @@ function build_picks_week_form($form_state=NULL, $league, $week, $account) {
   $form['games'] = array('#tree' => TRUE);
   $last = count($games);
   $count = 0;
+
+  $any_pickable_games = FALSE;
+  if ($league->pick_lock == PICKEM_PICK_LOCK_WEEK && $week->week_past == 0) {
+    $any_pickable_games = TRUE;
+  }
+
   foreach ($games as $gid => $game) {
+
+    if ($league->pick_lock == PICKEM_PICK_LOCK_GAME && $game->game_started == 0) {
+      $any_pickable_games = TRUE;
+    }
 
     $count++;
     $form['games'][$gid]['v_id'] = array(
@@ -1073,8 +1091,9 @@ function build_picks_week_form($form_state=NULL, $league, $week, $account) {
         '#suffix' => '</div>'
       );
 
-      // Disabled the input boxes if the week has past.
-      if ( $week->week_past == 1 ) {
+      // Disable the input boxes depending on league pick_lock setting.
+      if (($league->pick_lock == PICKEM_PICK_LOCK_WEEK && $week->week_past == 1) ||
+          ($league->pick_lock == PICKEM_PICK_LOCK_GAME && $game->game_started == 1)) {
         $form['games'][$gid]['pick_v_score']['#attributes']['readonly'] = 'readonly';
         $form['games'][$gid]['pick_v_score']['#attributes']['disabled'] = 'disabled';
         $form['games'][$gid]['pick_h_score']['#attributes']['readonly'] = 'readonly';
@@ -1090,13 +1109,28 @@ function build_picks_week_form($form_state=NULL, $league, $week, $account) {
         '#options' => array($game->v_id=>$v_team_label, $game->h_id=>$h_team_label)
       );
 
-      // Disabled the radio boxes if the week has past.
-      if ( $week->week_past == 1 ) {
+      // Disable the radio boxes depending on league pick_lock setting.
+      if (($league->pick_lock == PICKEM_PICK_LOCK_WEEK && $week->week_past == 1) ||
+          ($league->pick_lock == PICKEM_PICK_LOCK_GAME && $game->game_started == 1)) {
         $form['games'][$gid]['pick']['#attributes']['readonly'] = 'readonly';
         $form['games'][$gid]['pick']['#attributes']['disabled'] = 'disabled';
       }
 
     }
+
+    if (($league->pick_lock == PICKEM_PICK_LOCK_WEEK && $week->week_past == 1) ||
+        ($league->pick_lock == PICKEM_PICK_LOCK_GAME && $game->game_started == 1)) {
+      $form['games'][$gid]['pick_status'] = array(
+        '#value' => t('Locked')
+      );
+    }
+    else {
+      $form['games'][$gid]['pick_status'] = array(
+        '#value' => t('Pick')
+      );
+    }
+
+
     $unix_game_time = strtotime($game->gametime);
     $form['games'][$gid]['gametime'] = array(
       '#value' => format_date($unix_game_time, 'medium', '', date('Z', $unix_game_time) )
@@ -1113,19 +1147,19 @@ function build_picks_week_form($form_state=NULL, $league, $week, $account) {
     }
   }
 
+  // Add all leagues checkbox if the user belongs to any other league with the same gameset and scoring type.
   $form['apply_to_all_leagues'] = array(
     '#type' => 'checkbox',
-    '#access' => ($week->week_past == 0 && count($apply_to_leagues) > 1),
+    '#access' => ($any_pickable_games && count($apply_to_leagues) > 1),
     '#title' => t('Apply picks to all leagues that use the same game set and scoring system.'),
     '#description' => implode(', ', $apply_to_leagues),
     '#default_value' => 0
   );
 
-
   // Add the submit button.
   $form['submit'] = array(
     '#type' => 'submit',
-    '#access' => ($week->week_past == 0),
+    '#access' => $any_pickable_games,
     '#value' => t('Save Picks'),
     '#weight' => 5
   );
