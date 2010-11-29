@@ -46,7 +46,7 @@ function pickem_settings(&$form_state=NULL) {
   );
 
 
-  $timezones = array(''=>t('Choose a timezone'));
+  $timezones = array(''=>t('Choose a time zone'));
   // dump this conditional for drupal 7, timezone_identifiers_list(PHP 5 >= 5.1.0)
   if(function_exists('timezone_identifiers_list')) {
     $zones = timezone_identifiers_list();
